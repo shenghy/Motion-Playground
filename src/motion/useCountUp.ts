@@ -3,13 +3,10 @@ import { useReducedMotion } from 'motion/react'
 
 export function useCountUp(target: number, duration: number, decimals = 0) {
   const reduceMotion = useReducedMotion()
-  const [value, setValue] = useState(reduceMotion ? target : 0)
+  const [value, setValue] = useState(0)
 
   useEffect(() => {
-    if (reduceMotion) {
-      setValue(target)
-      return
-    }
+    if (reduceMotion) return
 
     let frame = 0
     const startedAt = performance.now()
@@ -26,5 +23,5 @@ export function useCountUp(target: number, duration: number, decimals = 0) {
     return () => cancelAnimationFrame(frame)
   }, [duration, reduceMotion, target])
 
-  return value.toFixed(decimals)
+  return (reduceMotion ? target : value).toFixed(decimals)
 }

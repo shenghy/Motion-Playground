@@ -27,7 +27,11 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
         transition={{ duration: reduceMotion ? 0 : params.duration, times: [0, 0.45, 1], ease }}
       />
 
-      <div className="metric-focus__frame">
+      <div
+        className="metric-focus__frame"
+        data-testid="metric-primary"
+        data-zone="left-primary"
+      >
         <i className="corner corner--tl" />
         <i className="corner corner--tr" />
         <i className="corner corner--bl" />
@@ -62,7 +66,6 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
           transition={transition(0.42)}
         >
           <span>{params.description || 'NO DESCRIPTION'}</span>
-          <span className="metric-focus__trend">{params.trend || '—'}</span>
         </motion.div>
 
         <motion.div
@@ -75,6 +78,20 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
           {Array.from({ length: 17 }, (_, index) => <i key={index} />)}
         </motion.div>
       </div>
+
+      <motion.aside
+        className="metric-focus__secondary"
+        data-testid="metric-secondary"
+        data-zone="right-secondary"
+        initial={{ opacity: 0, x: 34 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={transition(0.5)}
+      >
+        <span>DELTA / LIVE</span>
+        <strong>{params.trend || '—'}</strong>
+        <i aria-hidden="true" />
+        <small>SIGNAL<br />LOCKED</small>
+      </motion.aside>
     </div>
   )
 }

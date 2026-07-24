@@ -21,5 +21,13 @@ describe('MetricFocus', () => {
     expect(screen.getByLabelText('核心指标 +248%')).toBeInTheDocument()
     expect(screen.getByText('同比增长')).toBeInTheDocument()
     expect(screen.getByText('↑ 32.4 PT')).toBeInTheDocument()
+    expect(screen.getByTestId('metric-primary')).toHaveAttribute(
+      'data-zone',
+      'left-primary',
+    )
+    expect(screen.getByTestId('metric-secondary')).toHaveAttribute(
+      'data-zone',
+      'right-secondary',
+    )
   })
 })

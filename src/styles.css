@@ -747,21 +747,20 @@ a:focus-visible {
   font-size: .62cqw;
 }
 
-.metric-focus {
-  display: grid;
-  place-items: center;
-}
-
 .metric-focus__frame {
-  width: 70cqw;
-  min-height: 33cqw;
-  position: relative;
+  position: absolute;
+  left: 4%;
+  top: 16%;
+  bottom: 14%;
+  width: 31%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  border-top: 1px solid #2e3033;
-  border-bottom: 1px solid #2e3033;
+  padding: 3.2cqw 2.6cqw;
+  border: 1px solid rgba(225, 226, 220, .42);
+  background: rgba(5, 6, 7, .72);
+  backdrop-filter: blur(2px);
 }
 
 .corner {
@@ -779,44 +778,47 @@ a:focus-visible {
 .metric-focus__scan {
   position: absolute;
   z-index: 1;
-  width: 84cqw;
+  left: 4%;
+  top: 51%;
+  width: 31%;
   height: 1px;
   background: #d9dad5;
   box-shadow: 0 0 14px rgba(255,255,255,.18);
+  transform-origin: left;
 }
 
 .metric-focus__value {
   display: flex;
   align-items: flex-start;
-  margin: 2.3cqw 0 1.4cqw;
+  margin: 2.3cqw 0 1.6cqw;
   font-family: var(--display);
   line-height: .78;
   letter-spacing: -.08em;
 }
 
 .metric-focus__number {
-  font-size: 14.5cqw;
+  font-size: 8.4cqw;
   font-weight: 640;
 }
 
 .metric-focus__prefix {
-  margin: 1cqw .5cqw 0 0;
-  font-size: 3.4cqw;
+  margin: .6cqw .35cqw 0 0;
+  font-size: 2.1cqw;
   color: #9da09e;
 }
 
 .metric-focus__suffix {
-  margin: 1.5cqw 0 0 .6cqw;
-  font-size: 3.2cqw;
+  margin: .85cqw 0 0 .35cqw;
+  font-size: 2cqw;
   color: #9da09e;
   letter-spacing: -.04em;
 }
 
 .metric-focus__meta {
-  width: 35cqw;
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding-top: 1.2cqw;
   border-top: 1px solid #44474a;
   color: #8c9091;
@@ -829,7 +831,7 @@ a:focus-visible {
 }
 
 .metric-focus__ticks {
-  width: 34cqw;
+  width: 100%;
   display: flex;
   justify-content: space-between;
   margin-top: 1.8cqw;
@@ -844,6 +846,43 @@ a:focus-visible {
 .metric-focus__ticks i:nth-child(4n + 1) {
   height: 1cqw;
   background: #a0a3a2;
+}
+
+.metric-focus__secondary {
+  position: absolute;
+  right: 3%;
+  top: 29%;
+  width: 10%;
+  min-height: 29%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5cqw .9cqw;
+  border-top: 1px solid rgba(235, 236, 230, .64);
+  border-bottom: 1px solid rgba(235, 236, 230, .3);
+  color: #e5e6e0;
+  background: rgba(5, 6, 7, .68);
+}
+
+.metric-focus__secondary > span,
+.metric-focus__secondary small {
+  color: #858a89;
+  font-size: .54cqw;
+  letter-spacing: .12em;
+}
+
+.metric-focus__secondary strong {
+  margin: 1.2cqw 0 .9cqw;
+  font: 500 1.15cqw/1.35 var(--mono);
+  color: var(--signal);
+  overflow-wrap: anywhere;
+}
+
+.metric-focus__secondary > i {
+  width: 100%;
+  height: 1px;
+  margin-bottom: .8cqw;
+  background: rgba(255,255,255,.28);
 }
 
 .compare-split {

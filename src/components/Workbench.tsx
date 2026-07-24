@@ -15,6 +15,7 @@ const createInitialParameters = () => {
 
 export function Workbench() {
   const [activeId, setActiveId] = useState<MotionId>('metric-focus')
+  const [showSafeArea, setShowSafeArea] = useState(true)
   const [parameters, setParameters] = useState(createInitialParameters)
   const [playbackKeys, setPlaybackKeys] = useState<Record<MotionId, number>>({
     'metric-focus': 0,
@@ -81,6 +82,7 @@ export function Workbench() {
           motionName={activeDefinition.name}
           params={activeParameters}
           playbackKey={playbackKeys[activeId]}
+          showSafeArea={showSafeArea}
         />
         <ParameterPanel
           controls={activeDefinition.controls}
@@ -88,6 +90,8 @@ export function Workbench() {
           onChange={updateParameter}
           onReset={resetParameters}
           onReplay={replay}
+          showSafeArea={showSafeArea}
+          onToggleSafeArea={() => setShowSafeArea((visible) => !visible)}
         />
       </div>
     </div>

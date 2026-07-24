@@ -14,6 +14,7 @@ interface PreviewStageProps {
   motionName: string
   params: ParameterValues
   playbackKey: number
+  showSafeArea: boolean
 }
 
 function renderMotion(id: MotionId, params: ParameterValues) {
@@ -32,6 +33,7 @@ export function PreviewStage({
   motionName,
   params,
   playbackKey,
+  showSafeArea,
 }: PreviewStageProps) {
   return (
     <main className="preview-stage">
@@ -59,12 +61,24 @@ export function PreviewStage({
           data-testid="preview-stage"
           data-playback-key={playbackKey}
         >
+          <img
+            className="presenter-background"
+            src="/reference-standing.png"
+            alt="口播人物参考背景"
+          />
           <div className="motion-slot" key={`${motionId}-${playbackKey}`}>
             {renderMotion(motionId, params)}
           </div>
-          <div className="safe-area" aria-hidden="true">
-            <i /><i /><i /><i />
-          </div>
+          {showSafeArea && (
+            <div
+              className="presenter-safe-area"
+              data-testid="presenter-safe-area"
+              aria-hidden="true"
+            >
+              <span>PERSON / SAFE AREA</span>
+              <i /><i /><i /><i />
+            </div>
+          )}
         </div>
       </div>
 

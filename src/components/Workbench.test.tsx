@@ -34,4 +34,20 @@ describe('Workbench', () => {
     fireEvent.click(screen.getByRole('button', { name: '恢复默认' }))
     expect(screen.getByLabelText('核心指标 +248%')).toBeInTheDocument()
   })
+
+  it('shows the presenter background and lets the safety guide be hidden', () => {
+    render(<Workbench />)
+
+    expect(
+      screen.getByRole('img', { name: '口播人物参考背景' }),
+    ).toHaveAttribute('src', '/reference-standing.png')
+    expect(screen.getByTestId('presenter-safe-area')).toBeInTheDocument()
+
+    const toggle = screen.getByRole('switch', { name: '显示人物安全区' })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(toggle)
+
+    expect(screen.queryByTestId('presenter-safe-area')).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '口播人物参考背景' })).toBeInTheDocument()
+  })
 })

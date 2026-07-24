@@ -6,6 +6,8 @@ interface ParameterPanelProps {
   onChange: (key: string, value: ParameterValue) => void
   onReset: () => void
   onReplay: () => void
+  showSafeArea?: boolean
+  onToggleSafeArea?: () => void
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -17,6 +19,8 @@ export function ParameterPanel({
   onChange,
   onReset,
   onReplay,
+  showSafeArea = true,
+  onToggleSafeArea,
 }: ParameterPanelProps) {
   return (
     <aside className="parameter-panel" aria-label="动效参数">
@@ -29,6 +33,24 @@ export function ParameterPanel({
       </div>
 
       <div className="control-list">
+        {onToggleSafeArea && (
+          <div className="preview-setting">
+            <div>
+              <span>舞台辅助</span>
+              <small>仅用于预览，不属于动效内容</small>
+            </div>
+            <button
+              className="switch"
+              type="button"
+              role="switch"
+              aria-label="显示人物安全区"
+              aria-checked={showSafeArea}
+              onClick={onToggleSafeArea}
+            >
+              <i />
+            </button>
+          </div>
+        )}
         {controls.map((control) => {
           const value = values[control.key]
 

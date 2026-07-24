@@ -101,10 +101,10 @@ export function ParameterPanel({
 
       <div className="panel-actions">
         <button className="button button--secondary" type="button" onClick={onReset}>
-          <span>↺</span> 恢复默认
+          <span aria-hidden="true">↺</span> 恢复默认
         </button>
         <button className="button button--primary" type="button" onClick={onReplay}>
-          <span>▶</span> 重新播放
+          <span aria-hidden="true">▶</span> 重新播放
         </button>
       </div>
     </aside>

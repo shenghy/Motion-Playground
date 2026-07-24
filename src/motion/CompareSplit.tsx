@@ -1,0 +1,108 @@
+import { motion, useReducedMotion } from 'motion/react'
+import type { CSSProperties } from 'react'
+import type { CompareSplitParams, MotionComponentProps } from './types'
+import { useCountUp } from './useCountUp'
+
+const ease = [0.22, 1, 0.36, 1] as const
+
+export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams>) {
+  const reduceMotion = useReducedMotion()
+  const leftValue = useCountUp(params.leftValue, params.duration, 0)
+  const rightValue = useCountUp(params.rightValue, params.duration, 0)
+  const duration = reduceMotion ? 0 : params.duration * 0.45
+  const split = Math.min(68, Math.max(32, params.split))
+
+  return (
+    <div
+      className="motion-canvas compare-split"
+      style={{ '--split-position': `${split}%` } as CSSProperties}
+    >
+      <div className="canvas-grid" aria-hidden="true" />
+      <motion.header
+        className="compare-split__header"
+        initial={{ opacity: 0, y: -24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration, delay: reduceMotion ? 0 : 0.12, ease }}
+      >
+        <span>02 / COMPARATIVE STUDY</span>
+        <h2>{params.title || 'UNTITLED COMPARISON'}</h2>
+        <span>DUAL SIGNAL</span>
+      </motion.header>
+
+      <motion.div
+        className="compare-split__divider"
+        aria-hidden="true"
+        initial={{ scaleY: 0 }}
+        animate={{ scaleY: 1 }}
+        transition={{ duration: reduceMotion ? 0 : params.duration * 0.6, ease }}
+      >
+        <i />
+        <span>VS</span>
+        <i />
+      </motion.div>
+
+      <div className="compare-split__panels">
+        <motion.section
+          className="compare-panel compare-panel--left"
+          data-testid="compare-left"
+          data-emphasized={params.emphasis === 'left'}
+          initial={{ opacity: 0, x: -90, clipPath: 'inset(0 100% 0 0)' }}
+          animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0% 0 0)' }}
+          transition={{ duration, delay: reduceMotion ? 0 : 0.1, ease }}
+        >
+          <span className="compare-panel__index">A / 01</span>
+          <div className="compare-panel__content">
+            <span className="compare-panel__label">{params.leftLabel || 'LEFT'}</span>
+            <strong>
+              {leftValue}<em>{params.suffix}</em>
+            </strong>
+            <span className="compare-panel__baseline">BASELINE / REFERENCE</span>
+          </div>
+          <div className="compare-panel__meter" aria-hidden="true">
+            <motion.i
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: Math.max(0.08, params.leftValue / 100) }}
+              transition={{ duration, delay: reduceMotion ? 0 : 0.36, ease }}
+            />
+          </div>
+        </motion.section>
+
+        <motion.section
+          className="compare-panel compare-panel--right"
+          data-testid="compare-right"
+          data-emphasized={params.emphasis === 'right'}
+          initial={{ opacity: 0, x: 90, clipPath: 'inset(0 0 0 100%)' }}
+          animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0 0%)' }}
+          transition={{ duration, delay: reduceMotion ? 0 : 0.22, ease }}
+        >
+          <span className="compare-panel__index">B / 02</span>
+          <div className="compare-panel__content">
+            <span className="compare-panel__label">{params.rightLabel || 'RIGHT'}</span>
+            <strong>
+              {rightValue}<em>{params.suffix}</em>
+            </strong>
+            <span className="compare-panel__baseline">CURRENT / OPTIMIZED</span>
+          </div>
+          <div className="compare-panel__meter" aria-hidden="true">
+            <motion.i
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: Math.max(0.08, params.rightValue / 100) }}
+              transition={{ duration, delay: reduceMotion ? 0 : 0.48, ease }}
+            />
+          </div>
+        </motion.section>
+      </div>
+
+      <motion.footer
+        className="compare-split__result"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
+      >
+        <span>RESULT / LOCKED</span>
+        <strong>{params.conclusion || 'NO CONCLUSION'}</strong>
+        <span>CONFIDENCE 98.4</span>
+      </motion.footer>
+    </div>
+  )
+}

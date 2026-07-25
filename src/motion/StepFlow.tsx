@@ -78,7 +78,7 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                 ease,
               }}
         >
-          <span>{params.eyebrow || '06 / PROCESS MAP'}</span>
+          <span>{params.eyebrow || '06 / 流程图'}</span>
           <h2>{params.title || '未命名流程'}</h2>
         </motion.header>
 
@@ -146,7 +146,7 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
         data-testid="flow-secondary"
         data-zone="right-secondary"
       >
-        <span>{params.statusLabel || 'CURRENT'}</span>
+        <span>{params.statusLabel || '当前步骤'}</span>
         <div className="step-flow__status-numbers" aria-hidden="true">
           {steps.map((_, index) => (
             <motion.strong

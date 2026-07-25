@@ -1078,7 +1078,7 @@ a:focus-visible {
 }
 
 .compare-panel[data-emphasized='true']::after {
-  content: 'FOCUS';
+  content: '重点';
   position: absolute;
   top: .8cqw;
   right: .8cqw;

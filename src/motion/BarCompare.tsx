@@ -64,7 +64,7 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
             : { opacity: [0, 0, 1, 1, 0], y: [14, 14, 0, 0, -5] }}
           transition={loopTransition(0.18)}
         >
-          <span>{params.eyebrow || '04 / DATA COMPARISON'}</span>
+          <span>{params.eyebrow || '04 / 数据对比'}</span>
           <h2>{params.title || '未命名对比'}</h2>
         </motion.header>
 
@@ -131,7 +131,7 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
           : { opacity: [0, 0, 1, 1, 0], x: [22, 22, 0, 0, 8] }}
         transition={loopTransition(2.05)}
       >
-        <span>{params.resultLabel || 'PEAK'}</span>
+        <span>{params.resultLabel || '最高值'}</span>
         <strong>{focusItem.value}{params.suffix}</strong>
         <i aria-hidden="true" />
         <small>{params.resultNote || focusItem.label}</small>

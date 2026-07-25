@@ -18,8 +18,8 @@ export function ComponentRail({ items, activeId, onSelect }: ComponentRailProps)
   return (
     <nav className="component-rail" aria-label="动效组件">
       <div className="rail-heading">
-        <span className="section-index">LIB / 01</span>
-        <h2>COMPONENTS</h2>
+        <span className="section-index">组件库 / 01</span>
+        <h2>动效组件</h2>
       </div>
       <div className="rail-list">
         {items.map((item) => (
@@ -43,8 +43,8 @@ export function ComponentRail({ items, activeId, onSelect }: ComponentRailProps)
         ))}
       </div>
       <div className="rail-footer">
-        <span>06 MODULES</span>
-        <span>PHASE 01</span>
+        <span>06 个组件</span>
+        <span>第一阶段</span>
       </div>
     </nav>
   )

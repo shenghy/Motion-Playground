@@ -51,13 +51,13 @@ export function PreviewStage({
     <main className="preview-stage">
       <div className="stage-heading">
         <div>
-          <span className="section-index">STAGE / 02</span>
+          <span className="section-index">预览舞台 / 02</span>
           <h2>{motionName}</h2>
         </div>
         <div className="stage-heading__meta">
           <span>1920 × 1080</span>
-          <span>60 FPS</span>
-          <span className="loop-status"><i /> LOOP</span>
+          <span>60 帧/秒</span>
+          <span className="loop-status"><i /> 循环</span>
         </div>
       </div>
 
@@ -88,7 +88,7 @@ export function PreviewStage({
                 data-testid="presenter-safe-area"
                 aria-hidden="true"
               >
-                <span>PERSON / SAFE AREA</span>
+                <span>人物安全区</span>
                 <i /><i /><i /><i />
               </div>
               <div
@@ -96,7 +96,7 @@ export function PreviewStage({
                 data-testid="subtitle-safe-area"
                 aria-hidden="true"
               >
-                <span>SUBTITLE SAFE / 150PX</span>
+                <span>字幕安全区 / 150像素</span>
               </div>
             </>
           )}
@@ -104,9 +104,9 @@ export function PreviewStage({
       </div>
 
       <div className="stage-footer">
-        <span>COLOR / MONO</span>
-        <span>AUTO PLAY · INFINITE LOOP</span>
-        <span>ZOOM / FIT</span>
+        <span>色彩 / 黑白灰</span>
+        <span>自动播放 · 无限循环</span>
+        <span>缩放 / 适应画布</span>
       </div>
     </main>
   )

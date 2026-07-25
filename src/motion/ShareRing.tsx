@@ -28,8 +28,8 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
   const safeItems = sourceItems.length >= 2
     ? sourceItems
     : [
-        { label: 'PRIMARY', value: 68 },
-        { label: 'OTHER', value: 32 },
+        { label: '主要部分', value: 68 },
+        { label: '其他部分', value: 32 },
       ]
   const percentages = normalizeShares(safeItems.map((item) => item.value))
   const items: ShareItem[] = safeItems.map((item, index) => ({
@@ -72,7 +72,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
             : { opacity: [0, 0, 1, 1, 0], y: [14, 14, 0, 0, -5] }}
           transition={loopTransition(0.16)}
         >
-          <span>{params.eyebrow || '05 / SHARE ANALYSIS'}</span>
+          <span>{params.eyebrow || '05 / 占比分析'}</span>
           <h2>{params.title || '未命名占比'}</h2>
         </motion.header>
 
@@ -166,7 +166,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
           : { opacity: [0, 0, 1, 1, 0], x: [22, 22, 0, 0, 8] }}
         transition={loopTransition(2.35)}
       >
-        <span>{params.resultLabel || 'SHARE'}</span>
+        <span>{params.resultLabel || '主要占比'}</span>
         <strong>{focusPercentage}<em>%</em></strong>
         <i aria-hidden="true" />
         <small>{params.resultNote || focusItem.label}</small>

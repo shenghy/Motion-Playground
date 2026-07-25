@@ -59,13 +59,13 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
         <motion.header className="profile-reveal__identity" {...reveal(0.38)}>
           <i aria-hidden="true" />
           <div>
-            <strong>{params.category || 'PROFILE / FIELD NOTE'}</strong>
+            <strong>{params.category || '人物 / 档案'}</strong>
             <span>{params.descriptor || '人物身份说明'}</span>
           </div>
         </motion.header>
 
         <motion.div className="profile-reveal__title" {...reveal(0.86)}>
-          <span>{params.overline || 'STORY SIGNAL'}</span>
+          <span>{params.overline || '人物故事'}</span>
           <h2>{params.title || '未命名人物'}</h2>
         </motion.div>
 
@@ -79,16 +79,16 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
               <b aria-hidden="true">×</b>
               <div>
                 <strong>{fact.text || `信息 ${index + 1}`}</strong>
-                <span>{fact.note || 'DETAIL / PENDING'}</span>
+                <span>{fact.note || '详情待补充'}</span>
               </div>
             </motion.div>
           ))}
         </div>
 
         <motion.footer className="profile-reveal__card-footer" {...reveal(3.7, 8)}>
-          <span>STORY / 03</span>
+          <span>叙事 / 03</span>
           <i aria-hidden="true" />
-          <span>AUTO REVEAL</span>
+          <span>自动呈现</span>
         </motion.footer>
       </motion.section>
 
@@ -103,8 +103,8 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
         <div className="profile-reveal__rail-track" aria-hidden="true">
           {Array.from({ length: 7 }, (_, index) => <i key={index} />)}
         </div>
-        <strong>{params.status || 'PROFILE / VERIFIED'}</strong>
-        <small>SEQUENCE<br />LOCKED</small>
+        <strong>{params.status || '档案 / 已确认'}</strong>
+        <small>序列<br />已锁定</small>
       </motion.aside>
     </div>
   )

@@ -2,36 +2,44 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { Workbench } from './Workbench'
 
 describe('Workbench', () => {
-  it('opens MetricFocus and switches between all registered motions', () => {
+  it('opens the Chinese component library and switches between all motions', () => {
     render(<Workbench />)
 
-    expect(screen.getByRole('button', { name: /MetricFocus/ })).toHaveAttribute(
+    expect(screen.getByText('系统就绪')).toBeInTheDocument()
+    expect(screen.getByText('参数设置')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /核心指标/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
     expect(screen.getByText('1920 × 1080')).toBeInTheDocument()
+    expect(screen.getByText('1.4秒')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /CompareSplit/ }))
-    expect(screen.getByText('2.05× IMPROVEMENT')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
+    expect(screen.getByText('提升 2.05 倍')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /ProfileReveal/ }))
+    fireEvent.click(screen.getByRole('button', { name: /人物信息/ }))
     expect(screen.getByText('公开构建者')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /QuoteLockup/ })).not.toBeInTheDocument()
 
     expect(
       screen.getAllByRole('button', {
-        name: /MetricFocus|CompareSplit|ProfileReveal|BarCompare|ShareRing|StepFlow/,
+        name: /核心指标|对比卡片|人物信息|柱状对比|环形占比|步骤流程/,
       }),
     ).toHaveLength(6)
 
-    fireEvent.click(screen.getByRole('button', { name: /BarCompare/ }))
+    fireEvent.click(screen.getByRole('button', { name: /柱状对比/ }))
     expect(screen.getByText('季度增长')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /ShareRing/ }))
+    fireEvent.click(screen.getByRole('button', { name: /环形占比/ }))
     expect(screen.getByText('用户构成')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /StepFlow/ }))
+    fireEvent.click(screen.getByRole('button', { name: /步骤流程/ }))
     expect(screen.getByText('发布流程')).toBeInTheDocument()
+
+    expect(screen.queryByText('MOTION PLAYGROUND')).not.toBeInTheDocument()
+    expect(screen.queryByText('COMPONENTS')).not.toBeInTheDocument()
+    expect(screen.queryByText('PARAMETERS')).not.toBeInTheDocument()
+    expect(screen.queryByText('SYSTEM READY')).not.toBeInTheDocument()
   })
 
   it('applies live changes and restarts playback', () => {
@@ -57,7 +65,7 @@ describe('Workbench', () => {
     ).toHaveAttribute('src', '/reference-standing.png')
     expect(screen.getByTestId('presenter-safe-area')).toBeInTheDocument()
     expect(screen.getByTestId('subtitle-safe-area')).toHaveTextContent(
-      'SUBTITLE SAFE / 150PX',
+      '字幕安全区 / 150像素',
     )
 
     const toggle = screen.getByRole('switch', { name: '显示人物安全区' })

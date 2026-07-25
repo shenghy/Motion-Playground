@@ -16,8 +16,8 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
   return (
     <div className="motion-canvas metric-focus">
       <div className="canvas-grid" aria-hidden="true" />
-      <div className="canvas-coordinate coordinate--tl">X 0128 / Y 0096</div>
-      <div className="canvas-coordinate coordinate--br">FRAME 001</div>
+      <div className="canvas-coordinate coordinate--tl">横轴 0128 / 纵轴 0096</div>
+      <div className="canvas-coordinate coordinate--br">画面 001</div>
 
       <motion.div
         className="metric-focus__scan"
@@ -44,7 +44,7 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
           transition={transition(0.12)}
         >
           <span>01</span>
-          {params.eyebrow || 'UNTITLED METRIC'}
+          {params.eyebrow || '未命名指标'}
         </motion.div>
 
         <motion.div
@@ -65,7 +65,7 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
           animate={{ opacity: 1, y: 0 }}
           transition={transition(0.42)}
         >
-          <span>{params.description || 'NO DESCRIPTION'}</span>
+          <span>{params.description || '暂无说明'}</span>
         </motion.div>
 
         <motion.div
@@ -87,10 +87,10 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
         animate={{ opacity: 1, x: 0 }}
         transition={transition(0.5)}
       >
-        <span>DELTA / LIVE</span>
+        <span>变化 / 实时</span>
         <strong>{params.trend || '—'}</strong>
         <i aria-hidden="true" />
-        <small>SIGNAL<br />LOCKED</small>
+        <small>指标<br />已锁定</small>
       </motion.aside>
     </div>
   )

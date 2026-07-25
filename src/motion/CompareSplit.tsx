@@ -25,9 +25,9 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration, delay: reduceMotion ? 0 : 0.12, ease }}
       >
-        <span>02 / COMPARATIVE STUDY</span>
-        <h2>{params.title || 'UNTITLED COMPARISON'}</h2>
-        <span>DUAL SIGNAL</span>
+        <span>02 / 对比研究</span>
+        <h2>{params.title || '未命名对比'}</h2>
+        <span>双项对比</span>
       </motion.header>
 
       <div className="compare-split__panels">
@@ -40,13 +40,13 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
           animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0% 0 0)' }}
           transition={{ duration, delay: reduceMotion ? 0 : 0.1, ease }}
         >
-          <span className="compare-panel__index">A / 01</span>
+          <span className="compare-panel__index">方案甲 / 01</span>
           <div className="compare-panel__content">
-            <span className="compare-panel__label">{params.leftLabel || 'LEFT'}</span>
+            <span className="compare-panel__label">{params.leftLabel || '左侧'}</span>
             <strong>
               {leftValue}<em>{params.suffix}</em>
             </strong>
-            <span className="compare-panel__baseline">BASELINE / REFERENCE</span>
+            <span className="compare-panel__baseline">基准 / 参考</span>
           </div>
           <div className="compare-panel__meter" aria-hidden="true">
             <motion.i
@@ -66,13 +66,13 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
           animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0 0%)' }}
           transition={{ duration, delay: reduceMotion ? 0 : 0.22, ease }}
         >
-          <span className="compare-panel__index">B / 02</span>
+          <span className="compare-panel__index">方案乙 / 02</span>
           <div className="compare-panel__content">
-            <span className="compare-panel__label">{params.rightLabel || 'RIGHT'}</span>
+            <span className="compare-panel__label">{params.rightLabel || '右侧'}</span>
             <strong>
               {rightValue}<em>{params.suffix}</em>
             </strong>
-            <span className="compare-panel__baseline">CURRENT / OPTIMIZED</span>
+            <span className="compare-panel__baseline">当前 / 已优化</span>
           </div>
           <div className="compare-panel__meter" aria-hidden="true">
             <motion.i
@@ -92,9 +92,9 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
       >
-        <span>RESULT / LOCKED</span>
-        <strong>{params.conclusion || 'NO CONCLUSION'}</strong>
-        <span>CONFIDENCE 98.4</span>
+        <span>结论 / 已锁定</span>
+        <strong>{params.conclusion || '暂无结论'}</strong>
+        <span>可信度 98.4</span>
       </motion.footer>
     </div>
   )

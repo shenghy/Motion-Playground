@@ -60,17 +60,17 @@ export function Workbench() {
   return (
     <div className="workbench">
       <header className="app-header">
-        <a className="brand" href="/" aria-label="Motion Playground 首页">
+        <a className="brand" href="/" aria-label="动效预览台首页">
           <span className="brand-mark" aria-hidden="true"><i /><i /></span>
           <span>
-            <strong>MOTION PLAYGROUND</strong>
-            <small>COMPONENT LAB / 01</small>
+            <strong>动效预览台</strong>
+            <small>动效组件实验室 / 01</small>
           </span>
         </a>
         <div className="header-status">
-          <span>SESSION / LOCAL</span>
-          <span>ENGINE / BROWSER</span>
-          <span className="system-ready"><i /> SYSTEM READY</span>
+          <span>会话 / 本地</span>
+          <span>引擎 / 浏览器</span>
+          <span className="system-ready"><i /> 系统就绪</span>
         </div>
       </header>
 

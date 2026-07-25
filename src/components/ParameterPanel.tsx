@@ -26,10 +26,10 @@ export function ParameterPanel({
     <aside className="parameter-panel" aria-label="动效参数">
       <div className="panel-heading">
         <div>
-          <span className="section-index">CTRL / 03</span>
-          <h2>PARAMETERS</h2>
+          <span className="section-index">控制台 / 03</span>
+          <h2>参数设置</h2>
         </div>
-        <span className="live-indicator"><i /> LIVE</span>
+        <span className="live-indicator"><i /> 实时</span>
       </div>
 
       <div className="control-list">

@@ -24,7 +24,12 @@ export function QuoteLockup({ params }: MotionComponentProps<QuoteLockupParams>)
         <i /><i />
       </motion.div>
 
-      <div className="quote-lockup__content" style={{ alignItems }}>
+      <div
+        className="quote-lockup__content"
+        style={{ alignItems }}
+        data-testid="quote-primary"
+        data-zone="left-primary"
+      >
         <motion.div
           className="motion-eyebrow quote-lockup__eyebrow"
           initial={{ opacity: 0, x: -28 }}
@@ -62,20 +67,22 @@ export function QuoteLockup({ params }: MotionComponentProps<QuoteLockupParams>)
           transition={{ duration: reduceMotion ? 0 : params.duration * 0.7, delay: reduceMotion ? 0 : 0.48, ease }}
         />
 
-        <motion.div
-          className="quote-lockup__author"
-          style={{ textAlign: params.align }}
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
-        >
-          <i aria-hidden="true" />
-          <div>
-            <strong>{params.author || 'ANONYMOUS'}</strong>
-            <span>{params.role || 'SOURCE UNKNOWN'}</span>
-          </div>
-        </motion.div>
       </div>
+
+      <motion.aside
+        className="quote-lockup__author"
+        data-testid="quote-secondary"
+        data-zone="right-secondary"
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
+      >
+        <i aria-hidden="true" />
+        <div>
+          <strong>{params.author || 'ANONYMOUS'}</strong>
+          <span>{params.role || 'SOURCE UNKNOWN'}</span>
+        </div>
+      </motion.aside>
 
       <motion.div
         className="quote-lockup__status"

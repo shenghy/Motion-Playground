@@ -1060,34 +1060,37 @@ a:focus-visible {
   display: none;
 }
 
-.quote-lockup {
-  display: grid;
-  place-items: center;
-}
-
 .quote-lockup__content {
-  width: 76cqw;
+  position: absolute;
+  left: 4%;
+  top: 15%;
+  bottom: 14%;
+  width: 31%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  padding: 2.6cqw 2.2cqw;
+  border: 1px solid rgba(228, 229, 223, .36);
+  background: rgba(5, 6, 7, .7);
 }
 
 .quote-lockup__mark {
-  height: 7.2cqw;
-  margin-top: 2.2cqw;
+  height: 4.3cqw;
+  margin-top: 1.4cqw;
   color: #5c6062;
-  font: 500 10cqw/.8 var(--display);
+  font: 500 6.2cqw/.8 var(--display);
 }
 
 .quote-lockup blockquote {
   margin: 0;
   color: #eeeeea;
-  font: 580 5.2cqw/1.36 var(--display);
+  font: 580 2.8cqw/1.38 var(--display);
   letter-spacing: -.035em;
   text-wrap: balance;
 }
 
 .quote-lockup__underline {
-  width: 18cqw;
+  width: 12cqw;
   height: 2px;
   margin-top: 2.4cqw;
   background: var(--paper);
@@ -1095,10 +1098,20 @@ a:focus-visible {
 }
 
 .quote-lockup__author {
+  position: absolute;
+  right: 3%;
+  top: 34%;
+  width: 10%;
+  min-height: 27%;
   display: flex;
-  align-items: center;
-  gap: 1.2cqw;
-  margin-top: 2.2cqw;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.1cqw;
+  padding: 1.4cqw .9cqw;
+  border-top: 1px solid rgba(238, 239, 233, .6);
+  border-bottom: 1px solid rgba(238, 239, 233, .28);
+  background: rgba(5, 6, 7, .7);
 }
 
 .quote-lockup__author > i {
@@ -1114,20 +1127,22 @@ a:focus-visible {
 }
 
 .quote-lockup__author strong {
-  font: 600 1.05cqw/1 var(--display);
+  font: 600 .95cqw/1.2 var(--display);
   letter-spacing: .08em;
+  overflow-wrap: anywhere;
 }
 
 .quote-lockup__author span {
   color: #6d7173;
   font-size: .62cqw;
   letter-spacing: .14em;
+  overflow-wrap: anywhere;
 }
 
 .quote-lockup__rule {
   position: absolute;
   left: 5cqw;
-  right: 5cqw;
+  width: 29cqw;
   height: 1px;
   background: #222427;
 }
@@ -1165,8 +1180,9 @@ a:focus-visible {
 
 .quote-lockup__status {
   position: absolute;
-  right: 5cqw;
-  bottom: 3.4cqw;
+  right: 3%;
+  bottom: 22%;
+  width: 10%;
   color: #5f6365;
   font-size: .58cqw;
   letter-spacing: .13em;

@@ -20,5 +20,13 @@ describe('QuoteLockup', () => {
     expect(quote).toHaveStyle({ maxWidth: '1180px', textAlign: 'left' })
     expect(screen.getByText('JSPANG')).toBeInTheDocument()
     expect(screen.getByText('INDEPENDENT CREATOR')).toBeInTheDocument()
+    expect(screen.getByTestId('quote-primary')).toHaveAttribute(
+      'data-zone',
+      'left-primary',
+    )
+    expect(screen.getByTestId('quote-secondary')).toHaveAttribute(
+      'data-zone',
+      'right-secondary',
+    )
   })
 })

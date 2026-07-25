@@ -1835,6 +1835,84 @@ a:focus-visible {
   --pencil-faint: rgba(241, 238, 229, .24);
 }
 
+.motion-handwriting {
+  font-family: var(--handwriting) !important;
+  font-style: normal;
+  font-weight: 400 !important;
+  letter-spacing: .035em !important;
+  text-wrap: balance;
+}
+
+.motion-eyebrow > .motion-handwriting {
+  color: var(--pencil-silver);
+  font-size: 1.32cqw;
+  line-height: 1;
+}
+
+.metric-focus__meta .motion-handwriting {
+  color: #d5d0c4;
+  font-size: 1.2cqw;
+  letter-spacing: .06em !important;
+}
+
+.compare-split__header h2.motion-handwriting {
+  font-size: 1.75cqw;
+  letter-spacing: .08em !important;
+}
+
+.compare-panel__label.motion-handwriting {
+  color: #d9d4ca;
+  font-size: 1.42cqw;
+  letter-spacing: .08em !important;
+}
+
+.compare-panel--right .compare-panel__label.motion-handwriting {
+  font-size: 1cqw;
+}
+
+.compare-split__result strong.motion-handwriting {
+  font-size: 1.28cqw;
+  letter-spacing: .05em !important;
+}
+
+.profile-reveal__title h2.motion-handwriting {
+  font-size: 3.45cqw;
+  line-height: .98;
+  letter-spacing: .02em !important;
+}
+
+.profile-reveal__fact strong.motion-handwriting {
+  font-size: 1.28cqw;
+  line-height: 1;
+}
+
+.data-card__heading h2.motion-handwriting {
+  font-size: 2.8cqw;
+  letter-spacing: .02em !important;
+}
+
+.bar-compare__label.motion-handwriting {
+  font-size: .72cqw;
+  letter-spacing: .04em !important;
+}
+
+.share-ring__center .motion-handwriting {
+  color: #aaa69c;
+  font-size: .76cqw;
+  letter-spacing: .08em !important;
+}
+
+.share-ring__legend .motion-handwriting {
+  font-size: .66cqw;
+  letter-spacing: .03em !important;
+}
+
+.step-flow__step .motion-handwriting {
+  font-size: 1.15cqw;
+  line-height: 1;
+  letter-spacing: .04em !important;
+}
+
 .motion-canvas[data-pencil-style='silver-on-black'] .canvas-grid {
   opacity: .1;
   mask-image: linear-gradient(90deg, #000, transparent 51%);

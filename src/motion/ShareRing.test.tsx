@@ -44,6 +44,11 @@ describe('ShareRing', () => {
       'data-pencil-weight',
       'double',
     )
+    expect(
+      screen
+        .getByTestId('share-primary')
+        .querySelector('[data-handwritten="true"]'),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('share-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

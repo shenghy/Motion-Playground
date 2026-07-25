@@ -33,6 +33,11 @@ describe('CompareSplit', () => {
       'emphasized',
     )
     expect(screen.getByTestId('compare-pencil-arrow')).toBeInTheDocument()
+    expect(
+      screen
+        .getByTestId('compare-left')
+        .querySelector('[data-handwritten="true"]'),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('compare-left')).toHaveAttribute('data-zone', 'left-primary')
     expect(screen.getByTestId('compare-right')).toHaveAttribute(
       'data-zone',

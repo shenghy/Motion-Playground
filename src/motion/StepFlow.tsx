@@ -94,7 +94,9 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
               }}
         >
           <span>{params.eyebrow || '06 / 流程图'}</span>
-          <h2>{params.title || '未命名流程'}</h2>
+          <h2 className="motion-handwriting" data-handwritten="true">
+            {params.title || '未命名流程'}
+          </h2>
         </motion.header>
 
         <div className="step-flow__steps">
@@ -151,7 +153,9 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                 key={`${step}-${index}`}
               >
                 <b>{String(index + 1).padStart(2, '0')}</b>
-                <span>{step}</span>
+                <span className="motion-handwriting" data-handwritten="true">
+                  {step}
+                </span>
                 <i aria-hidden="true" />
               </motion.div>
             )

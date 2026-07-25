@@ -30,6 +30,11 @@ describe('MetricFocus', () => {
       'open-frame',
     )
     expect(screen.getByTestId('metric-pencil-line')).toBeInTheDocument()
+    expect(
+      screen
+        .getByTestId('metric-primary')
+        .querySelector('[data-handwritten="true"]'),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('metric-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

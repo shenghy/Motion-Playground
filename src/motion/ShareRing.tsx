@@ -79,7 +79,9 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
           transition={loopTransition(0.16)}
         >
           <span>{params.eyebrow || '05 / 占比分析'}</span>
-          <h2>{params.title || '未命名占比'}</h2>
+          <h2 className="motion-handwriting" data-handwritten="true">
+            {params.title || '未命名占比'}
+          </h2>
         </motion.header>
 
         <div className="share-ring__visual">
@@ -159,7 +161,9 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
             transition={loopTransition(1.55)}
           >
             <strong data-testid="share-center-value">{focusPercentage}%</strong>
-            <span>{params.centerLabel || focusItem.label}</span>
+            <span className="motion-handwriting" data-handwritten="true">
+              {params.centerLabel || focusItem.label}
+            </span>
           </motion.div>
         </div>
 
@@ -174,7 +178,9 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
               transition={loopTransition(1.72 + index * 0.12)}
               key={`${item.label}-legend`}
             >
-              <span>{item.label}</span>
+              <span className="motion-handwriting" data-handwritten="true">
+                {item.label}
+              </span>
               <strong>{Math.round(item.percentage)}%</strong>
             </motion.div>
           ))}

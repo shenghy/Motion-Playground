@@ -31,8 +31,8 @@
 - Modify: `src/motion/ShareRing.test.tsx`
 - Modify: `src/motion/StepFlow.test.tsx`
 
-- [ ] Add one failing assertion per component for `[data-handwritten="true"]`.
-- [ ] Run all six focused test files and confirm RED.
+- [x] Add one failing assertion per component for `[data-handwritten="true"]`.
+- [x] Run all six focused test files and confirm RED.
 
 Use:
 
@@ -55,16 +55,16 @@ Use the corresponding primary test ID for each remaining component.
 - Modify: `src/motion/StepFlow.tsx`
 - Modify: `src/styles.css`
 
-- [ ] Add `className="motion-handwriting"` and `data-handwritten="true"` to semantic text:
+- [x] Add `className="motion-handwriting"` and `data-handwritten="true"` to semantic text:
   - MetricFocus: metric title and description.
   - CompareSplit: comparison title, labels, and conclusion.
   - ProfileReveal: title and all three facts.
   - BarCompare: chart title and item labels.
   - ShareRing: chart title, center label, and legend labels.
   - StepFlow: flow title and step names.
-- [ ] Style `.motion-handwriting` with `font-family: var(--handwriting)`, regular font weight, stronger size contrast, and compact Chinese letter spacing.
-- [ ] Keep core numbers, percentages, indexes, coordinates, and workbench UI outside the handwriting class.
-- [ ] Run the six focused tests and confirm GREEN.
+- [x] Style `.motion-handwriting` with `font-family: var(--handwriting)`, regular font weight, stronger size contrast, and compact Chinese letter spacing.
+- [x] Keep core numbers, percentages, indexes, coordinates, and workbench UI outside the handwriting class.
+- [x] Run the six focused tests and confirm GREEN.
 
 ### Task 4: Verify and deliver
 

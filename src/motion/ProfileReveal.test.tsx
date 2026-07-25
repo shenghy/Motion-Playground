@@ -38,6 +38,11 @@ describe('ProfileReveal', () => {
       'field-note',
     )
     expect(screen.getAllByTestId('profile-check')).toHaveLength(3)
+    expect(
+      screen
+        .getByTestId('profile-primary')
+        .querySelector('[data-handwritten="true"]'),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('profile-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

@@ -46,6 +46,11 @@ describe('StepFlow', () => {
       'data-pencil-weight',
       'double',
     )
+    expect(
+      screen
+        .getByTestId('flow-primary')
+        .querySelector('[data-handwritten="true"]'),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('flow-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

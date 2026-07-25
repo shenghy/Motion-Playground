@@ -71,7 +71,9 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
           transition={loopTransition(0.18)}
         >
           <span>{params.eyebrow || '04 / 数据对比'}</span>
-          <h2>{params.title || '未命名对比'}</h2>
+          <h2 className="motion-handwriting" data-handwritten="true">
+            {params.title || '未命名对比'}
+          </h2>
         </motion.header>
 
         <div className="bar-compare__plot">
@@ -113,7 +115,8 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
                   </strong>
                 </motion.div>
                 <motion.span
-                  className="bar-compare__label"
+                  className="bar-compare__label motion-handwriting"
+                  data-handwritten="true"
                   initial={reduceMotion ? false : { opacity: 0 }}
                   animate={reduceMotion
                     ? { opacity: 1 }

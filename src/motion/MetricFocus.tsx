@@ -50,7 +50,9 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
           transition={transition(0.12)}
         >
           <span>01</span>
-          {params.eyebrow || '未命名指标'}
+          <b className="motion-handwriting" data-handwritten="true">
+            {params.eyebrow || '未命名指标'}
+          </b>
         </motion.div>
 
         <motion.div
@@ -71,7 +73,9 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
           animate={{ opacity: 1, y: 0 }}
           transition={transition(0.42)}
         >
-          <span>{params.description || '暂无说明'}</span>
+          <span className="motion-handwriting" data-handwritten="true">
+            {params.description || '暂无说明'}
+          </span>
         </motion.div>
 
         <motion.i

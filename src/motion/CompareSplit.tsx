@@ -29,7 +29,9 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
         transition={{ duration, delay: reduceMotion ? 0 : 0.12, ease }}
       >
         <span>02 / 对比研究</span>
-        <h2>{params.title || '未命名对比'}</h2>
+        <h2 className="motion-handwriting" data-handwritten="true">
+          {params.title || '未命名对比'}
+        </h2>
         <span>双项对比</span>
       </motion.header>
 
@@ -46,7 +48,12 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
         >
           <span className="compare-panel__index">方案甲 / 01</span>
           <div className="compare-panel__content">
-            <span className="compare-panel__label">{params.leftLabel || '左侧'}</span>
+            <span
+              className="compare-panel__label motion-handwriting"
+              data-handwritten="true"
+            >
+              {params.leftLabel || '左侧'}
+            </span>
             <strong>
               {leftValue}<em>{params.suffix}</em>
             </strong>
@@ -80,7 +87,12 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
         >
           <span className="compare-panel__index">方案乙 / 02</span>
           <div className="compare-panel__content">
-            <span className="compare-panel__label">{params.rightLabel || '右侧'}</span>
+            <span
+              className="compare-panel__label motion-handwriting"
+              data-handwritten="true"
+            >
+              {params.rightLabel || '右侧'}
+            </span>
             <strong>
               {rightValue}<em>{params.suffix}</em>
             </strong>
@@ -121,7 +133,9 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
         transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
       >
         <span>结论 / 已锁定</span>
-        <strong>{params.conclusion || '暂无结论'}</strong>
+        <strong className="motion-handwriting" data-handwritten="true">
+          {params.conclusion || '暂无结论'}
+        </strong>
         <span>可信度 98.4</span>
       </motion.footer>
     </div>

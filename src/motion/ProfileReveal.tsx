@@ -72,7 +72,9 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
 
         <motion.div className="profile-reveal__title" {...reveal(0.86)}>
           <span>{params.overline || '人物故事'}</span>
-          <h2>{params.title || '未命名人物'}</h2>
+          <h2 className="motion-handwriting" data-handwritten="true">
+            {params.title || '未命名人物'}
+          </h2>
         </motion.div>
 
         <div className="profile-reveal__facts">
@@ -97,7 +99,9 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
                 ✓
               </motion.b>
               <div>
-                <strong>{fact.text || `信息 ${index + 1}`}</strong>
+                <strong className="motion-handwriting" data-handwritten="true">
+                  {fact.text || `信息 ${index + 1}`}
+                </strong>
                 <span>{fact.note || '详情待补充'}</span>
               </div>
             </motion.div>

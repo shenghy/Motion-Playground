@@ -45,6 +45,11 @@ describe('BarCompare', () => {
       'data-pencil-weight',
       'heavy',
     )
+    expect(
+      screen
+        .getByTestId('bar-primary')
+        .querySelector('[data-handwritten="true"]'),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('bar-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

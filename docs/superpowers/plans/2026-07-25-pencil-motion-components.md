@@ -17,7 +17,7 @@
 - Create: `src/motion/PencilTexture.test.tsx`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: Write the failing primitive test**
+- [x] **Step 1: Write the failing primitive test**
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -30,13 +30,13 @@ it('renders decorative graphite grain without exposing it to assistive technolog
 })
 ```
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run: `npm test -- --run src/motion/PencilTexture.test.tsx`
 
 Expected: FAIL because `./PencilTexture` does not exist.
 
-- [ ] **Step 3: Implement the shared primitive**
+- [x] **Step 3: Implement the shared primitive**
 
 ```tsx
 interface PencilTextureProps {
@@ -61,13 +61,13 @@ export function PencilTexture({ variant = 'grain' }: PencilTextureProps) {
 
 Add common CSS for `.pencil-texture`, its three irregular strokes, graphite grain, hatch, and eraser variants. The layer must use `pointer-events: none`, `mix-blend-mode: screen`, and low opacity so it never blocks the background video.
 
-- [ ] **Step 4: Run the focused test and confirm GREEN**
+- [x] **Step 4: Run the focused test and confirm GREEN**
 
 Run: `npm test -- --run src/motion/PencilTexture.test.tsx`
 
 Expected: 1 test passes.
 
-- [ ] **Step 5: Commit the primitive**
+- [x] **Step 5: Commit the primitive**
 
 ```powershell
 git add src/motion/PencilTexture.tsx src/motion/PencilTexture.test.tsx src/styles.css

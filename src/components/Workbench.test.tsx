@@ -3,7 +3,13 @@ import { Workbench } from './Workbench'
 
 describe('Workbench', () => {
   it('opens the Chinese component library and switches between all motions', () => {
-    render(<Workbench />)
+    const { container } = render(<Workbench />)
+    const expectPencilStyle = () => {
+      expect(container.querySelector('.motion-canvas')).toHaveAttribute(
+        'data-pencil-style',
+        'silver-on-black',
+      )
+    }
 
     expect(screen.getByText('系统就绪')).toBeInTheDocument()
     expect(screen.getByText('参数设置')).toBeInTheDocument()
@@ -13,13 +19,16 @@ describe('Workbench', () => {
     )
     expect(screen.getByText('1920 × 1080')).toBeInTheDocument()
     expect(screen.getByText('1.4秒')).toBeInTheDocument()
+    expectPencilStyle()
 
     fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
     expect(screen.getByText('提升 2.05 倍')).toBeInTheDocument()
+    expectPencilStyle()
 
     fireEvent.click(screen.getByRole('button', { name: /人物信息/ }))
     expect(screen.getByText('公开构建者')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /QuoteLockup/ })).not.toBeInTheDocument()
+    expectPencilStyle()
 
     expect(
       screen.getAllByRole('button', {
@@ -29,12 +38,15 @@ describe('Workbench', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /柱状对比/ }))
     expect(screen.getByText('季度增长')).toBeInTheDocument()
+    expectPencilStyle()
 
     fireEvent.click(screen.getByRole('button', { name: /环形占比/ }))
     expect(screen.getByText('用户构成')).toBeInTheDocument()
+    expectPencilStyle()
 
     fireEvent.click(screen.getByRole('button', { name: /步骤流程/ }))
     expect(screen.getByText('发布流程')).toBeInTheDocument()
+    expectPencilStyle()
 
     expect(screen.queryByText('MOTION PLAYGROUND')).not.toBeInTheDocument()
     expect(screen.queryByText('COMPONENTS')).not.toBeInTheDocument()

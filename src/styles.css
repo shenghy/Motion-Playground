@@ -827,9 +827,9 @@ a:focus-visible {
   inset: 0 0 var(--subtitle-safe-bottom);
   overflow: hidden;
   pointer-events: none;
-  opacity: .3;
+  opacity: .17;
   mix-blend-mode: screen;
-  mask-image: linear-gradient(90deg, #000 0 42%, transparent 64%);
+  mask-image: linear-gradient(90deg, #000 0 34%, transparent 41%);
 }
 
 .pencil-texture::before,
@@ -840,10 +840,10 @@ a:focus-visible {
 }
 
 .pencil-texture::before {
-  opacity: .36;
+  opacity: .24;
   background:
-    repeating-radial-gradient(circle at 18% 32%, #fff 0 .035cqw, transparent .05cqw .22cqw),
-    repeating-linear-gradient(97deg, transparent 0 2.6cqw, rgba(255,255,255,.07) 2.72cqw 2.78cqw);
+    repeating-radial-gradient(circle at 18% 32%, #fff 0 .025cqw, transparent .045cqw .42cqw),
+    repeating-linear-gradient(97deg, transparent 0 3.4cqw, rgba(255,255,255,.07) 3.52cqw 3.57cqw);
 }
 
 .pencil-texture::after {

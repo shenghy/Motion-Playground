@@ -370,11 +370,11 @@ git commit -m "feat: draw pencil step path"
 - Modify: `src/components/Workbench.test.tsx`
 - Modify: `docs/superpowers/plans/2026-07-25-pencil-motion-components.md`
 
-- [ ] **Step 1: Add a workbench-level style assertion**
+- [x] **Step 1: Add a workbench-level style assertion**
 
 After selecting each component in the existing six-component test, assert that the active `.motion-canvas` has `data-pencil-style="silver-on-black"`. Add this attribute to the root element of all six renderers.
 
-- [ ] **Step 2: Run the workbench test and confirm RED, then add the six root attributes**
+- [x] **Step 2: Run the workbench test and confirm RED, then add the six root attributes**
 
 Run: `npm test -- --run src/components/Workbench.test.tsx`
 
@@ -384,7 +384,7 @@ Expected: FAIL before the root attributes are added, then PASS after every rende
 <div className="motion-canvas …" data-pencil-style="silver-on-black">
 ```
 
-- [ ] **Step 3: Run complete automated verification**
+- [x] **Step 3: Run complete automated verification**
 
 Run:
 
@@ -397,7 +397,7 @@ git diff --check
 
 Expected: all tests pass, ESLint exits 0, Vite production build exits 0, and `git diff --check` emits no errors.
 
-- [ ] **Step 4: Inspect all six components in the browser**
+- [x] **Step 4: Inspect all six components in the browser**
 
 At the local preview URL, switch through 核心指标、对比卡片、人物信息、柱状对比、环形占比、步骤流程. For each component verify:
 
@@ -408,7 +408,7 @@ At the local preview URL, switch through 核心指标、对比卡片、人物信
 - No component content enters the bottom 150px subtitle safe area.
 - Text remains Chinese and no element is clipped.
 
-- [ ] **Step 5: Mark all plan checkboxes complete and commit**
+- [x] **Step 5: Mark all plan checkboxes complete and commit**
 
 ```powershell
 git add src docs/superpowers/plans/2026-07-25-pencil-motion-components.md

@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { normalizeShares, resolveFocusIndex } from './dataMath'
+import { PencilTexture } from './PencilTexture'
 import type { MotionComponentProps, ShareRingParams } from './types'
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -56,13 +57,18 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
       }
 
   return (
-    <div className="motion-canvas share-ring">
+    <div
+      className="motion-canvas share-ring"
+      data-pencil-style="silver-on-black"
+    >
+      <PencilTexture variant="eraser" />
       <div className="share-ring__wash" aria-hidden="true" />
 
       <section
         className="share-ring__card"
         data-testid="share-primary"
         data-zone="left-primary"
+        data-pencil-layout="drawn-ring"
       >
         <motion.header
           className="data-card__heading"
@@ -87,36 +93,55 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
                 const focused = index === focusIndex
                 const finalDash = `${Math.max(0, length - segmentGap)} ${circumference}`
 
+                const drawInitial = reduceMotion
+                  ? false
+                  : { strokeDasharray: `0 ${circumference}`, opacity: 0 }
+                const drawAnimate = reduceMotion
+                  ? { strokeDasharray: finalDash, opacity: 1 }
+                  : {
+                      strokeDasharray: [
+                        `0 ${circumference}`,
+                        `0 ${circumference}`,
+                        finalDash,
+                        finalDash,
+                        `0 ${circumference}`,
+                      ],
+                      opacity: [0, 0, 1, 1, 0],
+                    }
+
                 return (
-                  <motion.circle
-                    className={`share-ring__segment share-ring__segment--${index + 1}`}
-                    data-testid="share-segment"
-                    data-segment-index={index + 1}
-                    data-focused={focused}
-                    cx="50"
-                    cy="50"
-                    r={radius}
-                    fill="none"
-                    strokeDashoffset={-offset}
-                    strokeWidth={focused ? 11 : Math.max(5, 9 - index)}
-                    initial={reduceMotion
-                      ? false
-                      : { strokeDasharray: `0 ${circumference}`, opacity: 0 }}
-                    animate={reduceMotion
-                      ? { strokeDasharray: finalDash, opacity: 1 }
-                      : {
-                          strokeDasharray: [
-                            `0 ${circumference}`,
-                            `0 ${circumference}`,
-                            finalDash,
-                            finalDash,
-                            `0 ${circumference}`,
-                          ],
-                          opacity: [0, 0, 1, 1, 0],
-                        }}
-                    transition={loopTransition(0.5 + index * 0.2)}
-                    key={`${item.label}-${index}`}
-                  />
+                  <g key={`${item.label}-${index}`}>
+                    {focused && (
+                      <motion.circle
+                        className="share-ring__sketch-echo"
+                        cx="50"
+                        cy="50"
+                        r={radius - 2.2}
+                        fill="none"
+                        strokeDashoffset={-offset}
+                        strokeWidth={4}
+                        initial={drawInitial}
+                        animate={drawAnimate}
+                        transition={loopTransition(0.58 + index * 0.2)}
+                      />
+                    )}
+                    <motion.circle
+                      className={`share-ring__segment share-ring__segment--${index + 1}`}
+                      data-testid="share-segment"
+                      data-segment-index={index + 1}
+                      data-focused={focused}
+                      data-pencil-weight={focused ? 'double' : 'faded'}
+                      cx="50"
+                      cy="50"
+                      r={radius}
+                      fill="none"
+                      strokeDashoffset={-offset}
+                      strokeWidth={focused ? 9 : Math.max(4, 8 - index)}
+                      initial={drawInitial}
+                      animate={drawAnimate}
+                      transition={loopTransition(0.5 + index * 0.2)}
+                    />
+                  </g>
                 )
               })}
             </g>

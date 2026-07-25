@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties } from 'react'
 import { clampDataValue, resolveFocusIndex } from './dataMath'
+import { PencilTexture } from './PencilTexture'
 import type { BarCompareParams, MotionComponentProps } from './types'
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -48,13 +49,18 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
       }
 
   return (
-    <div className="motion-canvas bar-compare">
+    <div
+      className="motion-canvas bar-compare"
+      data-pencil-style="silver-on-black"
+    >
+      <PencilTexture variant="hatch" />
       <div className="bar-compare__wash" aria-hidden="true" />
 
       <section
         className="bar-compare__card"
         data-testid="bar-primary"
         data-zone="left-primary"
+        data-pencil-layout="hatched-chart"
       >
         <motion.header
           className="data-card__heading"
@@ -86,6 +92,7 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
                 className="bar-compare__item"
                 data-testid="bar-column"
                 data-focused={focused}
+                data-pencil-weight={focused ? 'heavy' : 'light'}
                 key={`${item.label}-${index}`}
               >
                 <motion.div

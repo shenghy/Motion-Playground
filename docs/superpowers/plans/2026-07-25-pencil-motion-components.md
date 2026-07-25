@@ -234,7 +234,7 @@ git commit -m "feat: turn profile motion into field notes"
 - Modify: `src/motion/ShareRing.test.tsx`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: Add failing data-visual assertions**
+- [x] **Step 1: Add failing data-visual assertions**
 
 ```tsx
 expect(screen.getByTestId('bar-primary')).toHaveAttribute(
@@ -255,31 +255,31 @@ expect(screen.getAllByTestId('share-segment')[0]).toHaveAttribute(
 )
 ```
 
-- [ ] **Step 2: Run both focused tests and confirm RED**
+- [x] **Step 2: Run both focused tests and confirm RED**
 
 Run: `npm test -- --run src/motion/BarCompare.test.tsx src/motion/ShareRing.test.tsx`
 
 Expected: FAIL on the new pencil attributes.
 
-- [ ] **Step 3: Implement hatched bars**
+- [x] **Step 3: Implement hatched bars**
 
 Render `<PencilTexture variant="hatch" />`, set `data-pencil-layout="hatched-chart"` on the primary section, and set each column's `data-pencil-weight` to `heavy` for the focus index and `light` otherwise. Keep the existing normalized heights and loop timings.
 
-- [ ] **Step 4: Implement the double-line share ring**
+- [x] **Step 4: Implement the double-line share ring**
 
 Render `<PencilTexture variant="eraser" />` and set `data-pencil-layout="drawn-ring"`. Keep SVG dash-array animation. Add a second low-opacity focused circle directly behind the primary focused segment to create a double-pencil line, and mark the primary segment with `data-pencil-weight="double"`; all other segments use `data-pencil-weight="faded"`.
 
-- [ ] **Step 5: Replace the related CSS**
+- [x] **Step 5: Replace the related CSS**
 
 Use diagonal graphite hatching for bars. Focused bars gain border width and hatch density, not color. Ring segments use silver-white opacity levels; the focused ring receives a rough doubled edge while other segments resemble erased graphite.
 
-- [ ] **Step 6: Run the focused tests and confirm GREEN**
+- [x] **Step 6: Run the focused tests and confirm GREEN**
 
 Run: `npm test -- --run src/motion/BarCompare.test.tsx src/motion/ShareRing.test.tsx`
 
 Expected: both test files pass, including zero-value normalization.
 
-- [ ] **Step 7: Commit the data visualization pair**
+- [x] **Step 7: Commit the data visualization pair**
 
 ```powershell
 git add src/motion/BarCompare.tsx src/motion/BarCompare.test.tsx src/motion/ShareRing.tsx src/motion/ShareRing.test.tsx src/styles.css

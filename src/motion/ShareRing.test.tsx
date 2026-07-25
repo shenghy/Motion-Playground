@@ -36,6 +36,14 @@ describe('ShareRing', () => {
       'data-zone',
       'left-primary',
     )
+    expect(screen.getByTestId('share-primary')).toHaveAttribute(
+      'data-pencil-layout',
+      'drawn-ring',
+    )
+    expect(screen.getAllByTestId('share-segment')[0]).toHaveAttribute(
+      'data-pencil-weight',
+      'double',
+    )
     expect(screen.getByTestId('share-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

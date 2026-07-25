@@ -37,6 +37,14 @@ describe('BarCompare', () => {
       'data-zone',
       'left-primary',
     )
+    expect(screen.getByTestId('bar-primary')).toHaveAttribute(
+      'data-pencil-layout',
+      'hatched-chart',
+    )
+    expect(screen.getAllByTestId('bar-column')[3]).toHaveAttribute(
+      'data-pencil-weight',
+      'heavy',
+    )
     expect(screen.getByTestId('bar-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

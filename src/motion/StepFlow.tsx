@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { resolveFocusIndex } from './dataMath'
+import { PencilTexture } from './PencilTexture'
 import type { MotionComponentProps, StepFlowParams } from './types'
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -29,6 +30,15 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
   )
   const hold = Math.min(2.4, Math.max(0.7, params.stepDuration))
   const cycle = steps.length * hold + 1.1
+  const connectorTransition = reduceMotion
+    ? { duration: 0 }
+    : {
+        duration: cycle,
+        times: [0, 0.12, 0.9, 1],
+        repeat: Infinity,
+        repeatDelay: 0.72,
+        ease,
+      }
 
   const stepTransition = (index: number) => {
     if (reduceMotion) return { duration: 0 }
@@ -54,13 +64,18 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
   }
 
   return (
-    <div className="motion-canvas step-flow">
+    <div
+      className="motion-canvas step-flow"
+      data-pencil-style="silver-on-black"
+    >
+      <PencilTexture variant="grain" />
       <div className="step-flow__wash" aria-hidden="true" />
 
       <section
         className="step-flow__card"
         data-testid="flow-primary"
         data-zone="left-primary"
+        data-pencil-layout="drawn-path"
       >
         <motion.header
           className="data-card__heading"
@@ -83,21 +98,23 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
         </motion.header>
 
         <div className="step-flow__steps">
-          <motion.div
-            className="step-flow__connector"
+          <svg
+            className="step-flow__path"
+            data-testid="flow-path"
+            viewBox="0 0 80 420"
+            preserveAspectRatio="none"
             aria-hidden="true"
-            initial={reduceMotion ? false : { scaleY: 0 }}
-            animate={reduceMotion ? { scaleY: 1 } : { scaleY: [0, 1, 1, 0] }}
-            transition={reduceMotion
-              ? { duration: 0 }
-              : {
-                  duration: cycle,
-                  times: [0, 0.12, 0.9, 1],
-                  repeat: Infinity,
-                  repeatDelay: 0.72,
-                  ease,
-                }}
-          />
+          >
+            <motion.path
+              d="M42 6 C26 72 56 128 38 198 C22 264 56 330 38 414"
+              pathLength={1}
+              initial={reduceMotion ? false : { pathLength: 0 }}
+              animate={reduceMotion
+                ? { pathLength: 1 }
+                : { pathLength: [0, 1, 1, 0] }}
+              transition={connectorTransition}
+            />
+          </svg>
 
           {steps.map((step, index) => {
             const initialFocus = index === focusIndex
@@ -110,6 +127,7 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                 data-testid="flow-step"
                 data-initial-focus={initialFocus}
                 data-sequence-order={sequenceOrder}
+                data-pencil-weight={initialFocus ? 'double' : 'light'}
                 initial={reduceMotion ? false : { opacity: 0.34, scale: 1 }}
                 animate={reduceMotion
                   ? {

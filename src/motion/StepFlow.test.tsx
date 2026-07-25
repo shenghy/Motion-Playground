@@ -37,6 +37,15 @@ describe('StepFlow', () => {
       'data-zone',
       'left-primary',
     )
+    expect(screen.getByTestId('flow-primary')).toHaveAttribute(
+      'data-pencil-layout',
+      'drawn-path',
+    )
+    expect(screen.getByTestId('flow-path')).toBeInTheDocument()
+    expect(screen.getAllByTestId('flow-step')[2]).toHaveAttribute(
+      'data-pencil-weight',
+      'double',
+    )
     expect(screen.getByTestId('flow-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

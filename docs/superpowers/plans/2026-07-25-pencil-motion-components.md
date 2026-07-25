@@ -293,7 +293,7 @@ git commit -m "feat: pencil sketch data visualizations"
 - Modify: `src/motion/StepFlow.test.tsx`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: Add failing path and focus assertions**
+- [x] **Step 1: Add failing path and focus assertions**
 
 ```tsx
 expect(screen.getByTestId('flow-primary')).toHaveAttribute(
@@ -307,13 +307,13 @@ expect(screen.getAllByTestId('flow-step')[2]).toHaveAttribute(
 )
 ```
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run: `npm test -- --run src/motion/StepFlow.test.tsx`
 
 Expected: FAIL on the new path and pencil markers.
 
-- [ ] **Step 3: Implement the drawn path**
+- [x] **Step 3: Implement the drawn path**
 
 Render `<PencilTexture variant="grain" />`. Replace the straight connector with a decorative SVG path:
 
@@ -347,17 +347,17 @@ const connectorTransition = reduceMotion
 
 Set `data-pencil-layout="drawn-path"` on the primary section and `data-pencil-weight="double"` only on the initially focused step. Preserve three-step fallback behavior.
 
-- [ ] **Step 4: Replace the related CSS**
+- [x] **Step 4: Replace the related CSS**
 
 Place five steps along the existing left-side vertical layout, offset alternating nodes by a small amount to follow the curved path. The current node uses a larger double border; completed and upcoming nodes use opacity rather than color.
 
-- [ ] **Step 5: Run the focused test and confirm GREEN**
+- [x] **Step 5: Run the focused test and confirm GREEN**
 
 Run: `npm test -- --run src/motion/StepFlow.test.tsx`
 
 Expected: both five-step and compact three-step tests pass.
 
-- [ ] **Step 6: Commit StepFlow**
+- [x] **Step 6: Commit StepFlow**
 
 ```powershell
 git add src/motion/StepFlow.tsx src/motion/StepFlow.test.tsx src/styles.css

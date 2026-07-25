@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
+import { PencilTexture } from './PencilTexture'
 import type { MotionComponentProps, MetricFocusParams } from './types'
 import { useCountUp } from './useCountUp'
 
@@ -14,7 +15,11 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
   })
 
   return (
-    <div className="motion-canvas metric-focus">
+    <div
+      className="motion-canvas metric-focus"
+      data-pencil-style="silver-on-black"
+    >
+      <PencilTexture variant="grain" />
       <div className="canvas-grid" aria-hidden="true" />
       <div className="canvas-coordinate coordinate--tl">横轴 0128 / 纵轴 0096</div>
       <div className="canvas-coordinate coordinate--br">画面 001</div>
@@ -31,6 +36,7 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
         className="metric-focus__frame"
         data-testid="metric-primary"
         data-zone="left-primary"
+        data-pencil-layout="open-frame"
       >
         <i className="corner corner--tl" />
         <i className="corner corner--tr" />
@@ -67,6 +73,15 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
         >
           <span>{params.description || '暂无说明'}</span>
         </motion.div>
+
+        <motion.i
+          className="metric-focus__pencil-line"
+          data-testid="metric-pencil-line"
+          aria-hidden="true"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={transition(0.48)}
+        />
 
         <motion.div
           className="metric-focus__ticks"

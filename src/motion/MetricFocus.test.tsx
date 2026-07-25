@@ -25,6 +25,11 @@ describe('MetricFocus', () => {
       'data-zone',
       'left-primary',
     )
+    expect(screen.getByTestId('metric-primary')).toHaveAttribute(
+      'data-pencil-layout',
+      'open-frame',
+    )
+    expect(screen.getByTestId('metric-pencil-line')).toBeInTheDocument()
     expect(screen.getByTestId('metric-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

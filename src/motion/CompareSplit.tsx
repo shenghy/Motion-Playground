@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties } from 'react'
+import { PencilTexture } from './PencilTexture'
 import type { CompareSplitParams, MotionComponentProps } from './types'
 import { useCountUp } from './useCountUp'
 
@@ -16,8 +17,10 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
   return (
     <div
       className="motion-canvas compare-split"
+      data-pencil-style="silver-on-black"
       style={{ '--primary-width': `${primaryWidth}%` } as CSSProperties}
     >
+      <PencilTexture variant="eraser" />
       <div className="canvas-grid" aria-hidden="true" />
       <motion.header
         className="compare-split__header"
@@ -35,6 +38,7 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
           className="compare-panel compare-panel--left"
           data-testid="compare-left"
           data-emphasized={params.emphasis === 'left'}
+          data-pencil-state={params.emphasis === 'left' ? 'emphasized' : 'struck'}
           data-zone="left-primary"
           initial={{ opacity: 0, x: -90, clipPath: 'inset(0 100% 0 0)' }}
           animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0% 0 0)' }}
@@ -47,6 +51,13 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
               {leftValue}<em>{params.suffix}</em>
             </strong>
             <span className="compare-panel__baseline">基准 / 参考</span>
+            <motion.i
+              className="compare-panel__strike"
+              aria-hidden="true"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration, delay: reduceMotion ? 0 : 0.5, ease }}
+            />
           </div>
           <div className="compare-panel__meter" aria-hidden="true">
             <motion.i
@@ -61,6 +72,7 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
           className="compare-panel compare-panel--right"
           data-testid="compare-right"
           data-emphasized={params.emphasis === 'right'}
+          data-pencil-state={params.emphasis === 'right' ? 'emphasized' : 'struck'}
           data-zone="right-secondary"
           initial={{ opacity: 0, x: 90, clipPath: 'inset(0 0 0 100%)' }}
           animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0 0%)' }}
@@ -73,6 +85,13 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
               {rightValue}<em>{params.suffix}</em>
             </strong>
             <span className="compare-panel__baseline">当前 / 已优化</span>
+            <motion.i
+              className="compare-panel__strike"
+              aria-hidden="true"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration, delay: reduceMotion ? 0 : 0.5, ease }}
+            />
           </div>
           <div className="compare-panel__meter" aria-hidden="true">
             <motion.i
@@ -83,6 +102,15 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
           </div>
         </motion.section>
       </div>
+
+      <motion.i
+        className="compare-split__pencil-arrow"
+        data-testid="compare-pencil-arrow"
+        aria-hidden="true"
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
+      />
 
       <motion.footer
         className="compare-split__result"

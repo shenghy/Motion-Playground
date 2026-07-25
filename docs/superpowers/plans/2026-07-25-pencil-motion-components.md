@@ -83,7 +83,7 @@ git commit -m "feat: add shared graphite texture"
 - Modify: `src/motion/CompareSplit.test.tsx`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: Add failing pencil-structure assertions**
+- [x] **Step 1: Add failing pencil-structure assertions**
 
 Add to each existing test:
 
@@ -104,13 +104,13 @@ expect(screen.getByTestId('compare-right')).toHaveAttribute(
 expect(screen.getByTestId('compare-pencil-arrow')).toBeInTheDocument()
 ```
 
-- [ ] **Step 2: Run both focused tests and confirm RED**
+- [x] **Step 2: Run both focused tests and confirm RED**
 
 Run: `npm test -- --run src/motion/MetricFocus.test.tsx src/motion/CompareSplit.test.tsx`
 
 Expected: FAIL on the new attributes and test IDs.
 
-- [ ] **Step 3: Implement MetricFocus open-line composition**
+- [x] **Step 3: Implement MetricFocus open-line composition**
 
 Import and render `<PencilTexture variant="grain" />`. Replace the four-corner closed frame treatment with an open top/left structure. Add a Motion line:
 
@@ -127,7 +127,7 @@ Import and render `<PencilTexture variant="grain" />`. Replace the four-corner c
 
 Keep `useCountUp`, the existing `data-zone` values, and the right-side trend rail. Add `data-pencil-layout="open-frame"` to `metric-primary`.
 
-- [ ] **Step 4: Implement CompareSplit strike-and-emphasize composition**
+- [x] **Step 4: Implement CompareSplit strike-and-emphasize composition**
 
 Import `<PencilTexture variant="eraser" />`. Keep the two semantic sections but remove their solid card backgrounds. Add `data-pencil-state="struck"` to the non-emphasized side and `data-pencil-state="emphasized"` to the emphasized side. Draw the strike line and comparison arrow with Motion elements:
 
@@ -149,17 +149,17 @@ Import `<PencilTexture variant="eraser" />`. Keep the two semantic sections but 
 />
 ```
 
-- [ ] **Step 5: Replace the related CSS**
+- [x] **Step 5: Replace the related CSS**
 
 Use transparent backgrounds, silver-white borders, double pencil baselines, and `repeating-linear-gradient` only for low-opacity graphite details. Core numbers remain stable; only decorative lines receive the subtle `pencil-breathe` animation.
 
-- [ ] **Step 6: Run the focused tests and confirm GREEN**
+- [x] **Step 6: Run the focused tests and confirm GREEN**
 
 Run: `npm test -- --run src/motion/MetricFocus.test.tsx src/motion/CompareSplit.test.tsx`
 
 Expected: both test files pass.
 
-- [ ] **Step 7: Commit the first component pair**
+- [x] **Step 7: Commit the first component pair**
 
 ```powershell
 git add src/motion/MetricFocus.tsx src/motion/MetricFocus.test.tsx src/motion/CompareSplit.tsx src/motion/CompareSplit.test.tsx src/styles.css

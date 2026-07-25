@@ -16,7 +16,7 @@
 - Create: `src/motion/dataMath.ts`
 - Create: `src/motion/dataMath.test.ts`
 
-- [ ] **Step 1: Write failing normalization tests**
+- [x] **Step 1: Write failing normalization tests**
 
 ```ts
 import { clampDataValue, normalizeShares, resolveFocusIndex } from './dataMath'
@@ -40,13 +40,13 @@ describe('dataMath', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test and confirm RED**
+- [x] **Step 2: Run the test and confirm RED**
 
 Run: `npm test -- --run src/motion/dataMath.test.ts`
 
 Expected: FAIL because `./dataMath` does not exist.
 
-- [ ] **Step 3: Implement the pure helpers**
+- [x] **Step 3: Implement the pure helpers**
 
 ```ts
 export function clampDataValue(value: number, max: number) {
@@ -71,13 +71,13 @@ export function resolveFocusIndex(values: number[], requested: string) {
 }
 ```
 
-- [ ] **Step 4: Run the test and confirm GREEN**
+- [x] **Step 4: Run the test and confirm GREEN**
 
 Run: `npm test -- --run src/motion/dataMath.test.ts`
 
 Expected: 3 tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/motion/dataMath.ts src/motion/dataMath.test.ts

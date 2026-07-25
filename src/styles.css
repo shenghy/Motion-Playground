@@ -486,6 +486,7 @@ a:focus-visible {
 }
 
 .preview-canvas {
+  --subtitle-safe-bottom: 13.8889%;
   width: min(100%, calc((100vh - 226px) * 16 / 9));
   aspect-ratio: 16 / 9;
   position: relative;
@@ -591,6 +592,31 @@ a:focus-visible {
 .presenter-safe-area i:nth-child(3) { top: -1px; right: -1px; border-top: 1px solid; border-right: 1px solid; }
 .presenter-safe-area i:nth-child(4) { bottom: -1px; right: -1px; border-bottom: 1px solid; border-right: 1px solid; }
 .presenter-safe-area i:nth-child(5) { bottom: -1px; left: -1px; border-bottom: 1px solid; border-left: 1px solid; }
+
+.subtitle-safe-area {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--subtitle-safe-bottom);
+  pointer-events: none;
+  border-top: 1px dashed rgba(235, 221, 215, .52);
+  background: linear-gradient(0deg, rgba(5, 6, 7, .12), transparent);
+}
+
+.subtitle-safe-area > span {
+  position: absolute;
+  top: 0;
+  left: 4%;
+  transform: translateY(-100%);
+  padding: .28cqw .58cqw;
+  color: rgba(240, 231, 226, .68);
+  background: rgba(8, 9, 10, .76);
+  font-size: .5cqw;
+  letter-spacing: .13em;
+  white-space: nowrap;
+}
 
 .parameter-panel {
   display: grid;
@@ -797,7 +823,7 @@ a:focus-visible {
 
 .canvas-grid {
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--subtitle-safe-bottom);
   opacity: .28;
   background:
     linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
@@ -820,7 +846,7 @@ a:focus-visible {
 }
 
 .coordinate--tl { top: 3.6cqw; left: 4.8cqw; }
-.coordinate--br { right: 4.8cqw; bottom: 3.6cqw; }
+.coordinate--br { right: 4.8cqw; bottom: calc(var(--subtitle-safe-bottom) + 1.1cqw); }
 
 .motion-eyebrow {
   display: flex;
@@ -1132,7 +1158,7 @@ a:focus-visible {
   position: absolute;
   z-index: 2;
   left: 4%;
-  bottom: 8%;
+  bottom: var(--subtitle-safe-bottom);
   width: var(--primary-width);
   height: 7%;
   display: grid;
@@ -1156,7 +1182,7 @@ a:focus-visible {
 
 .profile-reveal__shade {
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--subtitle-safe-bottom);
   background: linear-gradient(90deg, rgba(3, 4, 5, .36), transparent 44%, transparent 82%, rgba(3, 4, 5, .24));
   pointer-events: none;
 }
@@ -1165,7 +1191,7 @@ a:focus-visible {
   position: absolute;
   left: 4%;
   top: 8%;
-  bottom: 8%;
+  bottom: var(--subtitle-safe-bottom);
   width: 31%;
   display: flex;
   flex-direction: column;
@@ -1366,7 +1392,7 @@ a:focus-visible {
 .share-ring__wash,
 .step-flow__wash {
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--subtitle-safe-bottom);
   background: linear-gradient(90deg, rgba(3, 4, 5, .28), transparent 40%, transparent 82%, rgba(3, 4, 5, .2));
   pointer-events: none;
 }
@@ -1377,7 +1403,7 @@ a:focus-visible {
   position: absolute;
   left: 4%;
   top: 8%;
-  bottom: 8%;
+  bottom: var(--subtitle-safe-bottom);
   width: 31%;
   display: flex;
   flex-direction: column;

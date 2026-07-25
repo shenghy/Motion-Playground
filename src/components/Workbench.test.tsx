@@ -56,12 +56,16 @@ describe('Workbench', () => {
       screen.getByRole('img', { name: '口播人物参考背景' }),
     ).toHaveAttribute('src', '/reference-standing.png')
     expect(screen.getByTestId('presenter-safe-area')).toBeInTheDocument()
+    expect(screen.getByTestId('subtitle-safe-area')).toHaveTextContent(
+      'SUBTITLE SAFE / 150PX',
+    )
 
     const toggle = screen.getByRole('switch', { name: '显示人物安全区' })
     expect(toggle).toHaveAttribute('aria-checked', 'true')
     fireEvent.click(toggle)
 
     expect(screen.queryByTestId('presenter-safe-area')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('subtitle-safe-area')).not.toBeInTheDocument()
     expect(screen.getByRole('img', { name: '口播人物参考背景' })).toBeInTheDocument()
   })
 })

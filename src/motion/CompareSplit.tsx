@@ -86,7 +86,9 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
 
       <motion.footer
         className="compare-split__result"
-        initial={{ opacity: 0, y: 20 }}
+        data-testid="compare-result"
+        data-safe-motion="upward"
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
       >

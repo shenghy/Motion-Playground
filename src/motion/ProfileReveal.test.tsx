@@ -37,5 +37,9 @@ describe('ProfileReveal', () => {
       'data-zone',
       'right-secondary',
     )
+    expect(screen.getByTestId('profile-secondary')).toHaveAttribute(
+      'data-safe-motion',
+      'upward',
+    )
   })
 })

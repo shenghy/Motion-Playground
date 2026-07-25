@@ -96,7 +96,8 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
         className="profile-reveal__rail"
         data-testid="profile-secondary"
         data-zone="right-secondary"
-        {...reveal(3.28, 24)}
+        data-safe-motion="upward"
+        {...reveal(3.28, -24)}
       >
         <span className="profile-reveal__rail-index">03</span>
         <div className="profile-reveal__rail-track" aria-hidden="true">

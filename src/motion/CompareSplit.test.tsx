@@ -29,5 +29,9 @@ describe('CompareSplit', () => {
       'data-zone',
       'right-secondary',
     )
+    expect(screen.getByTestId('compare-result')).toHaveAttribute(
+      'data-safe-motion',
+      'upward',
+    )
   })
 })

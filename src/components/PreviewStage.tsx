@@ -82,14 +82,23 @@ export function PreviewStage({
             {renderMotion(motionId, params)}
           </div>
           {showSafeArea && (
-            <div
-              className="presenter-safe-area"
-              data-testid="presenter-safe-area"
-              aria-hidden="true"
-            >
-              <span>PERSON / SAFE AREA</span>
-              <i /><i /><i /><i />
-            </div>
+            <>
+              <div
+                className="presenter-safe-area"
+                data-testid="presenter-safe-area"
+                aria-hidden="true"
+              >
+                <span>PERSON / SAFE AREA</span>
+                <i /><i /><i /><i />
+              </div>
+              <div
+                className="subtitle-safe-area"
+                data-testid="subtitle-safe-area"
+                aria-hidden="true"
+              >
+                <span>SUBTITLE SAFE / 150PX</span>
+              </div>
+            </>
           )}
         </div>
       </div>

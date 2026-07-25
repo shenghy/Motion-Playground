@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Ma Shan Zheng Local';
+  src: url('/fonts/ma-shan-zheng/MaShanZheng-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
   --ink: #090a0b;
@@ -11,6 +19,7 @@
   --signal: #b7ccc8;
   --display: 'Syne Variable', 'Microsoft YaHei', sans-serif;
   --mono: 'IBM Plex Mono', 'Microsoft YaHei', monospace;
+  --handwriting: 'Ma Shan Zheng Local', 'KaiTi', 'STKaiti', var(--display);
   font-family: var(--mono);
   color: var(--paper);
   background: var(--ink);

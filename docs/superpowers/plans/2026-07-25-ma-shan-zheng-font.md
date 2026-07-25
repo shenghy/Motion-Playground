@@ -17,9 +17,9 @@
 - Create: `public/fonts/ma-shan-zheng/OFL.txt`
 - Modify: `src/styles.css`
 
-- [ ] Download both files from the official `google/fonts` repository.
-- [ ] Verify the font file is non-empty and the license contains `SIL OPEN FONT LICENSE Version 1.1`.
-- [ ] Add `@font-face` with `font-display: swap` and define `--handwriting: 'Ma Shan Zheng Local', 'KaiTi', 'STKaiti', var(--display)`.
+- [x] Download both files from the official `google/fonts` repository.
+- [x] Verify the font file is non-empty and the license contains `SIL OPEN FONT LICENSE Version 1.1`.
+- [x] Add `@font-face` with `font-display: swap` and define `--handwriting: 'Ma Shan Zheng Local', 'KaiTi', 'STKaiti', var(--display)`.
 
 ### Task 2: Lock semantic font usage with tests
 
@@ -74,4 +74,3 @@ Use the corresponding primary test ID for each remaining component.
 - [ ] Run `npm test -- --run`, `npm run lint`, `npm run build`, and `git diff --check`.
 - [ ] Inspect all six motions in the browser and verify the local font is loaded, handwritten text is visibly stronger, and no content is clipped.
 - [ ] Mark all plan items complete and commit the implementation.
-

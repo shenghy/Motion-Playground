@@ -988,7 +988,7 @@ a:focus-visible {
 }
 
 .compare-panel strong {
-  font: 640 7.2cqw/.82 var(--display);
+  font: 640 7.2cqw/1 var(--display);
   letter-spacing: -.08em;
 }
 
@@ -1075,10 +1075,10 @@ a:focus-visible {
 }
 
 .quote-lockup__mark {
-  height: 4.3cqw;
+  height: 5.5cqw;
   margin-top: 1.4cqw;
   color: #5c6062;
-  font: 500 6.2cqw/.8 var(--display);
+  font: 500 5.5cqw/1 var(--display);
 }
 
 .quote-lockup blockquote {

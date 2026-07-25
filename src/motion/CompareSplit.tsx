@@ -11,11 +11,12 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
   const rightValue = useCountUp(params.rightValue, params.duration, 0)
   const duration = reduceMotion ? 0 : params.duration * 0.45
   const split = Math.min(68, Math.max(32, params.split))
+  const primaryWidth = 27 + ((split - 32) / 36) * 7
 
   return (
     <div
       className="motion-canvas compare-split"
-      style={{ '--split-position': `${split}%` } as CSSProperties}
+      style={{ '--primary-width': `${primaryWidth}%` } as CSSProperties}
     >
       <div className="canvas-grid" aria-hidden="true" />
       <motion.header
@@ -29,23 +30,12 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
         <span>DUAL SIGNAL</span>
       </motion.header>
 
-      <motion.div
-        className="compare-split__divider"
-        aria-hidden="true"
-        initial={{ scaleY: 0 }}
-        animate={{ scaleY: 1 }}
-        transition={{ duration: reduceMotion ? 0 : params.duration * 0.6, ease }}
-      >
-        <i />
-        <span>VS</span>
-        <i />
-      </motion.div>
-
       <div className="compare-split__panels">
         <motion.section
           className="compare-panel compare-panel--left"
           data-testid="compare-left"
           data-emphasized={params.emphasis === 'left'}
+          data-zone="left-primary"
           initial={{ opacity: 0, x: -90, clipPath: 'inset(0 100% 0 0)' }}
           animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0% 0 0)' }}
           transition={{ duration, delay: reduceMotion ? 0 : 0.1, ease }}
@@ -71,6 +61,7 @@ export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams
           className="compare-panel compare-panel--right"
           data-testid="compare-right"
           data-emphasized={params.emphasis === 'right'}
+          data-zone="right-secondary"
           initial={{ opacity: 0, x: 90, clipPath: 'inset(0 0 0 100%)' }}
           animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0 0%)' }}
           transition={{ duration, delay: reduceMotion ? 0 : 0.22, ease }}

@@ -24,5 +24,10 @@ describe('CompareSplit', () => {
     expect(screen.getByText('2.05× IMPROVEMENT')).toBeInTheDocument()
     expect(screen.getByTestId('compare-left')).toHaveAttribute('data-emphasized', 'false')
     expect(screen.getByTestId('compare-right')).toHaveAttribute('data-emphasized', 'true')
+    expect(screen.getByTestId('compare-left')).toHaveAttribute('data-zone', 'left-primary')
+    expect(screen.getByTestId('compare-right')).toHaveAttribute(
+      'data-zone',
+      'right-secondary',
+    )
   })
 })

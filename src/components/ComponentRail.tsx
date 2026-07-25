@@ -43,7 +43,7 @@ export function ComponentRail({ items, activeId, onSelect }: ComponentRailProps)
         ))}
       </div>
       <div className="rail-footer">
-        <span>03 MODULES</span>
+        <span>06 MODULES</span>
         <span>PHASE 01</span>
       </div>
     </nav>

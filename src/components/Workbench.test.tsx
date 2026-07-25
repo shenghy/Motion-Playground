@@ -17,6 +17,21 @@ describe('Workbench', () => {
     fireEvent.click(screen.getByRole('button', { name: /ProfileReveal/ }))
     expect(screen.getByText('公开构建者')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /QuoteLockup/ })).not.toBeInTheDocument()
+
+    expect(
+      screen.getAllByRole('button', {
+        name: /MetricFocus|CompareSplit|ProfileReveal|BarCompare|ShareRing|StepFlow/,
+      }),
+    ).toHaveLength(6)
+
+    fireEvent.click(screen.getByRole('button', { name: /BarCompare/ }))
+    expect(screen.getByText('季度增长')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /ShareRing/ }))
+    expect(screen.getByText('用户构成')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /StepFlow/ }))
+    expect(screen.getByText('发布流程')).toBeInTheDocument()
   })
 
   it('applies live changes and restarts playback', () => {

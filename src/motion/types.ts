@@ -1,6 +1,12 @@
 import type { ComponentType } from 'react'
 
-export type MotionId = 'metric-focus' | 'compare-split' | 'profile-reveal'
+export type MotionId =
+  | 'metric-focus'
+  | 'compare-split'
+  | 'profile-reveal'
+  | 'bar-compare'
+  | 'share-ring'
+  | 'step-flow'
 export type ParameterValue = string | number
 export type ParameterValues = Record<string, ParameterValue>
 
@@ -43,7 +49,63 @@ export interface ProfileRevealParams extends ParameterValues {
   duration: number
 }
 
-export type MotionParams = MetricFocusParams | CompareSplitParams | ProfileRevealParams
+export interface BarCompareParams extends ParameterValues {
+  eyebrow: string
+  title: string
+  item1Label: string
+  item1Value: number
+  item2Label: string
+  item2Value: number
+  item3Label: string
+  item3Value: number
+  item4Label: string
+  item4Value: number
+  suffix: string
+  focusIndex: '1' | '2' | '3' | '4'
+  resultLabel: string
+  resultNote: string
+  duration: number
+}
+
+export interface ShareRingParams extends ParameterValues {
+  eyebrow: string
+  title: string
+  item1Label: string
+  item1Value: number
+  item2Label: string
+  item2Value: number
+  item3Label: string
+  item3Value: number
+  item4Label: string
+  item4Value: number
+  focusIndex: '1' | '2' | '3' | '4'
+  centerLabel: string
+  resultLabel: string
+  resultNote: string
+  duration: number
+}
+
+export interface StepFlowParams extends ParameterValues {
+  eyebrow: string
+  title: string
+  step1: string
+  step2: string
+  step3: string
+  step4: string
+  step5: string
+  focusStep: '1' | '2' | '3' | '4' | '5'
+  statusLabel: string
+  statusNote: string
+  stepDuration: number
+}
+
+export type MotionParams =
+  | MetricFocusParams
+  | CompareSplitParams
+  | ProfileRevealParams
+  | BarCompareParams
+  | ShareRingParams
+  | StepFlowParams
 
 export type Control =
   | {

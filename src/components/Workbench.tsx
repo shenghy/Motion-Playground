@@ -21,6 +21,9 @@ export function Workbench() {
     'metric-focus': 0,
     'compare-split': 0,
     'profile-reveal': 0,
+    'bar-compare': 0,
+    'share-ring': 0,
+    'step-flow': 0,
   })
 
   const activeDefinition = useMemo(() => getMotionDefinition(activeId), [activeId])

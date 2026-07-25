@@ -1,12 +1,18 @@
+import { BarCompare } from '../motion/BarCompare'
 import { CompareSplit } from '../motion/CompareSplit'
 import { MetricFocus } from '../motion/MetricFocus'
 import { ProfileReveal } from '../motion/ProfileReveal'
+import { ShareRing } from '../motion/ShareRing'
+import { StepFlow } from '../motion/StepFlow'
 import type {
+  BarCompareParams,
   CompareSplitParams,
   MetricFocusParams,
   MotionId,
   ParameterValues,
   ProfileRevealParams,
+  ShareRingParams,
+  StepFlowParams,
 } from '../motion/types'
 
 interface PreviewStageProps {
@@ -23,6 +29,12 @@ function renderMotion(id: MotionId, params: ParameterValues) {
       return <CompareSplit params={params as CompareSplitParams} />
     case 'profile-reveal':
       return <ProfileReveal params={params as ProfileRevealParams} />
+    case 'bar-compare':
+      return <BarCompare params={params as BarCompareParams} />
+    case 'share-ring':
+      return <ShareRing params={params as ShareRingParams} />
+    case 'step-flow':
+      return <StepFlow params={params as StepFlowParams} />
     default:
       return <MetricFocus params={params as MetricFocusParams} />
   }

@@ -1,18 +1,27 @@
+import { BarCompare } from './BarCompare'
 import { CompareSplit } from './CompareSplit'
 import { MetricFocus } from './MetricFocus'
 import { ProfileReveal } from './ProfileReveal'
+import { ShareRing } from './ShareRing'
+import { StepFlow } from './StepFlow'
 import type {
+  BarCompareParams,
   CompareSplitParams,
   MetricFocusParams,
   MotionDefinition,
   MotionId,
   ProfileRevealParams,
+  ShareRingParams,
+  StepFlowParams,
 } from './types'
 
 type RegisteredMotion =
   | MotionDefinition<MetricFocusParams>
   | MotionDefinition<CompareSplitParams>
   | MotionDefinition<ProfileRevealParams>
+  | MotionDefinition<BarCompareParams>
+  | MotionDefinition<ShareRingParams>
+  | MotionDefinition<StepFlowParams>
 
 export const motionRegistry: RegisteredMotion[] = [
   {
@@ -117,6 +126,155 @@ export const motionRegistry: RegisteredMotion[] = [
       { type: 'text', key: 'fact3Note', label: '信息三注释', maxLength: 20 },
       { type: 'text', key: 'status', label: '状态文字', maxLength: 24 },
       { type: 'number', key: 'duration', label: '循环时长', min: 5.2, max: 10, step: 0.2, suffix: 's' },
+    ],
+  },
+  {
+    id: 'bar-compare',
+    index: '04',
+    name: 'BarCompare',
+    category: 'DATA / COLUMN',
+    description: '柱状数据对比',
+    component: BarCompare,
+    defaults: {
+      eyebrow: '04 / DATA COMPARISON',
+      title: '季度增长',
+      item1Label: 'Q1',
+      item1Value: 32,
+      item2Label: 'Q2',
+      item2Value: 48,
+      item3Label: 'Q3',
+      item3Value: 67,
+      item4Label: 'Q4',
+      item4Value: 86,
+      suffix: '%',
+      focusIndex: '4',
+      resultLabel: 'PEAK',
+      resultNote: 'Q4 / +18 PT',
+      duration: 5.8,
+    },
+    controls: [
+      { type: 'text', key: 'eyebrow', label: '分类眉题', maxLength: 24 },
+      { type: 'text', key: 'title', label: '对比标题', maxLength: 16 },
+      { type: 'text', key: 'item1Label', label: '数据一名称', maxLength: 8 },
+      { type: 'number', key: 'item1Value', label: '数据一数值', min: 0, max: 9999, step: 1 },
+      { type: 'text', key: 'item2Label', label: '数据二名称', maxLength: 8 },
+      { type: 'number', key: 'item2Value', label: '数据二数值', min: 0, max: 9999, step: 1 },
+      { type: 'text', key: 'item3Label', label: '数据三名称', maxLength: 8 },
+      { type: 'number', key: 'item3Value', label: '数据三数值', min: 0, max: 9999, step: 1 },
+      { type: 'text', key: 'item4Label', label: '数据四名称', maxLength: 8 },
+      { type: 'number', key: 'item4Value', label: '数据四数值', min: 0, max: 9999, step: 1 },
+      { type: 'text', key: 'suffix', label: '数值后缀', maxLength: 4 },
+      {
+        type: 'select',
+        key: 'focusIndex',
+        label: '重点数据',
+        options: [
+          { label: '数据一', value: '1' },
+          { label: '数据二', value: '2' },
+          { label: '数据三', value: '3' },
+          { label: '数据四', value: '4' },
+        ],
+      },
+      { type: 'text', key: 'resultLabel', label: '结论标签', maxLength: 12 },
+      { type: 'text', key: 'resultNote', label: '结论说明', maxLength: 18 },
+      { type: 'number', key: 'duration', label: '循环时长', min: 4.8, max: 10, step: 0.2, suffix: 's' },
+    ],
+  },
+  {
+    id: 'share-ring',
+    index: '05',
+    name: 'ShareRing',
+    category: 'SHARE / RATIO',
+    description: '环形占比分析',
+    component: ShareRing,
+    defaults: {
+      eyebrow: '05 / SHARE ANALYSIS',
+      title: '用户构成',
+      item1Label: '核心用户',
+      item1Value: 62,
+      item2Label: '成长用户',
+      item2Value: 20,
+      item3Label: '观察用户',
+      item3Value: 12,
+      item4Label: '其他',
+      item4Value: 6,
+      focusIndex: '1',
+      centerLabel: 'PRIMARY',
+      resultLabel: 'SHARE',
+      resultNote: 'DOMINANT / 01',
+      duration: 6,
+    },
+    controls: [
+      { type: 'text', key: 'eyebrow', label: '分类眉题', maxLength: 24 },
+      { type: 'text', key: 'title', label: '占比标题', maxLength: 16 },
+      { type: 'text', key: 'item1Label', label: '占比一名称', maxLength: 8 },
+      { type: 'number', key: 'item1Value', label: '占比一数值', min: 0, max: 10000, step: 1 },
+      { type: 'text', key: 'item2Label', label: '占比二名称', maxLength: 8 },
+      { type: 'number', key: 'item2Value', label: '占比二数值', min: 0, max: 10000, step: 1 },
+      { type: 'text', key: 'item3Label', label: '占比三名称', maxLength: 8 },
+      { type: 'number', key: 'item3Value', label: '占比三数值', min: 0, max: 10000, step: 1 },
+      { type: 'text', key: 'item4Label', label: '占比四名称', maxLength: 8 },
+      { type: 'number', key: 'item4Value', label: '占比四数值', min: 0, max: 10000, step: 1 },
+      {
+        type: 'select',
+        key: 'focusIndex',
+        label: '主要占比',
+        options: [
+          { label: '占比一', value: '1' },
+          { label: '占比二', value: '2' },
+          { label: '占比三', value: '3' },
+          { label: '占比四', value: '4' },
+        ],
+      },
+      { type: 'text', key: 'centerLabel', label: '中心标签', maxLength: 12 },
+      { type: 'text', key: 'resultLabel', label: '结论标签', maxLength: 12 },
+      { type: 'text', key: 'resultNote', label: '结论说明', maxLength: 18 },
+      { type: 'number', key: 'duration', label: '循环时长', min: 5, max: 10, step: 0.2, suffix: 's' },
+    ],
+  },
+  {
+    id: 'step-flow',
+    index: '06',
+    name: 'StepFlow',
+    category: 'PROCESS / FLOW',
+    description: '步骤流程讲解',
+    component: StepFlow,
+    defaults: {
+      eyebrow: '06 / PROCESS MAP',
+      title: '发布流程',
+      step1: '明确目标',
+      step2: '准备内容',
+      step3: '构建版本',
+      step4: '验证结果',
+      step5: '正式发布',
+      focusStep: '3',
+      statusLabel: 'CURRENT',
+      statusNote: 'BUILD / ACTIVE',
+      stepDuration: 1.1,
+    },
+    controls: [
+      { type: 'text', key: 'eyebrow', label: '分类眉题', maxLength: 24 },
+      { type: 'text', key: 'title', label: '流程标题', maxLength: 16 },
+      { type: 'text', key: 'step1', label: '步骤一', maxLength: 12 },
+      { type: 'text', key: 'step2', label: '步骤二', maxLength: 12 },
+      { type: 'text', key: 'step3', label: '步骤三', maxLength: 12 },
+      { type: 'text', key: 'step4', label: '步骤四', maxLength: 12 },
+      { type: 'text', key: 'step5', label: '步骤五', maxLength: 12 },
+      {
+        type: 'select',
+        key: 'focusStep',
+        label: '初始焦点',
+        options: [
+          { label: '步骤一', value: '1' },
+          { label: '步骤二', value: '2' },
+          { label: '步骤三', value: '3' },
+          { label: '步骤四', value: '4' },
+          { label: '步骤五', value: '5' },
+        ],
+      },
+      { type: 'text', key: 'statusLabel', label: '状态标签', maxLength: 12 },
+      { type: 'text', key: 'statusNote', label: '状态说明', maxLength: 18 },
+      { type: 'number', key: 'stepDuration', label: '单步停留', min: 0.7, max: 2.4, step: 0.1, suffix: 's' },
     ],
   },
 ]

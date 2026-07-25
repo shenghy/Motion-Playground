@@ -102,18 +102,32 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
           {steps.map((step, index) => {
             const initialFocus = index === focusIndex
             const staticOpacity = initialFocus ? 1 : 0.42
+            const sequenceOrder = orderedIndexes.indexOf(index)
 
             return (
               <motion.div
                 className="step-flow__step"
                 data-testid="flow-step"
                 data-initial-focus={initialFocus}
+                data-sequence-order={sequenceOrder}
                 initial={reduceMotion ? false : { opacity: 0.34, scale: 1 }}
                 animate={reduceMotion
-                  ? { opacity: staticOpacity, scale: initialFocus ? 1.08 : 1 }
+                  ? {
+                      opacity: staticOpacity,
+                      scale: initialFocus ? 1.3 : 1,
+                      color: initialFocus ? '#f1f1ed' : '#676c71',
+                    }
                   : {
                       opacity: [0.34, 0.34, 1, 1, 0.42, 0.34],
-                      scale: [1, 1, 1.08, 1.08, 1, 1],
+                      scale: [1, 1, 1.3, 1.3, 1, 1],
+                      color: [
+                        '#5d6267',
+                        '#5d6267',
+                        '#f1f1ed',
+                        '#f1f1ed',
+                        '#8a8f94',
+                        '#5d6267',
+                      ],
                     }}
                 transition={stepTransition(index)}
                 key={`${step}-${index}`}
@@ -136,13 +150,10 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
         <div className="step-flow__status-numbers" aria-hidden="true">
           {steps.map((_, index) => (
             <motion.strong
-              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              initial={reduceMotion ? false : { opacity: 0 }}
               animate={reduceMotion
-                ? { opacity: index === focusIndex ? 1 : 0, y: 0 }
-                : {
-                    opacity: [0, 0, 1, 1, 0, 0],
-                    y: [12, 12, 0, 0, -8, -8],
-                  }}
+                ? { opacity: index === focusIndex ? 1 : 0 }
+                : { opacity: [0, 0, 1, 1, 0, 0] }}
               transition={stepTransition(index)}
               key={index}
             >

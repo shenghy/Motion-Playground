@@ -1661,6 +1661,7 @@ a:focus-visible {
 }
 
 .step-flow__step {
+  width: 75%;
   min-width: 0;
   position: relative;
   display: grid;
@@ -1679,7 +1680,7 @@ a:focus-visible {
   place-items: center;
   width: 2cqw;
   height: 2cqw;
-  border: 1px solid #4d5257;
+  border: 1px solid currentColor;
   background: #0c0d0f;
   font: 500 .62cqw/1 var(--mono);
 }
@@ -1716,6 +1717,7 @@ a:focus-visible {
   position: relative;
   height: 2.4cqw;
   margin-top: .7cqw;
+  overflow: hidden;
 }
 
 .step-flow__status-numbers strong {

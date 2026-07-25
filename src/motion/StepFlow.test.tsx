@@ -28,6 +28,10 @@ describe('StepFlow', () => {
       'data-initial-focus',
       'true',
     )
+    expect(screen.getAllByTestId('flow-step')[2]).toHaveAttribute(
+      'data-sequence-order',
+      '0',
+    )
     expect(screen.getByText('BUILD / ACTIVE')).toBeInTheDocument()
     expect(screen.getByTestId('flow-primary')).toHaveAttribute(
       'data-zone',

@@ -15,20 +15,20 @@
 **Files:**
 - Modify: `src/components/Workbench.test.tsx`
 
-- [ ] Mock `URL.createObjectURL` and `URL.revokeObjectURL`.
-- [ ] Add a test that selects an MP4 file and expects the reference image to be replaced by a video with `autoPlay`, `muted`, `loop`, and `playsInline`.
-- [ ] Change a text parameter and switch components; assert the same video URL remains mounted.
-- [ ] Click “移除视频”; assert the video disappears, the reference image returns, and the Blob URL is revoked.
-- [ ] Add an invalid-file test that expects a Chinese validation message.
-- [ ] Run `npm test -- --run src/components/Workbench.test.tsx` and confirm RED.
+- [x] Mock `URL.createObjectURL` and `URL.revokeObjectURL`.
+- [x] Add a test that selects an MP4 file and expects the reference image to be replaced by a video with `autoPlay`, `muted`, `loop`, and `playsInline`.
+- [x] Change a text parameter and switch components; assert the same video URL remains mounted.
+- [x] Click “移除视频”; assert the video disappears, the reference image returns, and the Blob URL is revoked.
+- [x] Add an invalid-file test that expects a Chinese validation message.
+- [x] Run `npm test -- --run src/components/Workbench.test.tsx` and confirm RED.
 
 ### Task 2: Add Workbench video state and resource cleanup
 
 **Files:**
 - Modify: `src/components/Workbench.tsx`
 
-- [ ] Add `videoPreview`, `videoError`, and a ref holding the active Blob URL.
-- [ ] Implement `selectVideo(file)`:
+- [x] Add `videoPreview`, `videoError`, and a ref holding the active Blob URL.
+- [x] Implement `selectVideo(file)`:
 
 ```ts
 if (!file.type.startsWith('video/')) {
@@ -43,8 +43,8 @@ setVideoPreview({ name: file.name, url: nextUrl })
 setVideoError('')
 ```
 
-- [ ] Implement `removeVideo()` and unmount cleanup with `URL.revokeObjectURL`.
-- [ ] Pass the video URL to `PreviewStage` and video controls to `ParameterPanel`.
+- [x] Implement `removeVideo()` and unmount cleanup with `URL.revokeObjectURL`.
+- [x] Pass the video URL to `PreviewStage` and video controls to `ParameterPanel`.
 
 ### Task 3: Add the parameter-panel import controls
 
@@ -52,12 +52,12 @@ setVideoError('')
 - Modify: `src/components/ParameterPanel.tsx`
 - Modify: `src/styles.css`
 
-- [ ] Add props for file name, error, import callback, and remove callback.
-- [ ] Add a “视频背景” block above stage assistance.
-- [ ] Use a styled file input accepting `video/*`; reset the input value after selection so the same file can be selected again.
-- [ ] Show “不上传，仅在当前浏览器预览” before import.
-- [ ] Show file name, “更换视频”, and “移除视频” after import.
-- [ ] Style the block using existing monochrome borders and spacing.
+- [x] Add props for file name, error, import callback, and remove callback.
+- [x] Add a “视频背景” block above stage assistance.
+- [x] Use a styled file input accepting `video/*`; reset the input value after selection so the same file can be selected again.
+- [x] Show “不上传，仅在当前浏览器预览” before import.
+- [x] Show file name, “更换视频”, and “移除视频” after import.
+- [x] Style the block using existing monochrome borders and spacing.
 
 ### Task 4: Render the stable background video
 
@@ -65,8 +65,8 @@ setVideoError('')
 - Modify: `src/components/PreviewStage.tsx`
 - Modify: `src/styles.css`
 
-- [ ] Add optional `videoUrl` to `PreviewStageProps`.
-- [ ] Render:
+- [x] Add optional `videoUrl` to `PreviewStageProps`.
+- [x] Render:
 
 ```tsx
 <video
@@ -81,18 +81,17 @@ setVideoError('')
 />
 ```
 
-- [ ] Keep the video outside the keyed `.motion-slot` so parameter changes and component switches do not restart it.
-- [ ] Render the existing reference image only when no video URL exists.
-- [ ] Apply `object-fit: cover` and preserve the current layer order.
-- [ ] Run the focused Workbench tests and confirm GREEN.
+- [x] Keep the video outside the keyed `.motion-slot` so parameter changes and component switches do not restart it.
+- [x] Render the existing reference image only when no video URL exists.
+- [x] Apply `object-fit: cover` and preserve the current layer order.
+- [x] Run the focused Workbench tests and confirm GREEN.
 
 ### Task 5: Verify and deliver
 
 **Files:**
 - Modify: `docs/superpowers/plans/2026-07-26-local-video-preview.md`
 
-- [ ] Run `npm test -- --run`, `npm run lint`, `npm run build`, and `git diff --check`.
-- [ ] Import a local test video in the browser and verify it plays while text changes and component switches preserve the same video.
-- [ ] Verify the person and subtitle safety overlays remain above the video.
-- [ ] Mark all plan tasks complete and commit.
-
+- [x] Run `npm test -- --run`, `npm run lint`, `npm run build`, and `git diff --check`.
+- [x] Import a local test video in the browser and verify it plays while text changes and component switches preserve the same video.
+- [x] Verify the person and subtitle safety overlays remain above the video.
+- [x] Mark all plan tasks complete and commit.

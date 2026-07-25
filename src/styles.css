@@ -528,6 +528,20 @@ a:focus-visible {
   filter: saturate(.74) brightness(.68) contrast(1.04);
 }
 
+.presenter-background--video {
+  display: block;
+  background: #050607;
+}
+
+.video-validation-probe {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .motion-slot {
   position: absolute;
   z-index: 2;
@@ -651,6 +665,114 @@ a:focus-visible {
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+}
+
+.video-setting {
+  display: grid;
+  gap: 12px;
+  padding: 15px 18px 16px;
+  border-bottom: 1px solid var(--line-strong);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.04), transparent 52%),
+    rgba(255,255,255,.012);
+}
+
+.video-setting__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.video-setting__heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.video-setting__heading span {
+  color: var(--paper);
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+
+.video-setting__heading small {
+  overflow: hidden;
+  color: var(--quiet);
+  font-size: 8px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-setting__status {
+  flex: none;
+  padding: 3px 5px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted) !important;
+  font-size: 7px !important;
+  letter-spacing: .12em !important;
+}
+
+.video-setting__actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+}
+
+.video-import-button,
+.video-remove-button {
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--paper);
+  color: var(--ink);
+  background: var(--paper);
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.video-import-button:hover {
+  color: var(--paper);
+  background: transparent;
+}
+
+.video-remove-button {
+  padding: 0 10px;
+  border-color: var(--line-strong);
+  color: var(--muted);
+  background: transparent;
+}
+
+.video-remove-button:hover {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+.video-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.video-import-button:focus-within {
+  outline: 1px solid var(--signal);
+  outline-offset: 2px;
+}
+
+.video-setting__error {
+  margin: -3px 0 0;
+  color: #d8a19d;
+  font-size: 8px;
+  line-height: 1.45;
 }
 
 .preview-setting {

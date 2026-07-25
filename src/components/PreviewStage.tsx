@@ -21,6 +21,11 @@ interface PreviewStageProps {
   params: ParameterValues
   playbackKey: number
   showSafeArea: boolean
+  videoUrl?: string
+  pendingVideoUrl?: string
+  onVideoReady?: (url: string) => void
+  onVideoError?: (url: string) => void
+  onActiveVideoError?: (url: string) => void
 }
 
 function renderMotion(id: MotionId, params: ParameterValues) {
@@ -46,6 +51,11 @@ export function PreviewStage({
   params,
   playbackKey,
   showSafeArea,
+  videoUrl,
+  pendingVideoUrl,
+  onVideoReady,
+  onVideoError,
+  onActiveVideoError,
 }: PreviewStageProps) {
   return (
     <main className="preview-stage">
@@ -73,11 +83,38 @@ export function PreviewStage({
           data-testid="preview-stage"
           data-playback-key={playbackKey}
         >
-          <img
-            className="presenter-background"
-            src="/reference-standing.png"
-            alt="口播人物参考背景"
-          />
+          {videoUrl ? (
+            <video
+              className="presenter-background presenter-background--video"
+              data-testid="presenter-video"
+              src={videoUrl}
+              aria-label="本地视频背景"
+              autoPlay
+              muted
+              loop
+              playsInline
+              onError={() => onActiveVideoError?.(videoUrl)}
+            />
+          ) : (
+            <img
+              className="presenter-background"
+              src="/reference-standing.png"
+              alt="口播人物参考背景"
+            />
+          )}
+          {pendingVideoUrl && (
+            <video
+              className="video-validation-probe"
+              data-testid="video-validation-probe"
+              src={pendingVideoUrl}
+              preload="auto"
+              muted
+              playsInline
+              aria-hidden="true"
+              onCanPlay={() => onVideoReady?.(pendingVideoUrl)}
+              onError={() => onVideoError?.(pendingVideoUrl)}
+            />
+          )}
           <div className="motion-slot" key={`${motionId}-${playbackKey}`}>
             {renderMotion(motionId, params)}
           </div>

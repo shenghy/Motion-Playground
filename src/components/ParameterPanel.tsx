@@ -8,6 +8,11 @@ interface ParameterPanelProps {
   onReplay: () => void
   showSafeArea?: boolean
   onToggleSafeArea?: () => void
+  videoFileName?: string
+  pendingVideoFileName?: string
+  videoError?: string
+  onVideoFile?: (file: File) => void
+  onRemoveVideo?: () => void
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -21,6 +26,11 @@ export function ParameterPanel({
   onReplay,
   showSafeArea = true,
   onToggleSafeArea,
+  videoFileName,
+  pendingVideoFileName,
+  videoError,
+  onVideoFile,
+  onRemoveVideo,
 }: ParameterPanelProps) {
   return (
     <aside className="parameter-panel" aria-label="动效参数">
@@ -33,6 +43,63 @@ export function ParameterPanel({
       </div>
 
       <div className="control-list">
+        {onVideoFile && (
+          <section className="video-setting" aria-label="视频背景">
+            <div className="video-setting__heading">
+              <div>
+                <span>视频背景</span>
+                <small>
+                  {pendingVideoFileName ??
+                    videoFileName ??
+                    '不上传，仅在当前浏览器预览'}
+                </small>
+              </div>
+              <span
+                className="video-setting__status"
+                role="status"
+                aria-live="polite"
+              >
+                {pendingVideoFileName
+                  ? '正在检查'
+                  : videoFileName
+                    ? '已载入'
+                    : '本地'}
+              </span>
+            </div>
+            <div className="video-setting__actions">
+              <label className="video-import-button">
+                <input
+                  className="video-file-input"
+                  type="file"
+                  accept="video/*"
+                  aria-label="导入本地视频"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0]
+                    if (file) {
+                      onVideoFile(file)
+                    }
+                    event.currentTarget.value = ''
+                  }}
+                />
+                {videoFileName ? '更换视频' : '导入本地视频'}
+              </label>
+              {videoFileName && onRemoveVideo && (
+                <button
+                  className="video-remove-button"
+                  type="button"
+                  onClick={onRemoveVideo}
+                >
+                  移除视频
+                </button>
+              )}
+            </div>
+            {videoError && (
+              <p className="video-setting__error" role="alert">
+                {videoError}
+              </p>
+            )}
+          </section>
+        )}
         {onToggleSafeArea && (
           <div className="preview-setting">
             <div>

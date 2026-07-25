@@ -15,7 +15,7 @@
 **Files:**
 - Modify: `src/components/Workbench.test.tsx`
 
-- [ ] **Step 1: Add a media-state test**
+- [x] **Step 1: Add a media-state test**
 
 Import a valid video, fire its `play` event, and assert:
 
@@ -26,7 +26,7 @@ expect(screen.getByLabelText('视频进度')).toHaveValue('0')
 expect(screen.getByText('00:00 / 00:00')).toBeInTheDocument()
 ```
 
-- [ ] **Step 2: Add play, pause, sound, and seek assertions**
+- [x] **Step 2: Add play, pause, sound, and seek assertions**
 
 Mock `HTMLMediaElement.prototype.play` and `pause`. Verify:
 
@@ -48,19 +48,19 @@ fireEvent.change(screen.getByLabelText('视频进度'), {
 expect(video.currentTime).toBe(35)
 ```
 
-- [ ] **Step 3: Add time synchronization assertions**
+- [x] **Step 3: Add time synchronization assertions**
 
 Define a finite `duration` on the video, assign `currentTime`, and dispatch
 `durationChange` and `timeUpdate`. Expect `00:35 / 02:05` and a slider maximum
 of `125`.
 
-- [ ] **Step 4: Verify controls survive motion updates**
+- [x] **Step 4: Verify controls survive motion updates**
 
 After enabling sound, edit the active text field and switch to another motion.
 Assert the same video node remains mounted, remains unmuted, and the playback
 bar still exists.
 
-- [ ] **Step 5: Run the focused test and confirm RED**
+- [x] **Step 5: Run the focused test and confirm RED**
 
 Run:
 
@@ -76,7 +76,7 @@ display do not exist.
 **Files:**
 - Create: `src/components/VideoPlaybackControls.tsx`
 
-- [ ] **Step 1: Define the controlled component contract**
+- [x] **Step 1: Define the controlled component contract**
 
 ```tsx
 interface VideoPlaybackControlsProps {
@@ -90,7 +90,7 @@ interface VideoPlaybackControlsProps {
 }
 ```
 
-- [ ] **Step 2: Add deterministic time formatting**
+- [x] **Step 2: Add deterministic time formatting**
 
 ```tsx
 const formatTime = (value: number) => {
@@ -102,7 +102,7 @@ const formatTime = (value: number) => {
 }
 ```
 
-- [ ] **Step 3: Render the custom controls**
+- [x] **Step 3: Render the custom controls**
 
 Render a preview-only toolbar with:
 
@@ -127,7 +127,7 @@ The range input calls `onSeek(Number(event.target.value))`.
 **Files:**
 - Modify: `src/components/PreviewStage.tsx`
 
-- [ ] **Step 1: Add media refs and UI state**
+- [x] **Step 1: Add media refs and UI state**
 
 Add:
 
@@ -139,7 +139,7 @@ const [currentTime, setCurrentTime] = useState(0)
 const [duration, setDuration] = useState(0)
 ```
 
-- [ ] **Step 2: Synchronize from media events**
+- [x] **Step 2: Synchronize from media events**
 
 Attach the ref and handlers to the active video:
 
@@ -155,7 +155,7 @@ onDurationChange={(event) => {
 onVolumeChange={(event) => setIsMuted(event.currentTarget.muted)}
 ```
 
-- [ ] **Step 3: Implement control actions**
+- [x] **Step 3: Implement control actions**
 
 ```tsx
 const togglePlayback = () => {
@@ -184,17 +184,17 @@ const seek = (time: number) => {
 }
 ```
 
-- [ ] **Step 4: Reset only when the source changes**
+- [x] **Step 4: Reset only when the source changes**
 
 Use an effect keyed by `videoUrl` to reset the control display to muted,
 zero-time state. Do not key it by motion ID, parameters, or playback key.
 
-- [ ] **Step 5: Render controls only for an active video**
+- [x] **Step 5: Render controls only for an active video**
 
 Place `VideoPlaybackControls` after the motion layer and before safety overlays.
 Do not place the video itself or the controls inside `.motion-slot`.
 
-- [ ] **Step 6: Run focused tests and confirm GREEN**
+- [x] **Step 6: Run focused tests and confirm GREEN**
 
 Run:
 
@@ -209,7 +209,7 @@ Expected: all Workbench tests pass.
 **Files:**
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: Position the bar above the subtitle area**
+- [x] **Step 1: Position the bar above the subtitle area**
 
 Add `.video-playback-controls` with absolute positioning, `z-index: 6`, and:
 
@@ -219,13 +219,13 @@ right: 4%;
 bottom: calc(var(--subtitle-safe-bottom) + 1.1cqw);
 ```
 
-- [ ] **Step 2: Match the monochrome pencil interface**
+- [x] **Step 2: Match the monochrome pencil interface**
 
 Use a compact grid with thin borders, translucent near-black background, white
 controls, monospaced time text, no heavy shadow, and a high-contrast range
 track/thumb.
 
-- [ ] **Step 3: Keep interaction targets usable**
+- [x] **Step 3: Keep interaction targets usable**
 
 Give both icon buttons at least a 30-pixel target in the scaled preview UI and
 add visible `:focus-visible` styles.
@@ -235,7 +235,7 @@ add visible `:focus-visible` styles.
 **Files:**
 - Modify: `docs/superpowers/plans/2026-07-26-video-playback-controls.md`
 
-- [ ] **Step 1: Run all automated checks**
+- [x] **Step 1: Run all automated checks**
 
 ```bash
 npm test -- --run
@@ -247,7 +247,7 @@ git diff --check
 Expected: all tests pass, lint reports no errors, Vite production build
 succeeds, and diff check emits no output.
 
-- [ ] **Step 2: Validate with a real local video**
+- [x] **Step 2: Validate with a real local video**
 
 In the running browser:
 
@@ -259,12 +259,12 @@ In the running browser:
 - Edit text and switch motions; confirm the same video element and state remain.
 - Confirm the toolbar sits above the 150-pixel subtitle safe area.
 
-- [ ] **Step 3: Request independent code review**
+- [x] **Step 3: Request independent code review**
 
 Review lifecycle handling, rejected `play()` promises, finite duration handling,
 seek clamping, accessibility labels, and regressions in Blob URL cleanup.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/components/VideoPlaybackControls.tsx \

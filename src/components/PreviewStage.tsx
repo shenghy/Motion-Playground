@@ -1,9 +1,11 @@
+import { useRef, useState } from 'react'
 import { BarCompare } from '../motion/BarCompare'
 import { CompareSplit } from '../motion/CompareSplit'
 import { MetricFocus } from '../motion/MetricFocus'
 import { ProfileReveal } from '../motion/ProfileReveal'
 import { ShareRing } from '../motion/ShareRing'
 import { StepFlow } from '../motion/StepFlow'
+import { VideoPlaybackControls } from './VideoPlaybackControls'
 import type {
   BarCompareParams,
   CompareSplitParams,
@@ -27,6 +29,22 @@ interface PreviewStageProps {
   onVideoError?: (url: string) => void
   onActiveVideoError?: (url: string) => void
 }
+
+interface PlaybackState {
+  source?: string
+  isPlaying: boolean
+  isMuted: boolean
+  currentTime: number
+  duration: number
+}
+
+const createPlaybackState = (source?: string): PlaybackState => ({
+  source,
+  isPlaying: false,
+  isMuted: true,
+  currentTime: 0,
+  duration: 0,
+})
 
 function renderMotion(id: MotionId, params: ParameterValues) {
   switch (id) {
@@ -57,6 +75,67 @@ export function PreviewStage({
   onVideoError,
   onActiveVideoError,
 }: PreviewStageProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [playbackState, setPlaybackState] = useState<PlaybackState>(() =>
+    createPlaybackState(videoUrl),
+  )
+  const currentPlaybackState =
+    playbackState.source === videoUrl
+      ? playbackState
+      : createPlaybackState(videoUrl)
+
+  const updatePlaybackState = (updates: Partial<PlaybackState>) => {
+    setPlaybackState((current) => ({
+      ...(current.source === videoUrl
+        ? current
+        : createPlaybackState(videoUrl)),
+      ...updates,
+    }))
+  }
+
+  const togglePlayback = () => {
+    const video = videoRef.current
+    if (!video) {
+      return
+    }
+
+    if (video.paused) {
+      void video
+        .play()
+        .catch(() => {
+          if (videoRef.current === video) {
+            updatePlaybackState({ isPlaying: false })
+          }
+        })
+    } else {
+      video.pause()
+    }
+  }
+
+  const toggleMuted = () => {
+    const video = videoRef.current
+    if (!video) {
+      return
+    }
+
+    video.muted = !video.muted
+    updatePlaybackState({ isMuted: video.muted })
+  }
+
+  const seek = (time: number) => {
+    const video = videoRef.current
+    if (!video) {
+      return
+    }
+
+    const nextTime = Math.min(
+      Math.max(time, 0),
+      currentPlaybackState.duration || 0,
+    )
+    video.currentTime = nextTime
+    updatePlaybackState({ currentTime: nextTime })
+  }
+
   return (
     <main className="preview-stage">
       <div className="stage-heading">
@@ -85,6 +164,8 @@ export function PreviewStage({
         >
           {videoUrl ? (
             <video
+              key={videoUrl}
+              ref={videoRef}
               className="presenter-background presenter-background--video"
               data-testid="presenter-video"
               src={videoUrl}
@@ -93,6 +174,22 @@ export function PreviewStage({
               muted
               loop
               playsInline
+              onPlay={() => updatePlaybackState({ isPlaying: true })}
+              onPause={() => updatePlaybackState({ isPlaying: false })}
+              onTimeUpdate={(event) =>
+                updatePlaybackState({
+                  currentTime: event.currentTarget.currentTime,
+                })
+              }
+              onDurationChange={(event) => {
+                const nextDuration = event.currentTarget.duration
+                updatePlaybackState({
+                  duration: Number.isFinite(nextDuration) ? nextDuration : 0,
+                })
+              }}
+              onVolumeChange={(event) =>
+                updatePlaybackState({ isMuted: event.currentTarget.muted })
+              }
               onError={() => onActiveVideoError?.(videoUrl)}
             />
           ) : (
@@ -118,6 +215,17 @@ export function PreviewStage({
           <div className="motion-slot" key={`${motionId}-${playbackKey}`}>
             {renderMotion(motionId, params)}
           </div>
+          {videoUrl && (
+            <VideoPlaybackControls
+              isPlaying={currentPlaybackState.isPlaying}
+              isMuted={currentPlaybackState.isMuted}
+              currentTime={currentPlaybackState.currentTime}
+              duration={currentPlaybackState.duration}
+              onTogglePlayback={togglePlayback}
+              onToggleMuted={toggleMuted}
+              onSeek={seek}
+            />
+          )}
           {showSafeArea && (
             <>
               <div

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import { Workbench } from './Workbench'
 
@@ -17,6 +17,10 @@ describe('Workbench', () => {
       configurable: true,
       value: revokeObjectURL,
     })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('opens the Chinese component library and switches between all motions', () => {
@@ -143,6 +147,151 @@ describe('Workbench', () => {
       screen.getByRole('img', { name: '口播人物参考背景' }),
     ).toBeInTheDocument()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:local-video-preview')
+  })
+
+  it('controls video playback, sound, progress, and keeps state across motions', () => {
+    const play = vi
+      .spyOn(HTMLMediaElement.prototype, 'play')
+      .mockResolvedValue(undefined)
+    const pause = vi
+      .spyOn(HTMLMediaElement.prototype, 'pause')
+      .mockImplementation(() => undefined)
+    render(<Workbench />)
+    const file = new File(['video-with-audio'], '带声音口播.mp4', {
+      type: 'video/mp4',
+    })
+
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+
+    const video = screen.getByTestId('presenter-video') as HTMLVideoElement
+    Object.defineProperty(video, 'duration', {
+      configurable: true,
+      value: 125,
+    })
+    fireEvent.durationChange(video)
+    video.currentTime = 35
+    fireEvent.timeUpdate(video)
+    fireEvent.play(video)
+
+    expect(screen.getByRole('button', { name: '暂停视频' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '开启声音' })).toBeInTheDocument()
+    expect(screen.getByLabelText('视频进度')).toHaveAttribute('max', '125')
+    expect(screen.getByLabelText('视频进度')).toHaveValue('35')
+    expect(screen.getByText('00:35 / 02:05')).toBeInTheDocument()
+
+    Object.defineProperty(video, 'paused', {
+      configurable: true,
+      value: false,
+    })
+    fireEvent.click(screen.getByRole('button', { name: '暂停视频' }))
+    expect(pause).toHaveBeenCalled()
+    fireEvent.pause(video)
+
+    Object.defineProperty(video, 'paused', {
+      configurable: true,
+      value: true,
+    })
+    fireEvent.click(screen.getByRole('button', { name: '播放视频' }))
+    expect(play).toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: '开启声音' }))
+    expect(video.muted).toBe(false)
+    expect(screen.getByRole('button', { name: '静音' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('视频进度'), {
+      target: { value: '50' },
+    })
+    expect(video.currentTime).toBe(50)
+    expect(screen.getByText('00:50 / 02:05')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('指标名称'), {
+      target: { value: '声音实时预览' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
+
+    expect(screen.getByTestId('presenter-video')).toBe(video)
+    expect(video.muted).toBe(false)
+    expect(screen.getByLabelText('视频进度')).toBeInTheDocument()
+
+  })
+
+  it('ignores a rejected play promise from a replaced video source', async () => {
+    createObjectURL
+      .mockReturnValueOnce('blob:old-playback-source')
+      .mockReturnValueOnce('blob:new-playback-source')
+    let rejectOldPlayback!: (reason?: unknown) => void
+    const oldPlayback = new Promise<void>((_, reject) => {
+      rejectOldPlayback = reject
+    })
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockReturnValue(oldPlayback)
+    render(<Workbench />)
+    const oldFile = new File(['old'], '旧视频.mp4', { type: 'video/mp4' })
+    const newFile = new File(['new'], '新视频.mp4', { type: 'video/mp4' })
+
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [oldFile] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+    const oldVideo = screen.getByTestId('presenter-video')
+    Object.defineProperty(oldVideo, 'paused', {
+      configurable: true,
+      value: true,
+    })
+    fireEvent.click(screen.getByRole('button', { name: '播放视频' }))
+
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [newFile] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+    const newVideo = screen.getByTestId('presenter-video') as HTMLVideoElement
+    Object.defineProperty(newVideo, 'duration', {
+      configurable: true,
+      value: 60,
+    })
+    fireEvent.durationChange(newVideo)
+    newVideo.currentTime = 10
+    fireEvent.timeUpdate(newVideo)
+    fireEvent.play(newVideo)
+
+    await act(async () => {
+      rejectOldPlayback(new Error('旧视频播放被中断'))
+      await oldPlayback.catch(() => undefined)
+    })
+
+    expect(screen.getByTestId('presenter-video')).toBe(newVideo)
+    expect(screen.getByRole('button', { name: '暂停视频' })).toBeInTheDocument()
+    expect(screen.getByLabelText('视频进度')).toHaveAttribute('max', '60')
+    expect(screen.getByLabelText('视频进度')).toHaveValue('10')
+  })
+
+  it('normalizes non-finite media time values in the playback controls', () => {
+    render(<Workbench />)
+    const file = new File(['video'], '异常时长.mp4', { type: 'video/mp4' })
+
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+    const video = screen.getByTestId('presenter-video')
+    Object.defineProperty(video, 'duration', {
+      configurable: true,
+      value: Number.POSITIVE_INFINITY,
+    })
+    Object.defineProperty(video, 'currentTime', {
+      configurable: true,
+      value: Number.NaN,
+      writable: true,
+    })
+
+    fireEvent.durationChange(video)
+    fireEvent.timeUpdate(video)
+
+    expect(screen.getByLabelText('视频进度')).toHaveAttribute('max', '0')
+    expect(screen.getByLabelText('视频进度')).toHaveValue('0')
+    expect(screen.getByText('00:00 / 00:00')).toBeInTheDocument()
   })
 
   it('rejects a non-video file without replacing the reference background', () => {

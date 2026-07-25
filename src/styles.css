@@ -542,6 +542,103 @@ a:focus-visible {
   pointer-events: none;
 }
 
+.video-playback-controls {
+  position: absolute;
+  z-index: 6;
+  left: 4%;
+  right: 4%;
+  bottom: calc(var(--subtitle-safe-bottom) + 1.1cqw);
+  display: grid;
+  grid-template-columns: 2.4cqw minmax(0, 1fr) auto 2.4cqw;
+  align-items: center;
+  gap: .75cqw;
+  min-height: 3.1cqw;
+  padding: .36cqw .5cqw;
+  border: 1px solid rgba(245, 242, 238, .58);
+  background: rgba(6, 7, 8, .86);
+  backdrop-filter: blur(5px);
+}
+
+.video-playback-controls__button {
+  width: 2.3cqw;
+  height: 2.3cqw;
+  min-width: 30px;
+  min-height: 30px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(245, 242, 238, .42);
+  color: var(--paper);
+  background: rgba(255, 255, 255, .035);
+  font: inherit;
+  cursor: pointer;
+  transition: color .16s ease, background .16s ease, border-color .16s ease;
+}
+
+.video-playback-controls__button:hover {
+  border-color: var(--paper);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.video-playback-controls__button:focus-visible,
+.video-playback-controls__progress:focus-visible {
+  outline: 1px solid var(--paper);
+  outline-offset: 2px;
+}
+
+.video-playback-controls__button span {
+  font-size: .72cqw;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.video-playback-controls__progress {
+  width: 100%;
+  height: 1.3cqw;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.video-playback-controls__progress::-webkit-slider-runnable-track {
+  height: 2px;
+  background: rgba(245, 242, 238, .34);
+}
+
+.video-playback-controls__progress::-webkit-slider-thumb {
+  width: .72cqw;
+  height: .72cqw;
+  margin-top: calc((2px - .72cqw) / 2);
+  appearance: none;
+  border: 1px solid #08090a;
+  border-radius: 0;
+  background: var(--paper);
+}
+
+.video-playback-controls__progress::-moz-range-track {
+  height: 2px;
+  background: rgba(245, 242, 238, .34);
+}
+
+.video-playback-controls__progress::-moz-range-thumb {
+  width: .72cqw;
+  height: .72cqw;
+  border: 1px solid #08090a;
+  border-radius: 0;
+  background: var(--paper);
+}
+
+.video-playback-controls__time {
+  min-width: 6.8cqw;
+  color: rgba(245, 242, 238, .78);
+  font-size: .58cqw;
+  letter-spacing: .06em;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .motion-slot {
   position: absolute;
   z-index: 2;

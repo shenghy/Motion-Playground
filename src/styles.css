@@ -792,7 +792,7 @@ a:focus-visible {
   align-items: flex-start;
   margin: 2.3cqw 0 1.6cqw;
   font-family: var(--display);
-  line-height: .78;
+  line-height: 1.2;
   letter-spacing: -.08em;
 }
 
@@ -988,7 +988,7 @@ a:focus-visible {
 }
 
 .compare-panel strong {
-  font: 640 7.2cqw/1 var(--display);
+  font: 640 7.2cqw/1.15 var(--display);
   letter-spacing: -.08em;
 }
 
@@ -1075,10 +1075,10 @@ a:focus-visible {
 }
 
 .quote-lockup__mark {
-  height: 5.5cqw;
+  height: 6cqw;
   margin-top: 1.4cqw;
   color: #5c6062;
-  font: 500 5.5cqw/1 var(--display);
+  font: 500 5.2cqw/1 var(--display);
 }
 
 .quote-lockup blockquote {

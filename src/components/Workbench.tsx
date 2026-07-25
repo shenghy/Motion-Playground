@@ -20,7 +20,7 @@ export function Workbench() {
   const [playbackKeys, setPlaybackKeys] = useState<Record<MotionId, number>>({
     'metric-focus': 0,
     'compare-split': 0,
-    'quote-lockup': 0,
+    'profile-reveal': 0,
   })
 
   const activeDefinition = useMemo(() => getMotionDefinition(activeId), [activeId])

@@ -1,18 +1,18 @@
 import { CompareSplit } from './CompareSplit'
 import { MetricFocus } from './MetricFocus'
-import { QuoteLockup } from './QuoteLockup'
+import { ProfileReveal } from './ProfileReveal'
 import type {
   CompareSplitParams,
   MetricFocusParams,
   MotionDefinition,
   MotionId,
-  QuoteLockupParams,
+  ProfileRevealParams,
 } from './types'
 
 type RegisteredMotion =
   | MotionDefinition<MetricFocusParams>
   | MotionDefinition<CompareSplitParams>
-  | MotionDefinition<QuoteLockupParams>
+  | MotionDefinition<ProfileRevealParams>
 
 export const motionRegistry: RegisteredMotion[] = [
   {
@@ -84,37 +84,39 @@ export const motionRegistry: RegisteredMotion[] = [
     ],
   },
   {
-    id: 'quote-lockup',
+    id: 'profile-reveal',
     index: '03',
-    name: 'QuoteLockup',
-    category: 'TYPE / LOCK',
-    description: '金句定格卡',
-    component: QuoteLockup,
+    name: 'ProfileReveal',
+    category: 'STORY / PROFILE',
+    description: '逐句动态信息卡',
+    component: ProfileReveal,
     defaults: {
-      eyebrow: 'FIELD NOTE / 08',
-      quote: '真正的效率，不是做得更快，而是更少地做错。',
-      author: 'JSPANG',
-      role: 'INDEPENDENT CREATOR',
-      align: 'left',
-      maxWidth: 1180,
-      duration: 1.6,
+      category: 'MAKER / FIELD NOTE',
+      descriptor: '独立开发者 · 产品构建者',
+      overline: 'BUILD IN PUBLIC',
+      title: '公开构建者',
+      fact1: '没有庞大团队',
+      fact1Note: 'NO LARGE TEAM',
+      fact2: '没有巨额预算',
+      fact2Note: 'NO MASSIVE BUDGET',
+      fact3: '只靠持续交付',
+      fact3Note: 'SHIP EVERY WEEK',
+      status: 'PROFILE / VERIFIED',
+      duration: 6.4,
     },
     controls: [
-      { type: 'text', key: 'eyebrow', label: '眉题', maxLength: 24 },
-      { type: 'text', key: 'quote', label: '金句内容', maxLength: 54 },
-      { type: 'text', key: 'author', label: '署名', maxLength: 18 },
-      { type: 'text', key: 'role', label: '身份说明', maxLength: 28 },
-      {
-        type: 'select',
-        key: 'align',
-        label: '文本对齐',
-        options: [
-          { label: '左对齐', value: 'left' },
-          { label: '居中', value: 'center' },
-        ],
-      },
-      { type: 'number', key: 'maxWidth', label: '最大行宽', min: 760, max: 1420, step: 20, suffix: 'px' },
-      { type: 'number', key: 'duration', label: '动画时长', min: 0.6, max: 3, step: 0.1, suffix: 's' },
+      { type: 'text', key: 'category', label: '身份眉题', maxLength: 24 },
+      { type: 'text', key: 'descriptor', label: '身份说明', maxLength: 24 },
+      { type: 'text', key: 'overline', label: '标题引导', maxLength: 24 },
+      { type: 'text', key: 'title', label: '核心标题', maxLength: 12 },
+      { type: 'text', key: 'fact1', label: '信息一', maxLength: 16 },
+      { type: 'text', key: 'fact1Note', label: '信息一注释', maxLength: 20 },
+      { type: 'text', key: 'fact2', label: '信息二', maxLength: 16 },
+      { type: 'text', key: 'fact2Note', label: '信息二注释', maxLength: 20 },
+      { type: 'text', key: 'fact3', label: '信息三', maxLength: 16 },
+      { type: 'text', key: 'fact3Note', label: '信息三注释', maxLength: 20 },
+      { type: 'text', key: 'status', label: '状态文字', maxLength: 24 },
+      { type: 'number', key: 'duration', label: '循环时长', min: 5.2, max: 10, step: 0.2, suffix: 's' },
     ],
   },
 ]

@@ -14,10 +14,9 @@ describe('Workbench', () => {
     fireEvent.click(screen.getByRole('button', { name: /CompareSplit/ }))
     expect(screen.getByText('2.05× IMPROVEMENT')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /QuoteLockup/ }))
-    expect(
-      screen.getByText('真正的效率，不是做得更快，而是更少地做错。'),
-    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /ProfileReveal/ }))
+    expect(screen.getByText('公开构建者')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /QuoteLockup/ })).not.toBeInTheDocument()
   })
 
   it('applies live changes and restarts playback', () => {

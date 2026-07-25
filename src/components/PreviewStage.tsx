@@ -1,12 +1,12 @@
 import { CompareSplit } from '../motion/CompareSplit'
 import { MetricFocus } from '../motion/MetricFocus'
-import { QuoteLockup } from '../motion/QuoteLockup'
+import { ProfileReveal } from '../motion/ProfileReveal'
 import type {
   CompareSplitParams,
   MetricFocusParams,
   MotionId,
   ParameterValues,
-  QuoteLockupParams,
+  ProfileRevealParams,
 } from '../motion/types'
 
 interface PreviewStageProps {
@@ -21,8 +21,8 @@ function renderMotion(id: MotionId, params: ParameterValues) {
   switch (id) {
     case 'compare-split':
       return <CompareSplit params={params as CompareSplitParams} />
-    case 'quote-lockup':
-      return <QuoteLockup params={params as QuoteLockupParams} />
+    case 'profile-reveal':
+      return <ProfileReveal params={params as ProfileRevealParams} />
     default:
       return <MetricFocus params={params as MetricFocusParams} />
   }

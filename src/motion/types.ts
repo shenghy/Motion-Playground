@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 
-export type MotionId = 'metric-focus' | 'compare-split' | 'quote-lockup'
+export type MotionId = 'metric-focus' | 'compare-split' | 'profile-reveal'
 export type ParameterValue = string | number
 export type ParameterValues = Record<string, ParameterValue>
 
@@ -28,17 +28,22 @@ export interface CompareSplitParams extends ParameterValues {
   duration: number
 }
 
-export interface QuoteLockupParams extends ParameterValues {
-  eyebrow: string
-  quote: string
-  author: string
-  role: string
-  align: 'left' | 'center'
-  maxWidth: number
+export interface ProfileRevealParams extends ParameterValues {
+  category: string
+  descriptor: string
+  overline: string
+  title: string
+  fact1: string
+  fact1Note: string
+  fact2: string
+  fact2Note: string
+  fact3: string
+  fact3Note: string
+  status: string
   duration: number
 }
 
-export type MotionParams = MetricFocusParams | CompareSplitParams | QuoteLockupParams
+export type MotionParams = MetricFocusParams | CompareSplitParams | ProfileRevealParams
 
 export type Control =
   | {

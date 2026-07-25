@@ -1996,6 +1996,119 @@ a:focus-visible {
   border-top: 3px double rgba(241,238,229,.28);
 }
 
+.profile-reveal__shade {
+  background: linear-gradient(90deg, rgba(4,5,5,.48), transparent 43%);
+}
+
+.profile-reveal__card[data-pencil-layout='field-note'] {
+  top: 11%;
+  bottom: calc(var(--subtitle-safe-bottom) + 3%);
+  padding: 2cqw 1.9cqw 1.35cqw;
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid rgba(241,238,229,.42);
+  border-left: 2px solid var(--pencil-silver);
+  background: linear-gradient(104deg, rgba(5,6,6,.66), rgba(5,6,6,.1) 84%, transparent);
+  backdrop-filter: none;
+}
+
+.profile-reveal__card[data-pencil-layout='field-note']::before {
+  top: -.16cqw;
+  left: -.08cqw;
+  right: auto;
+  width: 69%;
+  border-top: .16cqw solid var(--pencil-silver);
+  opacity: .42;
+  transform: rotate(-.45deg);
+}
+
+.profile-reveal__card[data-pencil-layout='field-note']::after {
+  inset: 1.1cqw .7cqw 1cqw 1.3cqw;
+  border: 0;
+  opacity: .22;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2.1cqw,
+    rgba(241,238,229,.22) 2.14cqw 2.2cqw
+  );
+}
+
+.profile-reveal__identity {
+  grid-template-columns: .16cqw minmax(0, 1fr);
+}
+
+.profile-reveal__identity > i {
+  background:
+    repeating-linear-gradient(to bottom, var(--pencil-silver) 0 .5cqw, transparent .54cqw .7cqw);
+}
+
+.profile-reveal__identity strong {
+  color: var(--pencil-silver);
+}
+
+.profile-reveal__title {
+  margin-top: 2.5cqw;
+  border-bottom: 3px double rgba(241,238,229,.3);
+}
+
+.profile-reveal__facts {
+  gap: .58cqw;
+  overflow: visible;
+}
+
+.profile-reveal__fact {
+  position: relative;
+  min-height: 2.2cqw;
+  grid-template-columns: 1.38cqw minmax(0, 1fr);
+  overflow: visible;
+}
+
+.profile-reveal__fact::after {
+  position: absolute;
+  left: 1.95cqw;
+  right: .7cqw;
+  bottom: -.2cqw;
+  height: 1px;
+  content: '';
+  opacity: .28;
+  background: var(--pencil-silver);
+  transform: rotate(-.35deg);
+}
+
+.profile-reveal__fact > b.profile-reveal__check {
+  width: 1.1cqw;
+  height: 1.1cqw;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  border: .12cqw solid var(--pencil-silver);
+  color: var(--pencil-silver);
+  font: 600 .86cqw/1 'KaiTi', 'STKaiti', var(--mono);
+  box-shadow: .1cqw .08cqw 0 rgba(241,238,229,.24);
+}
+
+.profile-reveal__fact span {
+  color: var(--pencil-mid);
+  font-family: 'KaiTi', 'STKaiti', var(--mono);
+}
+
+.profile-reveal__card-footer i {
+  height: .12cqw;
+  background: repeating-linear-gradient(90deg, var(--pencil-silver) 0 .5cqw, transparent .54cqw .7cqw);
+  opacity: .38;
+}
+
+.profile-reveal__rail {
+  border: 0;
+  border-top: 1px solid rgba(241,238,229,.54);
+  border-left: 1px solid rgba(241,238,229,.25);
+  background: linear-gradient(108deg, rgba(5,6,6,.52), transparent);
+}
+
+.profile-reveal__rail-track i:nth-child(-n+4) {
+  background: var(--pencil-silver);
+}
+
 @media (max-height: 780px) {
   .workbench { grid-template-rows: 58px minmax(0, 1fr); }
   .component-rail,

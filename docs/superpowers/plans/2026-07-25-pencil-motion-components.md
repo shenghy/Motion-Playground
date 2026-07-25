@@ -173,7 +173,7 @@ git commit -m "feat: redraw metric and compare motions"
 - Modify: `src/motion/ProfileReveal.test.tsx`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: Add failing sequential-check assertions**
+- [x] **Step 1: Add failing sequential-check assertions**
 
 ```tsx
 expect(screen.getByTestId('profile-primary')).toHaveAttribute(
@@ -183,13 +183,13 @@ expect(screen.getByTestId('profile-primary')).toHaveAttribute(
 expect(screen.getAllByTestId('profile-check')).toHaveLength(3)
 ```
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run: `npm test -- --run src/motion/ProfileReveal.test.tsx`
 
 Expected: FAIL because the new layout marker and check elements are absent.
 
-- [ ] **Step 3: Implement the field-note hierarchy**
+- [x] **Step 3: Implement the field-note hierarchy**
 
 Render `<PencilTexture variant="grain" />` and add `data-pencil-layout="field-note"`. Preserve the existing `reveal()` sequence. Replace the cross glyph with an animated square and check:
 
@@ -208,17 +208,17 @@ Render `<PencilTexture variant="grain" />` and add `data-pencil-layout="field-no
 
 Keep title and facts legible and stationary during their hold phase. Keep the secondary status rail in `right-secondary`.
 
-- [ ] **Step 4: Replace the related CSS**
+- [x] **Step 4: Replace the related CSS**
 
 Make the profile card open on its right and bottom edges, add ruled-pencil separators, use a Chinese handwriting font stack for fact notes, and keep the title in the existing readable display face.
 
-- [ ] **Step 5: Run the focused test and confirm GREEN**
+- [x] **Step 5: Run the focused test and confirm GREEN**
 
 Run: `npm test -- --run src/motion/ProfileReveal.test.tsx`
 
 Expected: the test file passes.
 
-- [ ] **Step 6: Commit ProfileReveal**
+- [x] **Step 6: Commit ProfileReveal**
 
 ```powershell
 git add src/motion/ProfileReveal.tsx src/motion/ProfileReveal.test.tsx src/styles.css

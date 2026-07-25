@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
+import { PencilTexture } from './PencilTexture'
 import type { MotionComponentProps, ProfileRevealParams } from './types'
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -47,13 +48,18 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
   ]
 
   return (
-    <div className="motion-canvas profile-reveal">
+    <div
+      className="motion-canvas profile-reveal"
+      data-pencil-style="silver-on-black"
+    >
+      <PencilTexture variant="grain" />
       <div className="profile-reveal__shade" aria-hidden="true" />
 
       <motion.section
         className="profile-reveal__card"
         data-testid="profile-primary"
         data-zone="left-primary"
+        data-pencil-layout="field-note"
         {...reveal(0.08, 0)}
       >
         <motion.header className="profile-reveal__identity" {...reveal(0.38)}>
@@ -76,7 +82,20 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
               key={`${index}-${fact.text}`}
               {...reveal(1.58 + index * 0.68)}
             >
-              <b aria-hidden="true">×</b>
+              <motion.b
+                className="profile-reveal__check"
+                data-testid="profile-check"
+                aria-hidden="true"
+                initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
+                animate={{ opacity: 1, scale: 1, rotate: -2 }}
+                transition={{
+                  duration: reduceMotion ? 0 : 0.35,
+                  delay: reduceMotion ? 0 : 1.72 + index * 0.68,
+                  ease,
+                }}
+              >
+                ✓
+              </motion.b>
               <div>
                 <strong>{fact.text || `信息 ${index + 1}`}</strong>
                 <span>{fact.note || '详情待补充'}</span>

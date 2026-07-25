@@ -33,6 +33,11 @@ describe('ProfileReveal', () => {
       'data-zone',
       'left-primary',
     )
+    expect(screen.getByTestId('profile-primary')).toHaveAttribute(
+      'data-pencil-layout',
+      'field-note',
+    )
+    expect(screen.getAllByTestId('profile-check')).toHaveLength(3)
     expect(screen.getByTestId('profile-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

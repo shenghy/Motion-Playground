@@ -71,6 +71,6 @@ Use the corresponding primary test ID for each remaining component.
 **Files:**
 - Modify: `docs/superpowers/plans/2026-07-25-ma-shan-zheng-font.md`
 
-- [ ] Run `npm test -- --run`, `npm run lint`, `npm run build`, and `git diff --check`.
-- [ ] Inspect all six motions in the browser and verify the local font is loaded, handwritten text is visibly stronger, and no content is clipped.
-- [ ] Mark all plan items complete and commit the implementation.
+- [x] Run `npm test -- --run`, `npm run lint`, `npm run build`, and `git diff --check`.
+- [x] Inspect all six motions in the browser and verify the local font is loaded, handwritten text is visibly stronger, and no content is clipped.
+- [x] Mark all plan items complete and commit the implementation.

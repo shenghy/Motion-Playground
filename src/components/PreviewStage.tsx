@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getMotionDefinition } from '../motion/registry'
-import { getActiveCards } from '../timeline/project'
+import { getActiveCards, updateCardPosition } from '../timeline/project'
 import type { OverlayCard, OverlayPosition } from '../timeline/types'
 import { VideoPlaybackControls } from './VideoPlaybackControls'
 import type {
@@ -39,6 +39,7 @@ interface PlaybackState {
 }
 
 interface PositionGesture {
+  card: OverlayCard
   cardId: string
   pointerId: number
   initialClientX: number
@@ -186,7 +187,6 @@ export function PreviewStage({
     card: OverlayCard,
   ) => {
     event.stopPropagation()
-    onSelectOverlayCard?.(card.id)
 
     if (
       selectedCardId !== card.id ||
@@ -197,6 +197,7 @@ export function PreviewStage({
     }
 
     positionGestureRef.current = {
+      card,
       cardId: card.id,
       pointerId: event.pointerId,
       initialClientX: event.clientX,
@@ -223,20 +224,15 @@ export function PreviewStage({
       return
     }
 
-    onCardPositionChange?.(gesture.cardId, {
-      x: clamp(
+    const nextCard = updateCardPosition(gesture.card, {
+      x:
         gesture.initialPosition.x +
-          ((event.clientX - gesture.initialClientX) / bounds.width) * 100,
-        0,
-        100,
-      ),
-      y: clamp(
+        ((event.clientX - gesture.initialClientX) / bounds.width) * 100,
+      y:
         gesture.initialPosition.y +
-          ((event.clientY - gesture.initialClientY) / bounds.height) * 100,
-        0,
-        100,
-      ),
+        ((event.clientY - gesture.initialClientY) / bounds.height) * 100,
     })
+    onCardPositionChange?.(gesture.cardId, nextCard.position)
   }
 
   const clearPositionGesture = (pointerId: number) => {
@@ -337,6 +333,7 @@ export function PreviewStage({
               {activeCards.map((card) => {
                 const definition = getMotionDefinition(card.motionId)
                 const selected = selectedCardId === card.id
+                const displayPosition = updateCardPosition(card, card.position).position
 
                 return (
                   <div
@@ -349,9 +346,8 @@ export function PreviewStage({
                     tabIndex={0}
                     aria-label={`选择叠加卡片 ${definition.name}`}
                     style={{
-                      left: `${card.position.x}%`,
-                      top: `${card.position.y}%`,
-                      zIndex: card.zIndex + 2,
+                      transform: `translate(${displayPosition.x}%, ${displayPosition.y}%)`,
+                      zIndex: card.zIndex,
                     }}
                     onClick={(event) => {
                       event.stopPropagation()

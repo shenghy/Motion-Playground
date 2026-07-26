@@ -141,7 +141,7 @@ describe('PreviewStage overlays', () => {
   })
 
   it('renders active cards in z-index order with half-open timing', () => {
-    const activeHigh = makeCard('high', 'metric-focus', 0, 2, 5)
+    const activeHigh = makeCard('high', 'metric-focus', 0, 2, 5, { x: 0, y: 0 })
     const ended = makeCard('ended', 'profile-reveal', 0, 1, 0)
     const activeLow = makeCard('low', 'compare-split', 1, 3, 1)
 
@@ -154,11 +154,21 @@ describe('PreviewStage overlays', () => {
       />,
     )
 
+    const activeOverlays = screen.getAllByTestId(/^overlay-card-/)
     expect(
-      screen.getAllByTestId(/^overlay-card-/).map((element) =>
+      activeOverlays.map((element) =>
         element.getAttribute('data-overlay-card-id'),
       ),
     ).toEqual(['low', 'high'])
+    expect(activeOverlays[0]).toHaveStyle({
+      transform: 'translate(20%, 30%)',
+      zIndex: '1',
+    })
+    expect(activeOverlays[1]).toHaveStyle({
+      transform: 'translate(0%, 0%)',
+      zIndex: '5',
+    })
+    expect(activeOverlays[0]).not.toHaveStyle({ left: '20%', top: '30%' })
     expect(screen.queryByTestId('overlay-card-ended')).not.toBeInTheDocument()
   })
 
@@ -190,7 +200,7 @@ describe('PreviewStage overlays', () => {
     expect(screen.getByTestId('subtitle-safe-area')).toBeInTheDocument()
   })
 
-  it('selects overlay cards by click or pointer down', () => {
+  it('selects an unselected overlay card by click', () => {
     const onSelectOverlayCard = vi.fn()
     render(
       <PreviewStage
@@ -204,11 +214,36 @@ describe('PreviewStage overlays', () => {
     )
     const overlay = screen.getByTestId('overlay-card-select-me')
 
-    fireEvent.click(overlay)
     firePointer(overlay, 'pointerdown', 1, 100, 50)
+    firePointer(screen.getByTestId('preview-stage'), 'pointerup', 1, 100, 50)
+    fireEvent.click(overlay)
 
-    expect(onSelectOverlayCard).toHaveBeenCalledTimes(2)
+    expect(onSelectOverlayCard).toHaveBeenCalledTimes(1)
     expect(onSelectOverlayCard).toHaveBeenLastCalledWith('select-me')
+  })
+
+  it('selects only once for a selected-card pointer and click sequence', () => {
+    const onSelectOverlayCard = vi.fn()
+    render(
+      <PreviewStage
+        {...createProps({
+          overlayCards: [makeCard('selected', 'metric-focus', 0, 3, 0)],
+          selectedCardId: 'selected',
+          currentTime: 1,
+          onSelectOverlayCard,
+        })}
+      />,
+    )
+    const stage = screen.getByTestId('preview-stage')
+    const overlay = screen.getByTestId('overlay-card-selected')
+    mockStageRect(stage)
+
+    firePointer(overlay, 'pointerdown', 1, 100, 50)
+    firePointer(stage, 'pointerup', 1, 100, 50)
+    fireEvent.click(overlay)
+
+    expect(onSelectOverlayCard).toHaveBeenCalledTimes(1)
+    expect(onSelectOverlayCard).toHaveBeenCalledWith('selected')
   })
 
   it('drags only the selected card by canvas percentages and clamps output', () => {
@@ -267,6 +302,32 @@ describe('PreviewStage overlays', () => {
     firePointer(stage, 'pointermove', 1, 300, 200)
 
     expect(onCardPositionChange).not.toHaveBeenCalled()
+  })
+
+  it('normalizes non-finite pointer deltas and starting positions', () => {
+    const onCardPositionChange = vi.fn()
+    const unsafe = makeCard('unsafe', 'metric-focus', 0, 3, 0, {
+      x: Number.NaN,
+      y: Number.POSITIVE_INFINITY,
+    })
+    render(
+      <PreviewStage
+        {...createProps({
+          overlayCards: [unsafe],
+          selectedCardId: 'unsafe',
+          currentTime: 1,
+          onCardPositionChange,
+        })}
+      />,
+    )
+    const stage = screen.getByTestId('preview-stage')
+    const overlay = screen.getByTestId('overlay-card-unsafe')
+    mockStageRect(stage)
+
+    firePointer(overlay, 'pointerdown', 1, 100, 50)
+    firePointer(stage, 'pointermove', 1, Number.NaN, Number.POSITIVE_INFINITY)
+
+    expect(onCardPositionChange).toHaveBeenCalledWith('unsafe', { x: 0, y: 0 })
   })
 
   it('isolates pointers, clears cancel/lost capture, and defends zero canvas rect', () => {

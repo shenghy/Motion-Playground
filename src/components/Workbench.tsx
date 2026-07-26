@@ -1131,7 +1131,7 @@ export function Workbench({
     void discardTransparentMov(pendingJob.id).catch(() => undefined)
     setExportStatus('idle')
     setExportMessage('工程已修改，之前编码的 MOV 已放弃')
-  }, [cards, videoDuration])
+  }, [cards, exportOperationActive, videoDuration])
 
   useEffect(
     () => () => {
@@ -1190,9 +1190,7 @@ export function Workbench({
 
       <div
         className="workspace"
-        inert={
-          isClearingWorkspace || exportOperationActive ? true : undefined
-        }
+        inert={isClearingWorkspace ? true : undefined}
       >
         <ComponentRail
           items={motionRegistry}

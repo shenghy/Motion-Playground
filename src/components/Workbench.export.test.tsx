@@ -2,6 +2,29 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Workbench } from './Workbench'
 
+vi.mock('html-to-image', () => ({
+  toBlob: vi.fn(async () => new Blob(['png'], { type: 'image/png' })),
+}))
+
+function loadOneSecondVideo() {
+  const file = new File(['video'], 'export-test.mp4', {
+    type: 'video/mp4',
+  })
+  fireEvent.change(screen.getByLabelText('导入本地视频'), {
+    target: { files: [file] },
+  })
+  fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+  const video = screen.getByTestId('presenter-video') as HTMLVideoElement
+  Object.defineProperty(video, 'duration', {
+    configurable: true,
+    value: 1,
+  })
+  fireEvent.durationChange(video)
+  fireEvent.click(
+    screen.getByRole('button', { name: '在播放头添加核心指标' }),
+  )
+}
+
 describe('Workbench transparent export coordination', () => {
   beforeEach(() => {
     Object.defineProperty(URL, 'createObjectURL', {
@@ -52,22 +75,7 @@ describe('Workbench transparent export coordination', () => {
     })
 
     render(<Workbench idFactory={() => 'export-card'} />)
-    const file = new File(['video'], 'export-test.mp4', {
-      type: 'video/mp4',
-    })
-    fireEvent.change(screen.getByLabelText('导入本地视频'), {
-      target: { files: [file] },
-    })
-    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
-    const video = screen.getByTestId('presenter-video') as HTMLVideoElement
-    Object.defineProperty(video, 'duration', {
-      configurable: true,
-      value: 1,
-    })
-    fireEvent.durationChange(video)
-    fireEvent.click(
-      screen.getByRole('button', { name: '在播放头添加核心指标' }),
-    )
+    loadOneSecondVideo()
 
     const movButton = await screen.findByRole('button', {
       name: '导出透明 MOV',
@@ -84,5 +92,60 @@ describe('Workbench transparent export coordination', () => {
 
     rejectPicker(new DOMException('cancelled', 'AbortError'))
     await screen.findByText('已取消导出')
+  })
+
+  it('keeps the cancel button interactive during frame rendering', async () => {
+    const showSaveFilePicker = vi.fn(async () => ({
+      name: 'overlay.mov',
+      async createWritable() {
+        throw new Error('saving should not start after cancellation')
+      },
+    }))
+    Object.assign(window, {
+      showSaveFilePicker,
+      showDirectoryPicker: vi.fn(),
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        if (url.endsWith('/capabilities')) {
+          return new Response(JSON.stringify({ mov: true }), {
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        if (url.endsWith('/jobs') && init?.method === 'POST') {
+          return new Response(JSON.stringify({ id: 'rendering-job' }), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        if (url.includes('/frames/')) {
+          return await new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('cancelled', 'AbortError'))
+            })
+          })
+        }
+        return new Response(null, { status: 204 })
+      }),
+    )
+
+    render(<Workbench idFactory={() => 'cancel-card'} />)
+    loadOneSecondVideo()
+    const movButton = await screen.findByRole('button', {
+      name: '导出透明 MOV',
+    })
+    await waitFor(() => expect(movButton).toBeEnabled())
+    fireEvent.click(movButton)
+
+    const cancelButton = await screen.findByRole('button', {
+      name: '取消导出',
+    })
+    expect(cancelButton).toBeEnabled()
+    expect(document.querySelector('.workspace')).not.toHaveAttribute('inert')
+    fireEvent.click(cancelButton)
+
+    await screen.findByText('已取消，共生成 0 帧')
   })
 })

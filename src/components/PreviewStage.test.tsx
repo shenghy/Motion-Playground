@@ -246,6 +246,58 @@ describe('PreviewStage overlays', () => {
     expect(onSelectOverlayCard).toHaveBeenCalledWith('selected')
   })
 
+  it('nudges only a selected overlay by keyboard with normal and shifted steps', () => {
+    const onCardPositionChange = vi.fn()
+    render(
+      <PreviewStage
+        {...createProps({
+          overlayCards: [
+            makeCard('selected', 'metric-focus', 0, 3, 0, { x: 98, y: 2 }),
+            makeCard('unselected', 'compare-split', 0, 3, 1),
+          ],
+          selectedCardId: 'selected',
+          currentTime: 1,
+          onCardPositionChange,
+        })}
+      />,
+    )
+    const selected = screen.getByTestId('overlay-card-selected')
+    const unselected = screen.getByTestId('overlay-card-unselected')
+
+    const right = new KeyboardEvent('keydown', {
+      key: 'ArrowRight',
+      bubbles: true,
+      cancelable: true,
+    })
+    const shiftedUp = new KeyboardEvent('keydown', {
+      key: 'ArrowUp',
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    const unselectedLeft = new KeyboardEvent('keydown', {
+      key: 'ArrowLeft',
+      bubbles: true,
+      cancelable: true,
+    })
+    selected.dispatchEvent(right)
+    selected.dispatchEvent(shiftedUp)
+    unselected.dispatchEvent(unselectedLeft)
+
+    expect(right.defaultPrevented).toBe(true)
+    expect(shiftedUp.defaultPrevented).toBe(true)
+    expect(unselectedLeft.defaultPrevented).toBe(false)
+    expect(onCardPositionChange).toHaveBeenNthCalledWith(1, 'selected', {
+      x: 99,
+      y: 2,
+    })
+    expect(onCardPositionChange).toHaveBeenNthCalledWith(2, 'selected', {
+      x: 98,
+      y: 0,
+    })
+    expect(onCardPositionChange).toHaveBeenCalledTimes(2)
+  })
+
   it('drags only the selected card by canvas percentages and clamps output', () => {
     const onCardPositionChange = vi.fn()
     render(

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { Workbench } from './Workbench'
 
@@ -113,7 +114,7 @@ describe('Workbench', () => {
 
     expect(screen.getByText('系统就绪')).toBeInTheDocument()
     expect(screen.getByText('参数设置')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /核心指标/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: '选择组件核心指标' })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
@@ -121,30 +122,30 @@ describe('Workbench', () => {
     expect(screen.getByText('1.4秒')).toBeInTheDocument()
     expectPencilStyle()
 
-    fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
+    fireEvent.click(screen.getByRole('button', { name: '选择组件对比卡片' }))
     expect(screen.getByText('提升 2.05 倍')).toBeInTheDocument()
     expectPencilStyle()
 
-    fireEvent.click(screen.getByRole('button', { name: /人物信息/ }))
+    fireEvent.click(screen.getByRole('button', { name: '选择组件人物信息' }))
     expect(screen.getByText('公开构建者')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /QuoteLockup/ })).not.toBeInTheDocument()
     expectPencilStyle()
 
     expect(
       screen.getAllByRole('button', {
-        name: /核心指标|对比卡片|人物信息|柱状对比|环形占比|步骤流程/,
+        name: /^选择组件(?:核心指标|对比卡片|人物信息|柱状对比|环形占比|步骤流程)$/,
       }),
     ).toHaveLength(6)
 
-    fireEvent.click(screen.getByRole('button', { name: /柱状对比/ }))
+    fireEvent.click(screen.getByRole('button', { name: '选择组件柱状对比' }))
     expect(screen.getByText('季度增长')).toBeInTheDocument()
     expectPencilStyle()
 
-    fireEvent.click(screen.getByRole('button', { name: /环形占比/ }))
+    fireEvent.click(screen.getByRole('button', { name: '选择组件环形占比' }))
     expect(screen.getByText('用户构成')).toBeInTheDocument()
     expectPencilStyle()
 
-    fireEvent.click(screen.getByRole('button', { name: /步骤流程/ }))
+    fireEvent.click(screen.getByRole('button', { name: '选择组件步骤流程' }))
     expect(screen.getByText('发布流程')).toBeInTheDocument()
     expectPencilStyle()
 
@@ -217,7 +218,7 @@ describe('Workbench', () => {
     })
     expect(screen.getByTestId('presenter-video')).toBe(video)
 
-    fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
+    fireEvent.click(screen.getByRole('button', { name: '选择组件对比卡片' }))
     expect(screen.getByTestId('presenter-video')).toBe(video)
 
     fireEvent.click(screen.getByRole('button', { name: '移除视频' }))
@@ -289,7 +290,7 @@ describe('Workbench', () => {
     fireEvent.change(screen.getByLabelText('指标名称'), {
       target: { value: '声音实时预览' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
+    fireEvent.click(screen.getByRole('button', { name: '选择组件对比卡片' }))
 
     expect(screen.getByTestId('presenter-video')).toBe(video)
     expect(video.muted).toBe(false)
@@ -485,16 +486,21 @@ describe('Workbench', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:runtime-failure')
   })
 
-  it('refuses timeline drops until a usable video is loaded', () => {
+  it('refuses timeline drops and keyboard adds until a usable video is loaded', () => {
     render(<Workbench />)
     const track = screen.getByTestId('timeline-track')
     mockTimelineRect(track)
 
     expect(screen.getByText('请先导入视频')).toBeInTheDocument()
     dropMotion(track, 'metric-focus', 200)
+    fireEvent.click(
+      screen.getByRole('button', { name: '在播放头添加核心指标' }),
+    )
 
     expect(
-      screen.queryByRole('button', { name: '选择核心指标片段' }),
+      screen.queryByRole('button', {
+        name: '选择核心指标片段，可用左右方向键微调时间',
+      }),
     ).not.toBeInTheDocument()
   })
 
@@ -507,6 +513,9 @@ describe('Workbench', () => {
 
     expect(screen.getByText('视频时长不足，无法添加动效')).toBeInTheDocument()
     dropMotion(track, 'metric-focus', 100)
+    fireEvent.click(
+      screen.getByRole('button', { name: '在播放头添加核心指标' }),
+    )
     expect(idFactory).not.toHaveBeenCalled()
   })
 
@@ -528,7 +537,9 @@ describe('Workbench', () => {
     expect(Number.parseFloat(clips[2].style.width)).toBeCloseTo(2)
     expect(screen.getByLabelText('核心数值')).toHaveValue('248')
     expect(
-      screen.getAllByRole('button', { name: '选择核心指标片段' })[1],
+      screen.getAllByRole('button', {
+        name: '选择核心指标片段，可用左右方向键微调时间',
+      })[1],
     ).toHaveAttribute('aria-pressed', 'true')
 
     video.currentTime = 2
@@ -542,6 +553,47 @@ describe('Workbench', () => {
     expect(overlays[1]).toHaveStyle({ zIndex: '1' })
   })
 
+  it('supports a keyboard-only add, timeline nudge, and overlay position workflow', async () => {
+    const user = userEvent.setup()
+    render(<Workbench idFactory={() => 'keyboard-card'} />)
+    const video = loadVideo(10)
+    video.currentTime = 2
+    fireEvent.timeUpdate(video)
+
+    const addButton = screen.getByRole('button', {
+      name: '在播放头添加核心指标',
+    })
+    addButton.focus()
+    await user.keyboard('{Enter}')
+
+    const clip = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
+    expect(clip.parentElement).toHaveStyle({ left: '20%', width: '30%' })
+    expect(screen.getByLabelText('核心数值')).toHaveValue('248')
+
+    clip.focus()
+    await user.keyboard('{ArrowRight}{Shift>}{ArrowLeft}{/Shift}')
+    expect(clip.parentElement).toHaveStyle({ left: '16%', width: '30%' })
+
+    fireEvent.change(screen.getByLabelText('核心数值'), {
+      target: { value: '320' },
+    })
+    const overlay = screen.getByTestId('overlay-card-keyboard-card')
+    overlay.focus()
+    await user.keyboard('{ArrowRight}{Shift>}{ArrowDown}{/Shift}')
+    expect(screen.getByTestId('overlay-card-keyboard-card')).toHaveStyle({
+      transform: 'translate(1%, 5%)',
+    })
+
+    await user.click(
+      screen.getByRole('button', { name: '选择组件对比卡片' }),
+    )
+    expect(document.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+    await user.click(clip)
+    expect(screen.getByLabelText('核心数值')).toHaveValue('320')
+  })
+
   it('edits and resets only the selected card parameters', () => {
     render(<Workbench idFactory={vi.fn()
       .mockReturnValueOnce('first-card')
@@ -553,7 +605,7 @@ describe('Workbench', () => {
     dropMotion(track, 'metric-focus', 100)
     const stableVideo = screen.getByTestId('presenter-video')
     const cardButtons = screen.getAllByRole('button', {
-      name: '选择核心指标片段',
+      name: '选择核心指标片段，可用左右方向键微调时间',
     })
 
     fireEvent.change(screen.getByLabelText('核心数值'), {
@@ -580,7 +632,9 @@ describe('Workbench', () => {
     const track = screen.getByTestId('timeline-track')
     mockTimelineRect(track)
     dropMotion(track, 'metric-focus', 180)
-    const body = screen.getByRole('button', { name: '选择核心指标片段' })
+    const body = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
     const startHandle = screen.getByRole('button', {
       name: '调整核心指标片段开始时间',
     })
@@ -605,7 +659,9 @@ describe('Workbench', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '删除选中片段' }))
     expect(
-      screen.queryByRole('button', { name: '选择核心指标片段' }),
+      screen.queryByRole('button', {
+        name: '选择核心指标片段，可用左右方向键微调时间',
+      }),
     ).not.toBeInTheDocument()
   })
 
@@ -649,10 +705,12 @@ describe('Workbench', () => {
     const track = screen.getByTestId('timeline-track')
     mockTimelineRect(track)
     dropMotion(track, 'metric-focus', 100)
-    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    const card = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
     const overlay = screen.getByTestId('overlay-card-timeline-card')
 
-    fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
+    fireEvent.click(screen.getByRole('button', { name: '选择组件对比卡片' }))
     expect(card).toHaveAttribute('aria-pressed', 'false')
     expect(document.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
     expect(screen.getByTestId('overlay-card-timeline-card')).toBe(overlay)
@@ -760,14 +818,20 @@ describe('Workbench', () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole('button', { name: '选择对比卡片片段' }),
+        screen.getByRole('button', {
+          name: '选择对比卡片片段，可用左右方向键微调时间',
+        }),
       ).toBeInTheDocument(),
     )
     expect(
-      screen.queryByRole('button', { name: '选择核心指标片段' }),
+      screen.queryByRole('button', {
+        name: '选择核心指标片段，可用左右方向键微调时间',
+      }),
     ).not.toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: '选择对比卡片片段' }),
+      screen.getByRole('button', {
+        name: '选择对比卡片片段，可用左右方向键微调时间',
+      }),
     ).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByTestId('presenter-video')).toBe(video)
     expect(video.getAttribute('src')).toBe(originalSource)
@@ -776,7 +840,9 @@ describe('Workbench', () => {
 
     const importedOverlay = screen.getByTestId('overlay-card-imported-card')
     fireEvent.click(
-      screen.getByRole('button', { name: '选择对比卡片片段' }),
+      screen.getByRole('button', {
+        name: '选择对比卡片片段，可用左右方向键微调时间',
+      }),
     )
     fireEvent.click(screen.getByRole('button', { name: '重新播放' }))
     expect(screen.getByTestId('overlay-card-imported-card')).not.toBe(
@@ -817,7 +883,9 @@ describe('Workbench', () => {
       'JSON 项目格式无效',
     )
     expect(
-      screen.getByRole('button', { name: '选择核心指标片段' }),
+      screen.getByRole('button', {
+        name: '选择核心指标片段，可用左右方向键微调时间',
+      }),
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: '选择unknown-motion片段' }),

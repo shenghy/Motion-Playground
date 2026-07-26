@@ -346,7 +346,16 @@ export function PreviewStage({
                     data-selected={selected ? 'true' : 'false'}
                     role="button"
                     tabIndex={0}
-                    aria-label={`选择叠加卡片 ${definition.name}`}
+                    aria-label={
+                      selected
+                        ? `选择叠加卡片 ${definition.name}，可用方向键微调位置`
+                        : `选择叠加卡片 ${definition.name}`
+                    }
+                    title={
+                      selected
+                        ? '方向键微调 1%，按住 Shift 微调 5%'
+                        : undefined
+                    }
                     style={{
                       transform: `translate(${displayPosition.x}%, ${displayPosition.y}%)`,
                       zIndex: card.zIndex,
@@ -356,6 +365,38 @@ export function PreviewStage({
                       onSelectOverlayCard?.(card.id)
                     }}
                     onKeyDown={(event) => {
+                      if (
+                        selected &&
+                        (
+                          event.key === 'ArrowLeft' ||
+                          event.key === 'ArrowRight' ||
+                          event.key === 'ArrowUp' ||
+                          event.key === 'ArrowDown'
+                        )
+                      ) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        const step = event.shiftKey ? 5 : 1
+                        const deltaX =
+                          event.key === 'ArrowLeft'
+                            ? -step
+                            : event.key === 'ArrowRight'
+                              ? step
+                              : 0
+                        const deltaY =
+                          event.key === 'ArrowUp'
+                            ? -step
+                            : event.key === 'ArrowDown'
+                              ? step
+                              : 0
+                        const nextCard = updateCardPosition(card, {
+                          x: displayPosition.x + deltaX,
+                          y: displayPosition.y + deltaY,
+                        })
+                        onCardPositionChange?.(card.id, nextCard.position)
+                        return
+                      }
+
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()
                         event.stopPropagation()

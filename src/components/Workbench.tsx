@@ -482,6 +482,7 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
           items={motionRegistry}
           activeId={activeId}
           onSelect={selectMotion}
+          onAddMotion={(motionId) => dropMotion(motionId, videoTime)}
         />
         <div className="preview-workspace">
           <PreviewStage

@@ -250,10 +250,22 @@ export function TimelineEditor({
               <button
                 type="button"
                 className="timeline-editor__card-body"
-                aria-label={`选择${motionName}片段`}
+                aria-label={`选择${motionName}片段，可用左右方向键微调时间`}
+                title="左右方向键微调 0.1 秒，按住 Shift 微调 0.5 秒"
                 aria-pressed={selectedCardId === card.id}
                 onClick={() => onSelectCard(card.id)}
                 onKeyDown={(event) => {
+                  if (
+                    hasUsableDuration &&
+                    (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+                  ) {
+                    event.preventDefault()
+                    const direction = event.key === 'ArrowLeft' ? -1 : 1
+                    const step = event.shiftKey ? 0.5 : 0.1
+                    onMoveCard(card.id, card.start + direction * step)
+                    return
+                  }
+
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault()
                     onSelectCard(card.id)

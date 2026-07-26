@@ -156,9 +156,11 @@ describe('TimelineEditor', () => {
   it('renders card percentages, names, selected state, and the playhead', () => {
     render(<TimelineEditor {...createProps({ selectedCardId: 'card-1' })} />)
 
-    const firstCard = screen.getByRole('button', { name: '选择核心指标片段' })
+    const firstCard = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
     const fallbackCard = screen.getByRole('button', {
-      name: '选择compare-split片段',
+      name: '选择compare-split片段，可用左右方向键微调时间',
     })
     const firstClip = firstCard.parentElement
     const fallbackClip = fallbackCard.parentElement
@@ -179,7 +181,9 @@ describe('TimelineEditor', () => {
     const props = createProps()
     render(<TimelineEditor {...props} />)
     const track = screen.getByTestId('timeline-track')
-    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    const card = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
     mockTrackRect(track)
 
     fireEvent.click(card)
@@ -192,11 +196,42 @@ describe('TimelineEditor', () => {
     expect(props.onSeek).toHaveBeenCalledWith(2.5)
   })
 
+  it('nudges a card body by fixed keyboard steps without selecting or resizing', () => {
+    const props = createProps()
+    render(<TimelineEditor {...props} />)
+    const card = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
+
+    const right = new KeyboardEvent('keydown', {
+      key: 'ArrowRight',
+      bubbles: true,
+      cancelable: true,
+    })
+    const shiftedLeft = new KeyboardEvent('keydown', {
+      key: 'ArrowLeft',
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    card.dispatchEvent(right)
+    card.dispatchEvent(shiftedLeft)
+
+    expect(right.defaultPrevented).toBe(true)
+    expect(shiftedLeft.defaultPrevented).toBe(true)
+    expect(props.onMoveCard).toHaveBeenNthCalledWith(1, 'card-1', 1.1)
+    expect(props.onMoveCard).toHaveBeenNthCalledWith(2, 'card-1', 0.5)
+    expect(props.onSelectCard).not.toHaveBeenCalled()
+    expect(props.onResizeCard).not.toHaveBeenCalled()
+  })
+
   it('moves a card body by pointer delta and clamps the requested start', () => {
     const props = createProps()
     render(<TimelineEditor {...props} />)
     const track = screen.getByTestId('timeline-track')
-    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    const card = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
     mockTrackRect(track)
 
     firePointer(card, 'pointerdown', 1, 140)
@@ -252,7 +287,9 @@ describe('TimelineEditor', () => {
     const props = createProps()
     render(<TimelineEditor {...props} />)
     const track = screen.getByTestId('timeline-track')
-    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    const card = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
     const setPointerCapture = vi.fn()
     Object.defineProperty(card, 'setPointerCapture', {
       configurable: true,
@@ -296,7 +333,9 @@ describe('TimelineEditor', () => {
     const props = createProps()
     render(<TimelineEditor {...props} />)
     const track = screen.getByTestId('timeline-track')
-    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    const card = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
     mockTrackRect(track, 100, 0)
 
     fireEvent.click(track, { clientX: 200 })
@@ -316,7 +355,9 @@ describe('TimelineEditor', () => {
     const props = createProps({ duration })
     render(<TimelineEditor {...props} />)
     const track = screen.getByTestId('timeline-track')
-    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    const card = screen.getByRole('button', {
+      name: '选择核心指标片段，可用左右方向键微调时间',
+    })
     mockTrackRect(track)
 
     expect(screen.getByRole('status')).toHaveTextContent(status)

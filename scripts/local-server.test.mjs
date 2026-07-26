@@ -84,6 +84,12 @@ describe('local static server', () => {
       const route = await fetch(`${local.url}/editor`)
       expect(route.status).toBe(200)
       expect(await route.text()).toContain('Overlay Studio')
+
+      const status = await fetch(`${local.url}/__overlay_studio_status__`)
+      expect(await status.json()).toEqual({
+        app: 'overlay-studio',
+        version: 1,
+      })
     } finally {
       await local.close()
       await rm(root, { recursive: true, force: true })

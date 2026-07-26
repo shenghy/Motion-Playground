@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import {
   buildBrowserCommand,
+  chooseLauncherTarget,
   ensureProjectReady,
 } from './start-overlay-studio.mjs'
 
@@ -66,6 +67,54 @@ describe('Overlay Studio launcher', () => {
         run,
       }),
     ).toThrow('项目构建失败')
+  })
+
+  it('reuses the saved localhost origin when Overlay Studio is already running', async () => {
+    const probe = vi.fn(async (_host, port) => port === 4180)
+    const findPort = vi.fn()
+
+    await expect(
+      chooseLauncherTarget({
+        host: '127.0.0.1',
+        startPort: 4173,
+        endPort: 4192,
+        savedPort: 4180,
+        probe,
+        findPort,
+      }),
+    ).resolves.toEqual({
+      port: 4180,
+      url: 'http://127.0.0.1:4180/',
+      reused: true,
+    })
+    expect(findPort).not.toHaveBeenCalled()
+  })
+
+  it('prefers the saved port for a new server and falls back if it is occupied', async () => {
+    const probe = vi.fn(async () => false)
+    const findPort = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('occupied'))
+      .mockResolvedValueOnce(4181)
+
+    await expect(
+      chooseLauncherTarget({
+        host: '127.0.0.1',
+        startPort: 4173,
+        endPort: 4192,
+        savedPort: 4180,
+        probe,
+        findPort,
+      }),
+    ).resolves.toEqual({
+      port: 4181,
+      url: 'http://127.0.0.1:4181/',
+      reused: false,
+    })
+    expect(findPort.mock.calls).toEqual([
+      ['127.0.0.1', 4180, 4180],
+      ['127.0.0.1', 4173, 4192],
+    ])
   })
 
   it('provides a Windows double-click wrapper with a Node check', async () => {

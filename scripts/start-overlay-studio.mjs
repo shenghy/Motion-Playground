@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawn, spawnSync } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -86,6 +86,93 @@ export function openDefaultBrowser(
   return child
 }
 
+function isValidPort(port) {
+  return Number.isInteger(port) && port >= 1 && port <= 65535
+}
+
+export function readSavedPort(filePath) {
+  try {
+    const port = Number(readFileSync(filePath, 'utf8').trim())
+    return isValidPort(port) ? port : null
+  } catch {
+    return null
+  }
+}
+
+export function savePreferredPort(filePath, port) {
+  writeFileSync(filePath, `${port}\n`, 'utf8')
+}
+
+export async function probeOverlayStudio(host, port) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 350)
+  try {
+    const response = await fetch(
+      `http://${host}:${port}/__overlay_studio_status__`,
+      {
+        cache: 'no-store',
+        signal: controller.signal,
+      },
+    )
+    if (!response.ok) {
+      return false
+    }
+    const status = await response.json()
+    return status?.app === 'overlay-studio' && status?.version === 1
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+export async function chooseLauncherTarget({
+  host,
+  startPort,
+  endPort,
+  savedPort,
+  probe = probeOverlayStudio,
+  findPort = findAvailablePort,
+}) {
+  if (isValidPort(savedPort)) {
+    if (await probe(host, savedPort)) {
+      return {
+        port: savedPort,
+        url: `http://${host}:${savedPort}/`,
+        reused: true,
+      }
+    }
+
+    try {
+      const port = await findPort(host, savedPort, savedPort)
+      return {
+        port,
+        url: `http://${host}:${port}/`,
+        reused: false,
+      }
+    } catch {
+      // The remembered port belongs to another process; use the normal range.
+    }
+  } else {
+    for (let port = startPort; port <= endPort; port += 1) {
+      if (await probe(host, port)) {
+        return {
+          port,
+          url: `http://${host}:${port}/`,
+          reused: true,
+        }
+      }
+    }
+  }
+
+  const port = await findPort(host, startPort, endPort)
+  return {
+    port,
+    url: `http://${host}:${port}/`,
+    reused: false,
+  }
+}
+
 export async function startOverlayStudio({
   projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..'),
   host = DEFAULT_HOST,
@@ -103,12 +190,35 @@ export async function startOverlayStudio({
   }
 
   const distDirectory = join(projectRoot, 'dist')
-  const port = await findAvailablePort(host, startPort, endPort)
+  const portFile = join(projectRoot, '.overlay-studio-port.local')
+  const target = await chooseLauncherTarget({
+    host,
+    startPort,
+    endPort,
+    savedPort: readSavedPort(portFile),
+  })
+
+  if (target.reused) {
+    console.log('')
+    console.log('[Overlay Studio] 已检测到正在运行的本地编辑器')
+    console.log(`[Overlay Studio] 访问地址：${target.url}`)
+    console.log('')
+    if (!noOpen) {
+      openDefaultBrowser(target.url)
+    }
+    return {
+      url: target.url,
+      reused: true,
+      close: async () => undefined,
+    }
+  }
+
   const local = await createLocalStaticServer({
     rootDirectory: distDirectory,
     host,
-    port,
+    port: target.port,
   })
+  savePreferredPort(portFile, target.port)
 
   console.log('')
   console.log('[Overlay Studio] 本地网页编辑器已启动')

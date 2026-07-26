@@ -127,6 +127,25 @@ export async function createLocalStaticServer({
   }
 
   const server = createHttpServer(async (request, response) => {
+    const requestPath = (request.url ?? '/')
+      .split('?', 1)[0]
+      .replace(/^\/+/, '/')
+    if (
+      requestPath === '/__overlay_studio_status__'
+    ) {
+      response.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      })
+      response.end(
+        JSON.stringify({
+          app: 'overlay-studio',
+          version: 1,
+        }),
+      )
+      return
+    }
+
     const result = await findResponseFile(absoluteRoot, request.url)
     if (!result.filePath) {
       sendText(

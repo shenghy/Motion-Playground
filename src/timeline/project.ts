@@ -4,6 +4,7 @@ import type { OverlayCard, OverlayPosition, OverlayProject } from './types'
 export const MIN_CARD_DURATION = 0.2
 export const DEFAULT_CARD_DURATION = 3
 
+const TIMING_EPSILON = 1e-9
 const INVALID_PROJECT_MESSAGE = 'JSON 项目格式无效'
 const VIDEO_TOO_SHORT_MESSAGE = '视频时长不足'
 
@@ -208,7 +209,7 @@ export function parseOverlayProject(
       !isFiniteNumber(candidate.start) ||
       candidate.start < 0 ||
       !isFiniteNumber(candidate.end) ||
-      candidate.end - candidate.start < MIN_CARD_DURATION ||
+      candidate.end - candidate.start < MIN_CARD_DURATION - TIMING_EPSILON ||
       !isFiniteNumber(candidate.zIndex) ||
       !isRecord(candidate.position) ||
       !isFiniteNumber(candidate.position.x) ||

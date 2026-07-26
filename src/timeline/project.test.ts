@@ -173,6 +173,47 @@ describe('parseOverlayProject', () => {
     })
   })
 
+  it('round-trips a minimum-duration card created at the end of the video', () => {
+    const card = createOverlayCard(
+      'card-round-trip',
+      'metric-focus',
+      9.95,
+      10,
+      0,
+      defaultsByMotion['metric-focus'],
+    )
+    const text = JSON.stringify({
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      cards: [card],
+    })
+
+    expect(parseOverlayProject(text, defaultsByMotion).cards[0]).toEqual(card)
+  })
+
+  it('accepts a decimal minimum-duration range from 0.1 to 0.3', () => {
+    const text = JSON.stringify({
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      cards: [
+        {
+          id: 'card-decimal',
+          motionId: 'metric-focus',
+          start: 0.1,
+          end: 0.3,
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          params: {},
+        },
+      ],
+    })
+
+    expect(parseOverlayProject(text, defaultsByMotion).cards[0]).toMatchObject({
+      start: 0.1,
+      end: 0.3,
+    })
+  })
+
   it('rejects unknown motions', () => {
     const text = JSON.stringify({
       version: 1,

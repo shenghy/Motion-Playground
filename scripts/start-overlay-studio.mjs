@@ -19,7 +19,8 @@ import {
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_START_PORT = 4173
 const DEFAULT_END_PORT = 4192
-const MAX_STARTUP_LOCK_AGE_MS = 10 * 60 * 1000
+const LEGACY_STARTUP_LOCK_AGE_MS = 10 * 60 * 1000
+const INVALID_LOCK_GRACE_MS = 5000
 
 export function buildBrowserCommand(platform, url) {
   if (platform === 'win32') {
@@ -245,29 +246,84 @@ function isProcessRunning(pid) {
   }
 }
 
-function removeDeadStartupLock(lockPath) {
+export function getProcessIdentity(
+  pid,
+  platform = process.platform,
+  run = spawnSync,
+) {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return null
+  }
+
+  const processQuery =
+    platform === 'win32'
+      ? {
+          command: 'powershell.exe',
+          args: [
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            `(Get-Process -Id ${pid} -ErrorAction Stop).StartTime.ToUniversalTime().Ticks`,
+          ],
+        }
+      : {
+          command: 'ps',
+          args: ['-p', String(pid), '-o', 'lstart='],
+        }
+
   try {
-    const lockStat = statSync(lockPath)
-    const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
-    const createdAt = Number(lock.createdAt)
-    const lockTimestamp = Number.isFinite(createdAt)
-      ? createdAt
-      : lockStat.mtimeMs
-    const lockAge = Date.now() - lockTimestamp
+    const result = run(processQuery.command, processQuery.args, {
+      encoding: 'utf8',
+      windowsHide: true,
+    })
+    if (result.error || result.status !== 0) {
+      return null
+    }
+    return result.stdout.trim() || null
+  } catch {
+    return null
+  }
+}
+
+function readLockRecord(lockPath) {
+  const stat = statSync(lockPath)
+  const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
+  return { lock, stat }
+}
+
+function isLockOwnerAlive(lock, stat) {
+  const pid = Number(lock.pid)
+  if (!isProcessRunning(pid)) {
+    return false
+  }
+
+  if (typeof lock.processIdentity === 'string' && lock.processIdentity) {
+    return getProcessIdentity(pid) === lock.processIdentity
+  }
+
+  return Date.now() - stat.mtimeMs <= LEGACY_STARTUP_LOCK_AGE_MS
+}
+
+function removeInactiveLock(lockPath) {
+  try {
+    const first = readLockRecord(lockPath)
+    if (isLockOwnerAlive(first.lock, first.stat)) {
+      return false
+    }
+
+    const current = readLockRecord(lockPath)
     if (
-      lockAge <= MAX_STARTUP_LOCK_AGE_MS &&
-      isProcessRunning(Number(lock.pid))
+      current.lock.token !== first.lock.token ||
+      current.stat.mtimeMs !== first.stat.mtimeMs
     ) {
       return false
     }
+
     unlinkSync(lockPath)
     return true
   } catch {
     try {
-      if (
-        Date.now() - statSync(lockPath).mtimeMs >
-        MAX_STARTUP_LOCK_AGE_MS
-      ) {
+      if (Date.now() - statSync(lockPath).mtimeMs > INVALID_LOCK_GRACE_MS) {
         unlinkSync(lockPath)
         return true
       }
@@ -278,42 +334,79 @@ function removeDeadStartupLock(lockPath) {
   }
 }
 
-export function acquireStartupLock(lockPath) {
-  const token = randomUUID()
+function createOwnedLock(lockPath, token) {
   let fileDescriptor
-
-  const createLock = () => {
+  try {
     fileDescriptor = openSync(lockPath, 'wx')
     writeFileSync(
       fileDescriptor,
-      JSON.stringify({ pid: process.pid, token, createdAt: Date.now() }),
+      JSON.stringify({
+        pid: process.pid,
+        token,
+        createdAt: Date.now(),
+        processIdentity: getProcessIdentity(process.pid),
+      }),
       'utf8',
     )
     closeSync(fileDescriptor)
     fileDescriptor = undefined
-  }
-
-  try {
-    createLock()
+    return true
   } catch (error) {
     if (fileDescriptor !== undefined) {
       closeSync(fileDescriptor)
     }
-    if (error?.code !== 'EEXIST') {
-      throw error
+    if (error?.code === 'EEXIST') {
+      return false
     }
-    if (!removeDeadStartupLock(lockPath)) {
+    throw error
+  }
+}
+
+function acquireLockGuard(guardPath) {
+  const token = randomUUID()
+  if (!createOwnedLock(guardPath, token)) {
+    if (!removeInactiveLock(guardPath) || !createOwnedLock(guardPath, token)) {
       return null
     }
-    createLock()
+  }
+
+  return () => {
+    try {
+      const guard = JSON.parse(readFileSync(guardPath, 'utf8'))
+      if (guard.token === token) {
+        unlinkSync(guardPath)
+      }
+    } catch {
+      // The owning process or stale-lock recovery may have removed the guard.
+    }
+  }
+}
+
+export function acquireStartupLock(lockPath) {
+  const token = randomUUID()
+  const guardPath = `${lockPath}.guard`
+  const releaseGuard = acquireLockGuard(guardPath)
+  if (!releaseGuard) {
+    return null
+  }
+
+  try {
+    if (!createOwnedLock(lockPath, token)) {
+      if (!removeInactiveLock(lockPath) || !createOwnedLock(lockPath, token)) {
+        return null
+      }
+    }
+  } finally {
+    releaseGuard()
   }
 
   return () => {
     try {
       const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
-      if (lock.token === token) {
-        unlinkSync(lockPath)
+      if (lock.token !== token) {
+        return null
       }
+      unlinkSync(lockPath)
     } catch {
       // A terminated process or manual cleanup may have removed the lock.
     }

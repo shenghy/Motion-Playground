@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { spawn } from 'node:child_process'
 import {
   mkdir,
   mkdtemp,
@@ -9,6 +10,7 @@ import {
 import { resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import {
   acquireStartupLock,
   buildBrowserCommand,
@@ -16,6 +18,7 @@ import {
   createProjectId,
   ensureProjectReady,
   findRunningOverlayStudio,
+  getProcessIdentity,
   startOverlayStudio,
 } from './start-overlay-studio.mjs'
 import {
@@ -240,7 +243,7 @@ describe('Overlay Studio launcher', () => {
     }
   })
 
-  it('reclaims an expired startup lock even when its PID is currently live', async () => {
+  it('reclaims a startup lock when its PID belongs to a different process', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
     const lockPath = join(directory, 'startup.local')
 
@@ -251,6 +254,7 @@ describe('Overlay Studio launcher', () => {
           pid: process.pid,
           token: 'expired-lock',
           createdAt: Date.now() - 11 * 60 * 1000,
+          processIdentity: 'a-different-process-start',
         }),
       )
 
@@ -261,6 +265,119 @@ describe('Overlay Studio launcher', () => {
       await rm(directory, { recursive: true, force: true })
     }
   })
+
+  it('keeps an old startup lock while the original process is still alive', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
+    const lockPath = join(directory, 'startup.local')
+
+    try {
+      await writeFile(
+        lockPath,
+        JSON.stringify({
+          pid: process.pid,
+          token: 'active-lock',
+          createdAt: Date.now() - 60 * 60 * 1000,
+          processIdentity: getProcessIdentity(process.pid),
+        }),
+      )
+
+      expect(acquireStartupLock(lockPath)).toBeNull()
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('does not mutate the startup lock while another process owns its guard', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
+    const lockPath = join(directory, 'startup.local')
+    const guardPath = `${lockPath}.guard`
+
+    try {
+      await writeFile(
+        guardPath,
+        JSON.stringify({
+          pid: process.pid,
+          token: 'active-guard',
+          createdAt: Date.now(),
+        }),
+      )
+
+      expect(acquireStartupLock(lockPath)).toBeNull()
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('allows only one process to reclaim and acquire the same stale lock', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-race-'))
+    const lockPath = join(directory, 'startup.local')
+    const resultPath = join(directory, 'owners.txt')
+    const workerPath = join(directory, 'worker.mjs')
+    const launcherUrl = pathToFileURL(
+      resolve(process.cwd(), 'scripts/start-overlay-studio.mjs'),
+    ).href
+
+    try {
+      await writeFile(
+        lockPath,
+        JSON.stringify({
+          pid: 2147483647,
+          token: 'stale-owner',
+          createdAt: Date.now() - 60_000,
+          processIdentity: 'dead-process',
+        }),
+      )
+      await writeFile(
+        workerPath,
+        `
+          import { appendFileSync } from 'node:fs'
+          import { acquireStartupLock } from ${JSON.stringify(launcherUrl)}
+
+          const [, , lockPath, resultPath, startAt] = process.argv
+          while (Date.now() < Number(startAt)) {}
+          const release = acquireStartupLock(lockPath)
+          if (release) {
+            appendFileSync(resultPath, process.pid + '\\n')
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 150)
+            release()
+          }
+        `,
+      )
+
+      const startAt = Date.now() + 600
+      const workers = Array.from({ length: 8 }, () => {
+        const child = spawn(process.execPath, [
+          workerPath,
+          lockPath,
+          resultPath,
+          String(startAt),
+        ])
+        return new Promise((resolveWorker, rejectWorker) => {
+          let stderr = ''
+          child.stderr.on('data', (chunk) => {
+            stderr += chunk
+          })
+          child.once('error', rejectWorker)
+          child.once('close', (code) => {
+            if (code === 0) {
+              resolveWorker()
+            } else {
+              rejectWorker(new Error(stderr || `worker exited with ${code}`))
+            }
+          })
+        })
+      })
+
+      await Promise.all(workers)
+      const owners = (await readFile(resultPath, 'utf8'))
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+      expect(owners).toHaveLength(1)
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  }, 15_000)
 
   it('provides a Windows double-click wrapper with a Node check', async () => {
     const wrapper = await readFile(

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { OverlayProject } from '../timeline/types'
 
 interface ProjectFileControlsProps {
@@ -13,23 +13,47 @@ export function ProjectFileControls({
   onImport,
 }: ProjectFileControlsProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const requestTokenRef = useRef(0)
+  const mountedRef = useRef(true)
   const [localError, setLocalError] = useState('')
 
-  const importFile = async (file: File) => {
-    setLocalError('')
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      requestTokenRef.current += 1
+    }
+  }, [])
 
+  const isActiveRequest = (requestToken: number) =>
+    mountedRef.current && requestTokenRef.current === requestToken
+
+  const importFile = async (file: File, requestToken: number) => {
     let text: string
     try {
       text = await file.text()
     } catch {
-      setLocalError('读取 JSON 文件失败')
+      if (isActiveRequest(requestToken)) {
+        setLocalError('读取 JSON 文件失败')
+      }
+      return
+    }
+
+    if (!isActiveRequest(requestToken)) {
       return
     }
 
     try {
       await onImport(text)
     } catch {
-      setLocalError('导入 JSON 项目失败')
+      if (isActiveRequest(requestToken)) {
+        setLocalError('导入 JSON 项目失败')
+      }
+      return
+    }
+
+    if (!isActiveRequest(requestToken)) {
+      return
     }
   }
 
@@ -44,6 +68,10 @@ export function ProjectFileControls({
       anchor.href = url
       anchor.download = 'overlay-studio-project.json'
       anchor.click()
+    } catch {
+      if (mountedRef.current) {
+        setLocalError('导出 JSON 项目失败')
+      }
     } finally {
       URL.revokeObjectURL(url)
     }
@@ -67,14 +95,16 @@ export function ProjectFileControls({
           onChange={(event) => {
             const input = event.currentTarget
             const file = input.files?.[0]
+            const requestToken = requestTokenRef.current + 1
+            requestTokenRef.current = requestToken
+            input.value = ''
+
             if (!file) {
-              input.value = ''
               return
             }
 
-            void importFile(file).finally(() => {
-              input.value = ''
-            })
+            setLocalError('')
+            void importFile(file, requestToken)
           }}
         />
         <button type="button" onClick={() => inputRef.current?.click()}>

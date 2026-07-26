@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { vi } from 'vitest'
 import type { OverlayProject } from '../timeline/types'
 import { ProjectFileControls } from './ProjectFileControls'
@@ -35,6 +41,27 @@ function readBlob(blob: Blob) {
     reader.onerror = () => reject(reader.error)
     reader.readAsText(blob)
   })
+}
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, resolve, reject }
+}
+
+function fileWithTextPromise(textPromise: Promise<string>) {
+  const file = new File(['pending'], 'project.json', {
+    type: 'application/json',
+  })
+  Object.defineProperty(file, 'text', {
+    configurable: true,
+    value: vi.fn(() => textPromise),
+  })
+  return file
 }
 
 describe('ProjectFileControls', () => {
@@ -138,5 +165,129 @@ describe('ProjectFileControls', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('JSON 项目格式无效')
     expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'assertive')
+  })
+
+  it('lets the latest file win when an earlier file read finishes later', async () => {
+    const slowRead = deferred<string>()
+    const onImport = vi.fn()
+    render(<ProjectFileControls project={project} onImport={onImport} />)
+    const input = screen.getByLabelText('选择 JSON 项目文件')
+
+    fireEvent.change(input, {
+      target: { files: [fileWithTextPromise(slowRead.promise)] },
+    })
+    fireEvent.change(input, {
+      target: { files: [jsonFile('{"project":"B"}')] },
+    })
+    await waitFor(() =>
+      expect(onImport).toHaveBeenCalledWith('{"project":"B"}'),
+    )
+
+    await act(async () => {
+      slowRead.resolve('{"project":"A"}')
+      await slowRead.promise
+    })
+
+    expect(onImport).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not let an older rejected import overwrite the latest result', async () => {
+    const slowImport = deferred<void>()
+    const onImport = vi.fn((text: string) =>
+      text === '{"project":"A"}' ? slowImport.promise : Promise.resolve(),
+    )
+    render(<ProjectFileControls project={project} onImport={onImport} />)
+    const input = screen.getByLabelText('选择 JSON 项目文件')
+
+    fireEvent.change(input, {
+      target: { files: [jsonFile('{"project":"A"}')] },
+    })
+    await waitFor(() =>
+      expect(onImport).toHaveBeenCalledWith('{"project":"A"}'),
+    )
+    fireEvent.change(input, {
+      target: { files: [jsonFile('{"project":"B"}')] },
+    })
+    await waitFor(() =>
+      expect(onImport).toHaveBeenCalledWith('{"project":"B"}'),
+    )
+
+    await act(async () => {
+      slowImport.reject(new Error('stale failure'))
+      await slowImport.promise.catch(() => undefined)
+    })
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it.each(['resolve', 'reject'] as const)(
+    'ignores a pending file read that %s after unmount',
+    async (settlement) => {
+      const pendingRead = deferred<string>()
+      const onImport = vi.fn()
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined)
+      const { unmount } = render(
+        <ProjectFileControls project={project} onImport={onImport} />,
+      )
+
+      fireEvent.change(screen.getByLabelText('选择 JSON 项目文件'), {
+        target: { files: [fileWithTextPromise(pendingRead.promise)] },
+      })
+      unmount()
+      await act(async () => {
+        if (settlement === 'resolve') {
+          pendingRead.resolve('{"project":"late"}')
+        } else {
+          pendingRead.reject(new Error('late read failure'))
+        }
+        await pendingRead.promise.catch(() => undefined)
+      })
+
+      expect(onImport).not.toHaveBeenCalled()
+      expect(consoleError).not.toHaveBeenCalled()
+    },
+  )
+
+  it('clears the input immediately so the same file can be selected while reading', () => {
+    const pendingRead = deferred<string>()
+    const file = fileWithTextPromise(pendingRead.promise)
+    render(<ProjectFileControls project={project} onImport={vi.fn()} />)
+    const input = screen.getByLabelText('选择 JSON 项目文件')
+    Object.defineProperty(input, 'value', {
+      configurable: true,
+      writable: true,
+      value: 'C:\\fakepath\\project.json',
+    })
+
+    fireEvent.change(input, { target: { files: [file] } })
+    expect(input).toHaveValue('')
+
+    Object.defineProperty(input, 'value', {
+      configurable: true,
+      writable: true,
+      value: 'C:\\fakepath\\project.json',
+    })
+    fireEvent.change(input, { target: { files: [file] } })
+    expect(file.text).toHaveBeenCalledTimes(2)
+    expect(input).toHaveValue('')
+  })
+
+  it('revokes the export URL and reports an alert when the anchor click throws', async () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:throwing-export')
+    const revokeObjectURL = vi
+      .spyOn(URL, 'revokeObjectURL')
+      .mockImplementation(() => undefined)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+      throw new Error('download failed')
+    })
+    render(<ProjectFileControls project={project} onImport={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '导出 JSON' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '导出 JSON 项目失败',
+    )
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:throwing-export')
   })
 })

@@ -1258,6 +1258,65 @@ a:focus-visible {
   scrollbar-color: var(--line-strong) transparent;
 }
 
+.workspace-status {
+  position: fixed;
+  z-index: 100;
+  top: 18px;
+  left: 50%;
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  color: var(--paper);
+  background: rgba(8, 9, 10, .92);
+  font-size: 8px;
+  letter-spacing: .12em;
+  transform: translateX(-50%);
+}
+
+.workspace-danger-zone {
+  display: grid;
+  gap: 11px;
+  padding: 14px 18px 15px;
+  border-bottom: 1px solid var(--line-strong);
+  background: rgba(255,255,255,.008);
+}
+
+.workspace-danger-zone > div {
+  display: grid;
+  gap: 4px;
+}
+
+.workspace-danger-zone span {
+  color: var(--paper);
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+
+.workspace-danger-zone small {
+  color: var(--quiet);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.workspace-clear-button {
+  min-height: 31px;
+  border: 1px solid rgba(216, 161, 157, .42);
+  color: #d8a19d;
+  background: transparent;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: border-color .18s ease, color .18s ease, background .18s ease;
+}
+
+.workspace-clear-button:hover,
+.workspace-clear-button:focus-visible {
+  border-color: #d8a19d;
+  color: var(--ink);
+  background: #d8a19d;
+}
+
 .video-setting {
   display: grid;
   gap: 12px;
@@ -3267,6 +3326,7 @@ a:focus-visible {
 
   .project-file-controls,
   .video-setting,
+  .workspace-danger-zone,
   .preview-setting,
   .control-field {
     padding-right: 13px;

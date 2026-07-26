@@ -157,6 +157,31 @@ export function parsePersistedWorkspace(
   }
 }
 
+export function parsePersistedVideo(value: unknown): PersistedVideoV1 {
+  if (
+    !isRecord(value) ||
+    value.version !== 1 ||
+    !(value.blob instanceof Blob) ||
+    typeof value.name !== 'string' ||
+    value.name.trim() === '' ||
+    typeof value.type !== 'string' ||
+    value.type.trim() === '' ||
+    typeof value.lastModified !== 'number' ||
+    !Number.isFinite(value.lastModified) ||
+    value.lastModified < 0
+  ) {
+    invalidWorkspace()
+  }
+
+  return {
+    version: 1,
+    blob: value.blob,
+    name: value.name,
+    type: value.type,
+    lastModified: value.lastModified,
+  }
+}
+
 function requestResult<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result)

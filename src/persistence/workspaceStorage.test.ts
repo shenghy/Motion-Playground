@@ -5,6 +5,7 @@ import type { MotionId, ParameterValues } from '../motion/types'
 import type { OverlayProject } from '../timeline/types'
 import {
   createWorkspaceStorage,
+  parsePersistedVideo,
   parsePersistedWorkspace,
   type PersistedVideoV1,
   type PersistedWorkspaceV1,
@@ -228,5 +229,29 @@ describe('parsePersistedWorkspace', () => {
     expect(() =>
       parsePersistedWorkspace(candidate, defaultsByMotion),
     ).toThrow('本地工作区数据无效')
+  })
+})
+
+describe('parsePersistedVideo', () => {
+  it('accepts a complete version-one video record', () => {
+    const video = {
+      version: 1,
+      blob: new Blob(['video'], { type: 'video/mp4' }),
+      name: '已保存视频.mp4',
+      type: 'video/mp4',
+      lastModified: 123,
+    }
+
+    expect(parsePersistedVideo(video)).toEqual(video)
+  })
+
+  it.each([
+    null,
+    { version: 2, blob: new Blob(), name: 'a.mp4', type: 'video/mp4', lastModified: 1 },
+    { version: 1, blob: 'broken', name: 'a.mp4', type: 'video/mp4', lastModified: 1 },
+    { version: 1, blob: new Blob(), name: '', type: 'video/mp4', lastModified: 1 },
+    { version: 1, blob: new Blob(), name: 'a.mp4', type: '', lastModified: -1 },
+  ])('rejects invalid video records', (video) => {
+    expect(() => parsePersistedVideo(video)).toThrow('本地工作区数据无效')
   })
 })

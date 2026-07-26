@@ -16,6 +16,7 @@ interface PreviewStageProps {
   playbackKey: number
   showSafeArea: boolean
   videoUrl?: string
+  restoredVideo?: boolean
   pendingVideoUrl?: string
   onVideoReady?: (url: string) => void
   onVideoError?: (url: string) => void
@@ -77,6 +78,7 @@ export function PreviewStage({
   playbackKey,
   showSafeArea,
   videoUrl,
+  restoredVideo = false,
   pendingVideoUrl,
   onVideoReady,
   onVideoError,
@@ -282,13 +284,18 @@ export function PreviewStage({
               data-testid="presenter-video"
               src={videoUrl}
               aria-label="本地视频背景"
-              autoPlay
+              autoPlay={!restoredVideo}
               muted
               loop
               playsInline
               onPlay={() => updatePlaybackState({ isPlaying: true })}
               onPause={() => updatePlaybackState({ isPlaying: false })}
               onLoadedMetadata={(event) => {
+                if (restoredVideo) {
+                  event.currentTarget.currentTime = 0
+                  event.currentTarget.muted = true
+                  event.currentTarget.pause()
+                }
                 reportMediaDuration(event.currentTarget.duration)
                 reportMediaTime(event.currentTarget.currentTime)
               }}

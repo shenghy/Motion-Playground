@@ -14,6 +14,13 @@ import type {
   OverlayPosition,
   OverlayProject,
 } from '../timeline/types'
+import {
+  parsePersistedVideo,
+  parsePersistedWorkspace,
+  type PersistedVideoV1,
+  type PersistedWorkspaceV1,
+  type WorkspaceStorage,
+} from '../persistence/workspaceStorage'
 import { ComponentRail } from './ComponentRail'
 import { ParameterPanel } from './ParameterPanel'
 import { PreviewStage } from './PreviewStage'
@@ -62,10 +69,15 @@ function createUniqueCardId(cards: OverlayCard[], idFactory: () => string) {
 interface VideoPreview {
   name: string
   url: string
+  blob: Blob
+  type: string
+  lastModified: number
+  restored: boolean
 }
 
 interface WorkbenchProps {
   idFactory?: () => string
+  storage?: WorkspaceStorage
 }
 
 interface OverlayWorkspaceState {
@@ -80,6 +92,15 @@ const createOverlayWorkspaceState = (): OverlayWorkspaceState => ({
   playbackKeys: {},
 })
 
+const createMotionPlaybackKeys = (): Record<MotionId, number> => ({
+  'metric-focus': 0,
+  'compare-split': 0,
+  'profile-reveal': 0,
+  'bar-compare': 0,
+  'share-ring': 0,
+  'step-flow': 0,
+})
+
 function isEditableDeleteTarget(target: EventTarget | null) {
   return (
     typeof HTMLElement !== 'undefined' &&
@@ -92,7 +113,38 @@ function isEditableDeleteTarget(target: EventTarget | null) {
   )
 }
 
-export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
+function createWorkspaceSnapshot(
+  cards: OverlayCard[],
+  parametersByMotion: Record<MotionId, ParameterValues>,
+  activeId: MotionId,
+  showSafeArea: boolean,
+  video: VideoPreview | null,
+): PersistedWorkspaceV1 {
+  return {
+    version: 1,
+    project: {
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      cards,
+    },
+    parametersByMotion,
+    activeId,
+    showSafeArea,
+    video: video
+      ? {
+          present: true,
+          name: video.name,
+          type: video.type,
+          lastModified: video.lastModified,
+        }
+      : { present: false },
+  }
+}
+
+export function Workbench({
+  idFactory = createBrowserCardId,
+  storage,
+}: WorkbenchProps) {
   const [activeId, setActiveId] = useState<MotionId>('metric-focus')
   const [showSafeArea, setShowSafeArea] = useState(true)
   const [parameters, setParameters] = useState(createInitialParameters)
@@ -106,21 +158,36 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   const [pendingVideo, setPendingVideo] = useState<VideoPreview | null>(null)
   const [videoError, setVideoError] = useState('')
   const [projectError, setProjectError] = useState('')
+  const [storageError, setStorageError] = useState('')
+  const [isClearingWorkspace, setIsClearingWorkspace] = useState(false)
+  const [hydrationStatus, setHydrationStatus] = useState<'loading' | 'ready'>(
+    storage ? 'loading' : 'ready',
+  )
   const videoPreviewRef = useRef<VideoPreview | null>(null)
   const pendingVideoRef = useRef<VideoPreview | null>(null)
+  const skipNextAutosaveRef = useRef(Boolean(storage))
+  const autosaveTimerRef = useRef<number | null>(null)
+  const persistenceOperationRef = useRef<Promise<unknown>>(Promise.resolve())
+  const clearingWorkspaceRef = useRef(false)
   const seekControllerRef = useRef<((time: number) => void) | null>(null)
-  const [playbackKeys, setPlaybackKeys] = useState<Record<MotionId, number>>({
-    'metric-focus': 0,
-    'compare-split': 0,
-    'profile-reveal': 0,
-    'bar-compare': 0,
-    'share-ring': 0,
-    'step-flow': 0,
-  })
+  const [playbackKeys, setPlaybackKeys] = useState(createMotionPlaybackKeys)
   const { cards, selectedCardId } = overlayWorkspace
+  const queuePersistenceOperation = useCallback(
+    <T,>(operation: () => Promise<T>) => {
+      const nextOperation = persistenceOperationRef.current
+        .catch(() => undefined)
+        .then(operation)
+      persistenceOperationRef.current = nextOperation
+      return nextOperation
+    },
+    [],
+  )
 
   const mutateOverlayWorkspace = useCallback(
     (mutation: (current: OverlayWorkspaceState) => OverlayWorkspaceState) => {
+      if (clearingWorkspaceRef.current) {
+        return overlayWorkspaceRef.current
+      }
       const next = mutation(overlayWorkspaceRef.current)
       overlayWorkspaceRef.current = next
       setOverlayWorkspace(next)
@@ -144,6 +211,139 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     [cards],
   )
 
+  useEffect(() => {
+    if (!storage) {
+      return
+    }
+
+    let cancelled = false
+
+    const restoreWorkspace = async () => {
+      try {
+        const persisted = await storage.load()
+        if (cancelled) {
+          return
+        }
+
+        if (!persisted.workspace) {
+          if (persisted.video) {
+            throw new Error('本地工作区数据无效')
+          }
+          setStorageError('')
+          return
+        }
+
+        const restoredWorkspace = parsePersistedWorkspace(
+          persisted.workspace,
+          MOTION_DEFAULTS,
+        )
+        let restoredVideo: VideoPreview | null = null
+
+        if (restoredWorkspace.video.present) {
+          if (!persisted.video) {
+            throw new Error('本地工作区数据无效')
+          }
+          const video = parsePersistedVideo(persisted.video)
+          restoredVideo = {
+            name: video.name,
+            url: URL.createObjectURL(video.blob),
+            blob: video.blob,
+            type: video.type,
+            lastModified: video.lastModified,
+            restored: true,
+          }
+        }
+
+        const nextOverlayWorkspace: OverlayWorkspaceState = {
+          cards: restoredWorkspace.project.cards,
+          selectedCardId: null,
+          playbackKeys: Object.fromEntries(
+            restoredWorkspace.project.cards.map((card) => [card.id, 0]),
+          ),
+        }
+        overlayWorkspaceRef.current = nextOverlayWorkspace
+        setOverlayWorkspace(nextOverlayWorkspace)
+        setParameters(restoredWorkspace.parametersByMotion)
+        setActiveId(restoredWorkspace.activeId)
+        setShowSafeArea(restoredWorkspace.showSafeArea)
+        videoPreviewRef.current = restoredVideo
+        setVideoPreview(restoredVideo)
+        setVideoTime(0)
+        setVideoDuration(0)
+        setStorageError('')
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+        setStorageError(
+          error instanceof Error &&
+            error.message === '本地工作区数据无效'
+            ? '本地工作区数据无效'
+            : '本地工作区恢复失败',
+        )
+      } finally {
+        if (!cancelled) {
+          setHydrationStatus('ready')
+        }
+      }
+    }
+
+    void restoreWorkspace()
+    return () => {
+      cancelled = true
+    }
+  }, [storage])
+
+  useEffect(() => {
+    if (
+      !storage ||
+      hydrationStatus !== 'ready' ||
+      clearingWorkspaceRef.current
+    ) {
+      return
+    }
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      autosaveTimerRef.current = null
+      if (clearingWorkspaceRef.current) {
+        return
+      }
+      const snapshot = createWorkspaceSnapshot(
+        cards,
+        parameters,
+        activeId,
+        showSafeArea,
+        videoPreview,
+      )
+      void queuePersistenceOperation(() => storage.saveWorkspace(snapshot))
+        .then(() => setStorageError(''))
+        .catch(() =>
+          setStorageError('本地保存失败，刷新后可能无法恢复'),
+        )
+    }, 300)
+    autosaveTimerRef.current = timer
+
+    return () => {
+      window.clearTimeout(timer)
+      if (autosaveTimerRef.current === timer) {
+        autosaveTimerRef.current = null
+      }
+    }
+  }, [
+    activeId,
+    cards,
+    hydrationStatus,
+    parameters,
+    queuePersistenceOperation,
+    showSafeArea,
+    storage,
+    videoPreview,
+  ])
+
   const replay = () => {
     const selectedId = overlayWorkspaceRef.current.selectedCardId
     if (selectedId) {
@@ -164,6 +364,9 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const selectMotion = (id: MotionId) => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     mutateOverlayWorkspace((current) => ({
       ...current,
       selectedCardId: null,
@@ -173,6 +376,9 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const updateParameter = (key: string, value: ParameterValue) => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     const selectedId = overlayWorkspaceRef.current.selectedCardId
     if (selectedId) {
       mutateOverlayWorkspace((current) => ({
@@ -198,6 +404,9 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const resetParameters = () => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     const selectedId = overlayWorkspaceRef.current.selectedCardId
     if (selectedId) {
       mutateOverlayWorkspace((current) => ({
@@ -226,6 +435,9 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const selectVideo = (file: File) => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     if (pendingVideoRef.current) {
       URL.revokeObjectURL(pendingVideoRef.current.url)
       pendingVideoRef.current = null
@@ -238,13 +450,23 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     }
 
     const nextUrl = URL.createObjectURL(file)
-    const nextVideo = { name: file.name, url: nextUrl }
+    const nextVideo = {
+      name: file.name,
+      url: nextUrl,
+      blob: file,
+      type: file.type,
+      lastModified: file.lastModified,
+      restored: false,
+    }
     pendingVideoRef.current = nextVideo
     setPendingVideo(nextVideo)
     setVideoError('')
   }
 
   const confirmVideo = (url: string) => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     const candidate = pendingVideoRef.current
     if (!candidate || candidate.url !== url) {
       return
@@ -261,6 +483,34 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     setVideoDuration(0)
     setPendingVideo(null)
     setVideoError('')
+
+    if (storage && !clearingWorkspaceRef.current) {
+      const persistedVideo: PersistedVideoV1 = {
+        version: 1,
+        blob: candidate.blob,
+        name: candidate.name,
+        type: candidate.type,
+        lastModified: candidate.lastModified,
+      }
+      const snapshot = createWorkspaceSnapshot(
+        overlayWorkspaceRef.current.cards,
+        parameters,
+        activeId,
+        showSafeArea,
+        candidate,
+      )
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current)
+        autosaveTimerRef.current = null
+      }
+      void queuePersistenceOperation(() =>
+        storage.commitVideo(persistedVideo, snapshot),
+      )
+        .then(() => setStorageError(''))
+        .catch(() =>
+          setStorageError('本地保存失败，刷新后可能无法恢复'),
+        )
+    }
   }
 
   const rejectVideo = (url: string) => {
@@ -276,6 +526,9 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const handleActiveVideoError = (url: string) => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     const activeVideo = videoPreviewRef.current
     if (!activeVideo || activeVideo.url !== url) {
       return
@@ -287,9 +540,29 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     setVideoTime(0)
     setVideoDuration(0)
     setVideoError('视频播放失败，请更换文件')
+
+    if (storage && !clearingWorkspaceRef.current) {
+      const snapshot = createWorkspaceSnapshot(
+        overlayWorkspaceRef.current.cards,
+        parameters,
+        activeId,
+        showSafeArea,
+        null,
+      )
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current)
+        autosaveTimerRef.current = null
+      }
+      void queuePersistenceOperation(() => storage.removeVideo(snapshot)).catch(
+        () => setStorageError('本地保存失败，刷新后可能无法恢复'),
+      )
+    }
   }
 
   const removeVideo = () => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     if (videoPreviewRef.current) {
       URL.revokeObjectURL(videoPreviewRef.current.url)
       videoPreviewRef.current = null
@@ -303,9 +576,89 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     setVideoError('')
     setVideoTime(0)
     setVideoDuration(0)
+
+    if (storage && !clearingWorkspaceRef.current) {
+      const snapshot = createWorkspaceSnapshot(
+        overlayWorkspaceRef.current.cards,
+        parameters,
+        activeId,
+        showSafeArea,
+        null,
+      )
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current)
+        autosaveTimerRef.current = null
+      }
+      void queuePersistenceOperation(() => storage.removeVideo(snapshot))
+        .then(() => setStorageError(''))
+        .catch(() =>
+          setStorageError('本地保存失败，刷新后可能无法恢复'),
+        )
+    }
+  }
+
+  const clearWorkspace = async () => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
+    if (
+      !window.confirm(
+        '确定清空工作区吗？本地视频、时间轴卡片和全部设置都会被删除。',
+      )
+    ) {
+      return
+    }
+
+    clearingWorkspaceRef.current = true
+    setIsClearingWorkspace(true)
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current)
+      autosaveTimerRef.current = null
+    }
+
+    try {
+      if (storage) {
+        await queuePersistenceOperation(() => storage.clear())
+      }
+    } catch {
+      clearingWorkspaceRef.current = false
+      setIsClearingWorkspace(false)
+      setStorageError('清空工作区失败，请稍后重试')
+      return
+    }
+
+    if (videoPreviewRef.current) {
+      URL.revokeObjectURL(videoPreviewRef.current.url)
+    }
+    if (pendingVideoRef.current) {
+      URL.revokeObjectURL(pendingVideoRef.current.url)
+    }
+
+    videoPreviewRef.current = null
+    pendingVideoRef.current = null
+    const initialOverlayWorkspace = createOverlayWorkspaceState()
+    overlayWorkspaceRef.current = initialOverlayWorkspace
+    skipNextAutosaveRef.current = Boolean(storage)
+    setOverlayWorkspace(initialOverlayWorkspace)
+    setActiveId('metric-focus')
+    setShowSafeArea(true)
+    setParameters(createInitialParameters())
+    setPlaybackKeys(createMotionPlaybackKeys())
+    setVideoPreview(null)
+    setPendingVideo(null)
+    setVideoTime(0)
+    setVideoDuration(0)
+    setVideoError('')
+    setProjectError('')
+    setStorageError('')
+    clearingWorkspaceRef.current = false
+    setIsClearingWorkspace(false)
   }
 
   const dropMotion = (motionId: MotionId, startTime: number) => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     if (
       !Number.isFinite(videoDuration) ||
       videoDuration < MIN_CARD_DURATION
@@ -342,6 +695,9 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const selectCard = (cardId: string) => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     const card = overlayWorkspaceRef.current.cards.find(
       (candidate) => candidate.id === cardId,
     )
@@ -439,6 +795,9 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const importOverlayProject = (text: string) => {
+    if (clearingWorkspaceRef.current) {
+      return
+    }
     let importedProject: OverlayProject
 
     try {
@@ -492,7 +851,12 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   )
 
   return (
-    <div className="workbench">
+    <div className="workbench" aria-busy={isClearingWorkspace}>
+      {hydrationStatus === 'loading' && (
+        <p className="workspace-status" role="status" aria-live="polite">
+          正在恢复本地工作区
+        </p>
+      )}
       <header className="app-header">
         <a className="brand" href="/" aria-label="动效预览台首页">
           <span className="brand-mark" aria-hidden="true"><i /><i /></span>
@@ -508,7 +872,7 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
         </div>
       </header>
 
-      <div className="workspace">
+      <div className="workspace" inert={isClearingWorkspace ? true : undefined}>
         <ComponentRail
           items={motionRegistry}
           activeId={activeId}
@@ -523,6 +887,7 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
             playbackKey={playbackKeys[activeId]}
             showSafeArea={showSafeArea}
             videoUrl={videoPreview?.url}
+            restoredVideo={videoPreview?.restored}
             pendingVideoUrl={pendingVideo?.url}
             onVideoReady={confirmVideo}
             onVideoError={rejectVideo}
@@ -558,15 +923,20 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
           onReset={resetParameters}
           onReplay={replay}
           showSafeArea={showSafeArea}
-          onToggleSafeArea={() => setShowSafeArea((visible) => !visible)}
+          onToggleSafeArea={() => {
+            if (!clearingWorkspaceRef.current) {
+              setShowSafeArea((visible) => !visible)
+            }
+          }}
           videoFileName={videoPreview?.name}
           pendingVideoFileName={pendingVideo?.name}
           videoError={videoError}
           onVideoFile={selectVideo}
           onRemoveVideo={removeVideo}
           project={overlayProject}
-          projectError={projectError}
+          projectError={projectError || storageError}
           onProjectImport={importOverlayProject}
+          onClearWorkspace={clearWorkspace}
         />
       </div>
     </div>

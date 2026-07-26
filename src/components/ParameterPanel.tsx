@@ -18,6 +18,7 @@ interface ParameterPanelProps {
   project?: OverlayProject
   projectError?: string
   onProjectImport?: (text: string) => void | Promise<void>
+  onClearWorkspace?: () => void | Promise<void>
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -39,6 +40,7 @@ export function ParameterPanel({
   project,
   projectError,
   onProjectImport,
+  onClearWorkspace,
 }: ParameterPanelProps) {
   return (
     <aside className="parameter-panel" aria-label="动效参数">
@@ -58,6 +60,21 @@ export function ParameterPanel({
             onImport={onProjectImport}
           />
         ) : null}
+        {onClearWorkspace && (
+          <section className="workspace-danger-zone" aria-label="工作区管理">
+            <div>
+              <span>工作区管理</span>
+              <small>清除本地视频、时间轴卡片和全部设置</small>
+            </div>
+            <button
+              className="workspace-clear-button"
+              type="button"
+              onClick={onClearWorkspace}
+            >
+              清空工作区
+            </button>
+          </section>
+        )}
         {onVideoFile && (
           <section className="video-setting" aria-label="视频背景">
             <div className="video-setting__heading">

@@ -1,6 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
+import { motionRegistry } from '../motion/registry'
+import type { MotionId, ParameterValues } from '../motion/types'
+import type {
+  PersistedVideoV1,
+  PersistedWorkspaceV1,
+  WorkspaceStorage,
+} from '../persistence/workspaceStorage'
 import { Workbench } from './Workbench'
 
 function mockTimelineRect(track: HTMLElement, left = 100, width = 400) {
@@ -63,6 +71,56 @@ function jsonProjectFile(project: unknown) {
   return file
 }
 
+const persistedParameters = Object.fromEntries(
+  motionRegistry.map((definition) => [
+    definition.id,
+    { ...definition.defaults },
+  ]),
+) as unknown as Record<MotionId, ParameterValues>
+
+function persistedWorkspace(
+  overrides: Partial<PersistedWorkspaceV1> = {},
+): PersistedWorkspaceV1 {
+  return {
+    version: 1,
+    project: {
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      cards: [],
+    },
+    parametersByMotion: structuredClone(persistedParameters),
+    activeId: 'metric-focus',
+    showSafeArea: true,
+    video: { present: false },
+    ...overrides,
+  }
+}
+
+function createStorageDouble(
+  initial: {
+    workspace: PersistedWorkspaceV1 | null
+    video: PersistedVideoV1 | null
+  } = { workspace: null, video: null },
+) {
+  let state = initial
+  const storage: WorkspaceStorage = {
+    load: vi.fn(async () => state),
+    saveWorkspace: vi.fn(async (workspace) => {
+      state = { ...state, workspace }
+    }),
+    commitVideo: vi.fn(async (video, workspace) => {
+      state = { workspace, video }
+    }),
+    removeVideo: vi.fn(async (workspace) => {
+      state = { workspace, video: null }
+    }),
+    clear: vi.fn(async () => {
+      state = { workspace: null, video: null }
+    }),
+  }
+  return { storage, getState: () => state }
+}
+
 describe('Workbench', () => {
   const createObjectURL = vi.fn<(object?: Blob | MediaSource) => string>(
     () => 'blob:local-video-preview',
@@ -101,6 +159,447 @@ describe('Workbench', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('hydrates the saved video, cards, parameters, active motion, and safe-area setting', async () => {
+    createObjectURL.mockReturnValueOnce('blob:restored-video')
+    const metricDefaults = persistedParameters['metric-focus']
+    const video: PersistedVideoV1 = {
+      version: 1,
+      blob: new Blob(['restored-video'], { type: 'video/mp4' }),
+      name: '恢复视频.mp4',
+      type: 'video/mp4',
+      lastModified: 456,
+    }
+    const workspace = persistedWorkspace({
+      project: {
+        version: 1,
+        canvas: { width: 1920, height: 1080 },
+        cards: [
+          {
+            id: 'restored-card',
+            motionId: 'metric-focus',
+            start: 0,
+            end: 3,
+            position: { x: 22, y: 11 },
+            zIndex: 0,
+            params: {
+              ...metricDefaults,
+              eyebrow: '刷新恢复',
+              value: 777,
+            },
+          },
+        ],
+      },
+      parametersByMotion: {
+        ...structuredClone(persistedParameters),
+        'compare-split': {
+          ...persistedParameters['compare-split'],
+          title: '已保存组件参数',
+        },
+      },
+      activeId: 'compare-split',
+      showSafeArea: false,
+      video: {
+        present: true,
+        name: video.name,
+        type: video.type,
+        lastModified: video.lastModified,
+      },
+    })
+    const { storage } = createStorageDouble({ workspace, video })
+    const { container } = render(<Workbench storage={storage} />)
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+    })
+
+    expect(screen.getByText('恢复视频.mp4')).toBeInTheDocument()
+    expect(screen.getByTestId('presenter-video')).toHaveAttribute(
+      'src',
+      'blob:restored-video',
+    )
+    expect(screen.getByText('刷新恢复')).toBeInTheDocument()
+    expect(screen.getByTestId('overlay-card-restored-card')).toHaveStyle({
+      transform: 'translate(22%, 11%)',
+    })
+    expect(
+      container.querySelector('.rail-item[aria-pressed="true"] strong'),
+    ).toHaveTextContent(motionRegistry[1].name)
+    expect(container.querySelector('[role="switch"]')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
+  })
+
+  it('reports invalid or unreadable persisted workspaces without restoring cards', async () => {
+    const invalidStorage = createStorageDouble({
+      workspace: {
+        ...persistedWorkspace(),
+        version: 2,
+      } as unknown as PersistedWorkspaceV1,
+      video: null,
+    }).storage
+    const invalidView = render(<Workbench storage={invalidStorage} />)
+
+    expect(
+      await screen.findByText('本地工作区数据无效'),
+    ).toBeInTheDocument()
+    expect(
+      invalidView.container.querySelectorAll('.timeline-editor__card'),
+    ).toHaveLength(0)
+    invalidView.unmount()
+
+    const failedStorage = createStorageDouble().storage
+    vi.mocked(failedStorage.load).mockRejectedValueOnce(new Error('blocked'))
+    render(<Workbench storage={failedStorage} />)
+
+    expect(
+      await screen.findByText('本地工作区恢复失败'),
+    ).toBeInTheDocument()
+  })
+
+  it('autosaves changed component parameters after hydration', async () => {
+    const { storage, getState } = createStorageDouble()
+    render(<Workbench storage={storage} />)
+
+    await waitFor(() => expect(storage.load).toHaveBeenCalledTimes(1))
+    fireEvent.change(screen.getByLabelText('核心数值'), {
+      target: { value: '615' },
+    })
+
+    await waitFor(
+      () => expect(storage.saveWorkspace).toHaveBeenCalled(),
+      { timeout: 1500 },
+    )
+    expect(
+      getState().workspace?.parametersByMotion['metric-focus'].value,
+    ).toBe(615)
+  })
+
+  it('keeps autosave active under the production StrictMode wrapper', async () => {
+    const { storage } = createStorageDouble()
+    render(
+      <StrictMode>
+        <Workbench storage={storage} />
+      </StrictMode>,
+    )
+    await waitFor(() => expect(storage.load).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('指标名称'), {
+      target: { value: '严格模式仍保存' },
+    })
+
+    await waitFor(
+      () => expect(storage.saveWorkspace).toHaveBeenCalled(),
+      { timeout: 1500 },
+    )
+  })
+
+  it('stores an accepted video and its workspace metadata together', async () => {
+    const { storage, getState } = createStorageDouble()
+    render(<Workbench storage={storage} />)
+    await waitFor(() => expect(storage.load).toHaveBeenCalledTimes(1))
+
+    const file = new File(['remember-me'], '刷新保留.mp4', {
+      type: 'video/mp4',
+      lastModified: 987,
+    })
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+
+    await waitFor(() => expect(storage.commitVideo).toHaveBeenCalledTimes(1))
+    expect(getState().video).toMatchObject({
+      version: 1,
+      name: '刷新保留.mp4',
+      type: 'video/mp4',
+      lastModified: 987,
+    })
+    expect(getState().workspace?.video).toEqual({
+      present: true,
+      name: '刷新保留.mp4',
+      type: 'video/mp4',
+      lastModified: 987,
+    })
+  })
+
+  it('clears the entire restored workspace only after confirmation', async () => {
+    createObjectURL.mockReturnValueOnce('blob:clearable-video')
+    const workspace = persistedWorkspace({
+      project: {
+        version: 1,
+        canvas: { width: 1920, height: 1080 },
+        cards: [
+          {
+            id: 'clear-me',
+            motionId: 'metric-focus',
+            start: 0,
+            end: 3,
+            position: { x: 8, y: 9 },
+            zIndex: 0,
+            params: persistedParameters['metric-focus'],
+          },
+        ],
+      },
+      video: {
+        present: true,
+        name: '待清空.mp4',
+        type: 'video/mp4',
+        lastModified: 10,
+      },
+    })
+    const video: PersistedVideoV1 = {
+      version: 1,
+      blob: new Blob(['clear']),
+      name: '待清空.mp4',
+      type: 'video/mp4',
+      lastModified: 10,
+    }
+    const { storage, getState } = createStorageDouble({ workspace, video })
+    render(<Workbench storage={storage} />)
+    await screen.findByText('待清空.mp4')
+
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
+    fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
+    expect(storage.clear).not.toHaveBeenCalled()
+    expect(screen.getByText('待清空.mp4')).toBeInTheDocument()
+
+    confirm.mockReturnValueOnce(true)
+    fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
+
+    await waitFor(() => expect(storage.clear).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(screen.queryByText('待清空.mp4')).not.toBeInTheDocument(),
+    )
+    expect(document.querySelectorAll('.timeline-editor__card')).toHaveLength(0)
+    expect(getState()).toEqual({ workspace: null, video: null })
+    expect(screen.getByRole('switch', { name: '显示人物安全区' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+  })
+
+  it('waits for an in-flight autosave before clearing persisted data', async () => {
+    let releaseSave!: () => void
+    const saveBlocked = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    const { storage, getState } = createStorageDouble()
+    vi.mocked(storage.saveWorkspace).mockImplementationOnce(() => saveBlocked)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<Workbench storage={storage} />)
+    await waitFor(() => expect(storage.load).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('指标名称'), {
+      target: { value: '即将清空' },
+    })
+    await waitFor(
+      () => expect(storage.saveWorkspace).toHaveBeenCalled(),
+      { timeout: 1500 },
+    )
+    fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
+
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(storage.clear).not.toHaveBeenCalled()
+    releaseSave()
+    await waitFor(() => expect(storage.clear).toHaveBeenCalledTimes(1))
+    expect(getState()).toEqual({ workspace: null, video: null })
+  })
+
+  it('commits a video after earlier autosaves so metadata cannot be overwritten', async () => {
+    let releaseSave!: () => void
+    const saveBlocked = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    const { storage } = createStorageDouble()
+    vi.mocked(storage.saveWorkspace).mockImplementationOnce(() => saveBlocked)
+    render(<Workbench storage={storage} />)
+    await waitFor(() => expect(storage.load).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('指标名称'), {
+      target: { value: '先保存参数' },
+    })
+    await waitFor(
+      () => expect(storage.saveWorkspace).toHaveBeenCalled(),
+      { timeout: 1500 },
+    )
+    const file = new File(['ordered-video'], '有序提交.mp4', {
+      type: 'video/mp4',
+    })
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(storage.commitVideo).not.toHaveBeenCalled()
+    releaseSave()
+    await waitFor(() => expect(storage.commitVideo).toHaveBeenCalledTimes(1))
+  })
+
+  it('clears only after an in-flight video commit has settled', async () => {
+    let releaseCommit!: () => void
+    const commitBlocked = new Promise<void>((resolve) => {
+      releaseCommit = resolve
+    })
+    const { storage, getState } = createStorageDouble()
+    vi.mocked(storage.commitVideo).mockImplementationOnce(
+      async (video, workspace) => {
+        await commitBlocked
+        getState().workspace = workspace
+        getState().video = video
+      },
+    )
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<Workbench storage={storage} />)
+    await waitFor(() => expect(storage.load).toHaveBeenCalled())
+
+    const file = new File(['slow-video'], '慢写入.mp4', {
+      type: 'video/mp4',
+    })
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+    await waitFor(() => expect(storage.commitVideo).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(storage.clear).not.toHaveBeenCalled()
+
+    releaseCommit()
+    await waitFor(() => expect(storage.clear).toHaveBeenCalledTimes(1))
+    expect(getState()).toEqual({ workspace: null, video: null })
+  })
+
+  it('preserves edits made while an earlier save and video commit are queued', async () => {
+    let releaseSave!: () => void
+    const saveBlocked = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    const { storage, getState } = createStorageDouble()
+    vi.mocked(storage.saveWorkspace).mockImplementationOnce(() => saveBlocked)
+    render(<Workbench storage={storage} />)
+    await waitFor(() => expect(storage.load).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('指标名称'), {
+      target: { value: '较早快照' },
+    })
+    await waitFor(
+      () => expect(storage.saveWorkspace).toHaveBeenCalledTimes(1),
+      { timeout: 1500 },
+    )
+
+    const file = new File(['ordered'], '顺序保护.mp4', {
+      type: 'video/mp4',
+    })
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+    fireEvent.change(screen.getByLabelText('指标名称'), {
+      target: { value: '最后修改必须保留' },
+    })
+    await new Promise((resolve) => setTimeout(resolve, 350))
+
+    releaseSave()
+    await waitFor(
+      () =>
+        expect(
+          getState().workspace?.parametersByMotion['metric-focus'].eyebrow,
+        ).toBe('最后修改必须保留'),
+      { timeout: 1500 },
+    )
+    expect(getState().workspace?.video.present).toBe(true)
+    expect(getState().video?.name).toBe('顺序保护.mp4')
+  })
+
+  it('ignores new persistence writes while a confirmed clear is waiting', async () => {
+    let releaseCommit!: () => void
+    const commitBlocked = new Promise<void>((resolve) => {
+      releaseCommit = resolve
+    })
+    const { storage, getState } = createStorageDouble()
+    vi.mocked(storage.commitVideo).mockImplementationOnce(
+      async (video, workspace) => {
+        await commitBlocked
+        getState().workspace = workspace
+        getState().video = video
+      },
+    )
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<Workbench storage={storage} />)
+    await waitFor(() => expect(storage.load).toHaveBeenCalled())
+
+    const file = new File(['blocked-clear'], '清空锁定.mp4', {
+      type: 'video/mp4',
+    })
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+    await waitFor(() => expect(storage.commitVideo).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
+    fireEvent.change(screen.getByLabelText('指标名称'), {
+      target: { value: '等待清空时的修改' },
+    })
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    releaseCommit()
+
+    await waitFor(() => expect(storage.clear).toHaveBeenCalledTimes(1))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(storage.saveWorkspace).not.toHaveBeenCalled()
+    expect(getState()).toEqual({ workspace: null, video: null })
+  })
+
+  it('keeps the saved workspace consistent when a queued clear fails', async () => {
+    let releaseCommit!: () => void
+    const commitBlocked = new Promise<void>((resolve) => {
+      releaseCommit = resolve
+    })
+    const { storage, getState } = createStorageDouble()
+    vi.mocked(storage.commitVideo).mockImplementationOnce(
+      async (video, workspace) => {
+        await commitBlocked
+        getState().workspace = workspace
+        getState().video = video
+      },
+    )
+    vi.mocked(storage.clear).mockRejectedValueOnce(new Error('disk error'))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<Workbench storage={storage} />)
+    await waitFor(() => expect(storage.load).toHaveBeenCalled())
+
+    const file = new File(['clear-fails'], '保留原状态.mp4', {
+      type: 'video/mp4',
+    })
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+    await waitFor(() => expect(storage.commitVideo).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
+    expect(document.querySelector('.workbench')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+    fireEvent.change(screen.getByLabelText('指标名称'), {
+      target: { value: '不应进入半保存状态' },
+    })
+    expect(screen.getByLabelText('指标名称')).toHaveValue('季度增长')
+
+    releaseCommit()
+    expect(await screen.findByText('清空工作区失败，请稍后重试')).toBeInTheDocument()
+    expect(document.querySelector('.workbench')).toHaveAttribute(
+      'aria-busy',
+      'false',
+    )
+    expect(getState().workspace?.video.present).toBe(true)
+    expect(getState().video?.name).toBe('保留原状态.mp4')
   })
 
   it('opens the Chinese component library and switches between all motions', () => {

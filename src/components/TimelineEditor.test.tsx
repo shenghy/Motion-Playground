@@ -130,6 +130,17 @@ describe('TimelineEditor', () => {
     expect(props.onDropMotion).not.toHaveBeenCalled()
   })
 
+  it('accepts a known motion drop when its display name is missing', () => {
+    const props = createProps()
+    render(<TimelineEditor {...props} />)
+    const track = screen.getByTestId('timeline-track')
+    mockTrackRect(track)
+
+    dropAt(track, 200, createDataTransfer('compare-split'))
+
+    expect(props.onDropMotion).toHaveBeenCalledWith('compare-split', 2.5)
+  })
+
   it('rejects drops without a video and shows a Chinese status', () => {
     const props = createProps({ duration: 0 })
     render(<TimelineEditor {...props} />)
@@ -298,8 +309,11 @@ describe('TimelineEditor', () => {
     expect(props.onMoveCard).not.toHaveBeenCalled()
   })
 
-  it('treats a non-finite duration as unavailable for all interactions', () => {
-    const props = createProps({ duration: Number.NaN })
+  it.each([
+    ['non-finite', Number.NaN],
+    ['shorter than the model minimum', 0.1],
+  ])('treats a %s duration as unavailable for all interactions', (_name, duration) => {
+    const props = createProps({ duration })
     render(<TimelineEditor {...props} />)
     const track = screen.getByTestId('timeline-track')
     const card = screen.getByRole('button', { name: '选择核心指标片段' })

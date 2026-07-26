@@ -1,12 +1,20 @@
 import type { ComponentType } from 'react'
 
-export type MotionId =
-  | 'metric-focus'
-  | 'compare-split'
-  | 'profile-reveal'
-  | 'bar-compare'
-  | 'share-ring'
-  | 'step-flow'
+export const MOTION_IDS = [
+  'metric-focus',
+  'compare-split',
+  'profile-reveal',
+  'bar-compare',
+  'share-ring',
+  'step-flow',
+] as const
+
+export type MotionId = (typeof MOTION_IDS)[number]
+
+export function isMotionId(value: string): value is MotionId {
+  return MOTION_IDS.some((motionId) => motionId === value)
+}
+
 export type ParameterValue = string | number
 export type ParameterValues = Record<string, ParameterValue>
 

@@ -1,16 +1,9 @@
 import { useRef } from 'react'
-import type { MotionId } from '../motion/types'
+import { isMotionId, type MotionId } from '../motion/types'
+import { MIN_CARD_DURATION } from '../timeline/project'
 import type { OverlayCard } from '../timeline/types'
 
 const OVERLAY_MOTION_TYPE = 'application/x-overlay-motion'
-const MOTION_IDS = new Set<MotionId>([
-  'metric-focus',
-  'compare-split',
-  'profile-reveal',
-  'bar-compare',
-  'share-ring',
-  'step-flow',
-])
 
 interface TimelineEditorProps {
   cards: OverlayCard[]
@@ -50,17 +43,6 @@ function percentage(time: number, duration: number) {
   return clamp((time / duration) * 100, 0, 100)
 }
 
-function hasMotionName(
-  motionNames: Partial<Record<MotionId, string>>,
-  motionId: string,
-): motionId is MotionId {
-  return (
-    MOTION_IDS.has(motionId as MotionId) &&
-    Object.prototype.hasOwnProperty.call(motionNames, motionId) &&
-    typeof motionNames[motionId as MotionId] === 'string'
-  )
-}
-
 export function TimelineEditor({
   cards,
   duration,
@@ -77,7 +59,8 @@ export function TimelineEditor({
   const trackRef = useRef<HTMLDivElement>(null)
   const pointerGestureRef = useRef<PointerGesture | null>(null)
   const selectedCard = cards.find((card) => card.id === selectedCardId)
-  const hasUsableDuration = Number.isFinite(duration) && duration > 0
+  const hasUsableDuration =
+    Number.isFinite(duration) && duration >= MIN_CARD_DURATION
 
   const timeAtClientX = (clientX: number) => {
     const track = trackRef.current
@@ -211,7 +194,7 @@ export function TimelineEditor({
           }
 
           const motionId = event.dataTransfer.getData(OVERLAY_MOTION_TYPE)
-          if (!hasMotionName(motionNames, motionId)) {
+          if (!isMotionId(motionId)) {
             return
           }
 

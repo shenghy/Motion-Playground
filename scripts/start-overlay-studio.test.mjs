@@ -18,7 +18,6 @@ import {
   createProjectId,
   ensureProjectReady,
   findRunningOverlayStudio,
-  getProcessIdentity,
   startOverlayStudio,
 } from './start-overlay-studio.mjs'
 import {
@@ -173,28 +172,29 @@ describe('Overlay Studio launcher', () => {
     const lockPath = join(directory, 'startup.local')
 
     try {
-      const firstRelease = acquireStartupLock(lockPath)
+      const firstRelease = await acquireStartupLock(lockPath)
       expect(firstRelease).toEqual(expect.any(Function))
-      expect(acquireStartupLock(lockPath)).toBeNull()
+      await expect(acquireStartupLock(lockPath)).resolves.toBeNull()
 
-      firstRelease()
-      const secondRelease = acquireStartupLock(lockPath)
+      await firstRelease()
+      const secondRelease = await acquireStartupLock(lockPath)
       expect(secondRelease).toEqual(expect.any(Function))
-      secondRelease()
+      await secondRelease()
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
   })
 
-  it('reports lock filesystem errors instead of waiting for another launcher', async () => {
+  it('reports invalid startup mutex ports instead of waiting forever', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
 
     try {
-      expect(() =>
+      await expect(
         acquireStartupLock(
           join(directory, 'missing-directory', 'startup.local'),
+          { port: 70_000 },
         ),
-      ).toThrow()
+      ).rejects.toThrow()
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
@@ -243,72 +243,22 @@ describe('Overlay Studio launcher', () => {
     }
   })
 
-  it('reclaims a startup lock when its PID belongs to a different process', async () => {
+  it('ignores obsolete on-disk lock files because the OS owns the mutex', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
     const lockPath = join(directory, 'startup.local')
 
     try {
-      await writeFile(
-        lockPath,
-        JSON.stringify({
-          pid: process.pid,
-          token: 'expired-lock',
-          createdAt: Date.now() - 11 * 60 * 1000,
-          processIdentity: 'a-different-process-start',
-        }),
-      )
+      await writeFile(lockPath, 'obsolete lock from an older launcher')
 
-      const release = acquireStartupLock(lockPath)
+      const release = await acquireStartupLock(lockPath)
       expect(release).toEqual(expect.any(Function))
-      release()
+      await release()
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
   })
 
-  it('keeps an old startup lock while the original process is still alive', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
-    const lockPath = join(directory, 'startup.local')
-
-    try {
-      await writeFile(
-        lockPath,
-        JSON.stringify({
-          pid: process.pid,
-          token: 'active-lock',
-          createdAt: Date.now() - 60 * 60 * 1000,
-          processIdentity: getProcessIdentity(process.pid),
-        }),
-      )
-
-      expect(acquireStartupLock(lockPath)).toBeNull()
-    } finally {
-      await rm(directory, { recursive: true, force: true })
-    }
-  })
-
-  it('does not mutate the startup lock while another process owns its guard', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
-    const lockPath = join(directory, 'startup.local')
-    const guardPath = `${lockPath}.guard`
-
-    try {
-      await writeFile(
-        guardPath,
-        JSON.stringify({
-          pid: process.pid,
-          token: 'active-guard',
-          createdAt: Date.now(),
-        }),
-      )
-
-      expect(acquireStartupLock(lockPath)).toBeNull()
-    } finally {
-      await rm(directory, { recursive: true, force: true })
-    }
-  })
-
-  it('allows only one process to reclaim and acquire the same stale lock', async () => {
+  it('allows only one process to acquire the same OS startup mutex', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-race-'))
     const lockPath = join(directory, 'startup.local')
     const resultPath = join(directory, 'owners.txt')
@@ -335,11 +285,11 @@ describe('Overlay Studio launcher', () => {
 
           const [, , lockPath, resultPath, startAt] = process.argv
           while (Date.now() < Number(startAt)) {}
-          const release = acquireStartupLock(lockPath)
+          const release = await acquireStartupLock(lockPath)
           if (release) {
             appendFileSync(resultPath, process.pid + '\\n')
-            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 150)
-            release()
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500)
+            await release()
           }
         `,
       )

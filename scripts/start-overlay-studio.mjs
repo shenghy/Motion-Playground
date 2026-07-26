@@ -1,14 +1,11 @@
 import {
-  closeSync,
   existsSync,
-  openSync,
   readFileSync,
-  statSync,
-  unlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { spawn, spawnSync } from 'node:child_process'
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
+import { createServer as createNetServer } from 'node:net'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
@@ -19,8 +16,8 @@ import {
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_START_PORT = 4173
 const DEFAULT_END_PORT = 4192
-const LEGACY_STARTUP_LOCK_AGE_MS = 10 * 60 * 1000
-const INVALID_LOCK_GRACE_MS = 5000
+const STARTUP_LOCK_PORT_MIN = 30_000
+const STARTUP_LOCK_PORT_RANGE = 18_000
 
 export function buildBrowserCommand(platform, url) {
   if (platform === 'win32') {
@@ -234,188 +231,64 @@ export async function findRunningOverlayStudio({
   return null
 }
 
-function isProcessRunning(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) {
-    return false
-  }
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch {
-    return false
-  }
+export function getStartupLockPort(lockKey) {
+  const normalizedKey =
+    process.platform === 'win32'
+      ? resolve(lockKey).toLowerCase()
+      : resolve(lockKey)
+  const hashPrefix = createHash('sha256')
+    .update(normalizedKey)
+    .digest()
+    .readUInt32BE(0)
+  return STARTUP_LOCK_PORT_MIN + (hashPrefix % STARTUP_LOCK_PORT_RANGE)
 }
 
-export function getProcessIdentity(
-  pid,
-  platform = process.platform,
-  run = spawnSync,
+export function acquireStartupLock(
+  lockKey,
+  {
+    host = DEFAULT_HOST,
+    port = Number(
+      process.env.OVERLAY_STUDIO_LOCK_PORT ??
+        getStartupLockPort(lockKey),
+    ),
+  } = {},
 ) {
-  if (!Number.isInteger(pid) || pid <= 0) {
-    return null
-  }
+  return new Promise((resolveLock, rejectLock) => {
+    const server = createNetServer()
+    let settled = false
 
-  const processQuery =
-    platform === 'win32'
-      ? {
-          command: 'powershell.exe',
-          args: [
-            '-NoProfile',
-            '-NonInteractive',
-            '-Command',
-            `(Get-Process -Id ${pid} -ErrorAction Stop).StartTime.ToUniversalTime().Ticks`,
-          ],
-        }
-      : {
-          command: 'ps',
-          args: ['-p', String(pid), '-o', 'lstart='],
-        }
-
-  try {
-    const result = run(processQuery.command, processQuery.args, {
-      encoding: 'utf8',
-      windowsHide: true,
+    server.once('error', (error) => {
+      if (settled) {
+        return
+      }
+      settled = true
+      if (error?.code === 'EADDRINUSE') {
+        resolveLock(null)
+      } else {
+        rejectLock(error)
+      }
     })
-    if (result.error || result.status !== 0) {
-      return null
-    }
-    return result.stdout.trim() || null
-  } catch {
-    return null
-  }
-}
 
-function readLockRecord(lockPath) {
-  const stat = statSync(lockPath)
-  const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
-  return { lock, stat }
-}
-
-function isLockOwnerAlive(lock, stat) {
-  const pid = Number(lock.pid)
-  if (!isProcessRunning(pid)) {
-    return false
-  }
-
-  if (typeof lock.processIdentity === 'string' && lock.processIdentity) {
-    return getProcessIdentity(pid) === lock.processIdentity
-  }
-
-  return Date.now() - stat.mtimeMs <= LEGACY_STARTUP_LOCK_AGE_MS
-}
-
-function removeInactiveLock(lockPath) {
-  try {
-    const first = readLockRecord(lockPath)
-    if (isLockOwnerAlive(first.lock, first.stat)) {
-      return false
-    }
-
-    const current = readLockRecord(lockPath)
-    if (
-      current.lock.token !== first.lock.token ||
-      current.stat.mtimeMs !== first.stat.mtimeMs
-    ) {
-      return false
-    }
-
-    unlinkSync(lockPath)
-    return true
-  } catch {
-    try {
-      if (Date.now() - statSync(lockPath).mtimeMs > INVALID_LOCK_GRACE_MS) {
-        unlinkSync(lockPath)
-        return true
+    server.listen(port, host, () => {
+      if (settled) {
+        return
       }
-    } catch {
-      return true
-    }
-    return false
-  }
-}
-
-function createOwnedLock(lockPath, token) {
-  let fileDescriptor
-  try {
-    fileDescriptor = openSync(lockPath, 'wx')
-    writeFileSync(
-      fileDescriptor,
-      JSON.stringify({
-        pid: process.pid,
-        token,
-        createdAt: Date.now(),
-        processIdentity: getProcessIdentity(process.pid),
-      }),
-      'utf8',
-    )
-    closeSync(fileDescriptor)
-    fileDescriptor = undefined
-    return true
-  } catch (error) {
-    if (fileDescriptor !== undefined) {
-      closeSync(fileDescriptor)
-    }
-    if (error?.code === 'EEXIST') {
-      return false
-    }
-    throw error
-  }
-}
-
-function acquireLockGuard(guardPath) {
-  const token = randomUUID()
-  if (!createOwnedLock(guardPath, token)) {
-    if (!removeInactiveLock(guardPath) || !createOwnedLock(guardPath, token)) {
-      return null
-    }
-  }
-
-  return () => {
-    try {
-      const guard = JSON.parse(readFileSync(guardPath, 'utf8'))
-      if (guard.token === token) {
-        unlinkSync(guardPath)
-      }
-    } catch {
-      // The owning process or stale-lock recovery may have removed the guard.
-    }
-  }
-}
-
-export function acquireStartupLock(lockPath) {
-  const token = randomUUID()
-  const guardPath = `${lockPath}.guard`
-  const releaseGuard = acquireLockGuard(guardPath)
-  if (!releaseGuard) {
-    return null
-  }
-
-  try {
-    if (!createOwnedLock(lockPath, token)) {
-      if (!removeInactiveLock(lockPath) || !createOwnedLock(lockPath, token)) {
-        return null
-      }
-    }
-  } finally {
-    releaseGuard()
-  }
-
-  return () => {
-    try {
-      const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
-      if (lock.token !== token) {
-        return null
-      }
-      unlinkSync(lockPath)
-    } catch {
-      // A terminated process or manual cleanup may have removed the lock.
-    }
-  }
+      settled = true
+      let released = false
+      resolveLock(async () => {
+        if (released) {
+          return
+        }
+        released = true
+        await new Promise((resolveClose) => server.close(resolveClose))
+      })
+    })
+  })
 }
 
 async function waitForStartupLock(lockFile) {
   for (let attempt = 0; attempt < 2400; attempt += 1) {
-    const releaseStartupLock = acquireStartupLock(lockFile)
+    const releaseStartupLock = await acquireStartupLock(lockFile)
     if (releaseStartupLock) {
       return releaseStartupLock
     }
@@ -472,7 +345,8 @@ export async function startOverlayStudio({
   const projectId = createProjectId(projectRoot)
   const savedPort = readSavedPort(portFile)
   const releaseStartupLock =
-    acquireStartupLock(lockFile) ?? (await waitForStartupLock(lockFile))
+    (await acquireStartupLock(lockFile)) ??
+    (await waitForStartupLock(lockFile))
 
   let local
   try {
@@ -506,7 +380,7 @@ export async function startOverlayStudio({
     })
     savePreferredPort(portFile, target.port)
   } finally {
-    releaseStartupLock()
+    await releaseStartupLock()
   }
 
   console.log('')

@@ -1,4 +1,6 @@
 import type { Control, ParameterValue, ParameterValues } from '../motion/types'
+import type { OverlayProject } from '../timeline/types'
+import { ProjectFileControls } from './ProjectFileControls'
 
 interface ParameterPanelProps {
   controls: Control[]
@@ -13,6 +15,9 @@ interface ParameterPanelProps {
   videoError?: string
   onVideoFile?: (file: File) => void
   onRemoveVideo?: () => void
+  project?: OverlayProject
+  projectError?: string
+  onProjectImport?: (text: string) => void | Promise<void>
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -31,6 +36,9 @@ export function ParameterPanel({
   videoError,
   onVideoFile,
   onRemoveVideo,
+  project,
+  projectError,
+  onProjectImport,
 }: ParameterPanelProps) {
   return (
     <aside className="parameter-panel" aria-label="动效参数">
@@ -43,6 +51,13 @@ export function ParameterPanel({
       </div>
 
       <div className="control-list">
+        {project && onProjectImport ? (
+          <ProjectFileControls
+            project={project}
+            error={projectError}
+            onImport={onProjectImport}
+          />
+        ) : null}
         {onVideoFile && (
           <section className="video-setting" aria-label="视频背景">
             <div className="video-setting__heading">

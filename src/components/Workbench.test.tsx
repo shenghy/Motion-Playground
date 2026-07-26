@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import { Workbench } from './Workbench'
 
@@ -50,8 +50,22 @@ function firePointer(
   fireEvent(target, event)
 }
 
+function jsonProjectFile(project: unknown) {
+  const text = JSON.stringify(project)
+  const file = new File([text], 'overlay-project.json', {
+    type: 'application/json',
+  })
+  Object.defineProperty(file, 'text', {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(text),
+  })
+  return file
+}
+
 describe('Workbench', () => {
-  const createObjectURL = vi.fn(() => 'blob:local-video-preview')
+  const createObjectURL = vi.fn<(object?: Blob | MediaSource) => string>(
+    () => 'blob:local-video-preview',
+  )
   const revokeObjectURL = vi.fn()
 
   beforeEach(() => {
@@ -709,5 +723,149 @@ describe('Workbench', () => {
       '2',
       '3',
     ])
+  })
+
+  it('atomically imports a valid project without replacing or resetting the video', async () => {
+    render(<Workbench idFactory={() => 'old-card'} />)
+    const video = loadVideo(10)
+    const originalSource = video.getAttribute('src')
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+    dropMotion(track, 'metric-focus', 100)
+    fireEvent.click(screen.getByRole('button', { name: '重新播放' }))
+    video.currentTime = 1
+    fireEvent.timeUpdate(video)
+
+    fireEvent.change(screen.getByLabelText('选择 JSON 项目文件'), {
+      target: {
+        files: [
+          jsonProjectFile({
+            version: 1,
+            canvas: { width: 1920, height: 1080 },
+            cards: [
+              {
+                id: 'imported-card',
+                motionId: 'compare-split',
+                start: 0,
+                end: 3,
+                position: { x: 10, y: 20 },
+                zIndex: 4,
+                params: { title: '导入项目' },
+              },
+            ],
+          }),
+        ],
+      },
+    })
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '选择对比卡片片段' }),
+      ).toBeInTheDocument(),
+    )
+    expect(
+      screen.queryByRole('button', { name: '选择核心指标片段' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '选择对比卡片片段' }),
+    ).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByTestId('presenter-video')).toBe(video)
+    expect(video.getAttribute('src')).toBe(originalSource)
+    expect(video.currentTime).toBe(1)
+    expect(screen.getByTestId('timeline-playhead')).toHaveStyle({ left: '10%' })
+
+    const importedOverlay = screen.getByTestId('overlay-card-imported-card')
+    fireEvent.click(
+      screen.getByRole('button', { name: '选择对比卡片片段' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '重新播放' }))
+    expect(screen.getByTestId('overlay-card-imported-card')).not.toBe(
+      importedOverlay,
+    )
+  })
+
+  it('keeps current cards and shows the unified alert for an invalid project', async () => {
+    render(<Workbench idFactory={() => 'existing-card'} />)
+    loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+    dropMotion(track, 'metric-focus', 100)
+
+    fireEvent.change(screen.getByLabelText('选择 JSON 项目文件'), {
+      target: {
+        files: [
+          jsonProjectFile({
+            version: 1,
+            canvas: { width: 1920, height: 1080 },
+            cards: [
+              {
+                id: 'unknown-card',
+                motionId: 'unknown-motion',
+                start: 0,
+                end: 3,
+                position: { x: 0, y: 0 },
+                zIndex: 0,
+                params: {},
+              },
+            ],
+          }),
+        ],
+      },
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'JSON 项目格式无效',
+    )
+    expect(
+      screen.getByRole('button', { name: '选择核心指标片段' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: '选择unknown-motion片段' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('exports only the version, canvas, and overlay cards', async () => {
+    const createElement = vi.spyOn(document, 'createElement')
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
+      () => undefined,
+    )
+    render(<Workbench idFactory={() => 'export-card'} />)
+    loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+    dropMotion(track, 'metric-focus', 100)
+
+    fireEvent.click(screen.getByRole('button', { name: '导出 JSON' }))
+
+    const blob = createObjectURL.mock.calls.at(-1)?.[0] as Blob
+    const text = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(blob)
+    })
+    const exported = JSON.parse(text) as Record<string, unknown>
+    expect(Object.keys(exported)).toEqual(['version', 'canvas', 'cards'])
+    expect(exported).toMatchObject({
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+    })
+    expect(JSON.stringify(exported)).not.toContain('blob:local-video-preview')
+    expect(
+      Object.keys((exported.cards as Array<Record<string, unknown>>)[0]),
+    ).toEqual([
+      'id',
+      'motionId',
+      'start',
+      'end',
+      'position',
+      'zIndex',
+      'params',
+    ])
+    const clickedAnchor = createElement.mock.results
+      .filter((_result, index) => createElement.mock.calls[index][0] === 'a')
+      .map((result) => result.value as HTMLAnchorElement)
+      .at(-1)
+    expect(clickedAnchor?.download).toBe('overlay-studio-project.json')
   })
 })

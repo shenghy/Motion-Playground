@@ -5,10 +5,15 @@ import {
   createOverlayCard,
   MIN_CARD_DURATION,
   moveCardTiming,
+  parseOverlayProject,
   resizeCardTiming,
   updateCardPosition,
 } from '../timeline/project'
-import type { OverlayCard, OverlayPosition } from '../timeline/types'
+import type {
+  OverlayCard,
+  OverlayPosition,
+  OverlayProject,
+} from '../timeline/types'
 import { ComponentRail } from './ComponentRail'
 import { ParameterPanel } from './ParameterPanel'
 import { PreviewStage } from './PreviewStage'
@@ -25,6 +30,10 @@ const createInitialParameters = () => {
 const MOTION_NAMES = Object.fromEntries(
   motionRegistry.map((definition) => [definition.id, definition.name]),
 ) as Record<MotionId, string>
+
+const MOTION_DEFAULTS = Object.fromEntries(
+  motionRegistry.map((definition) => [definition.id, definition.defaults]),
+) as unknown as Record<MotionId, ParameterValues>
 
 const createBrowserCardId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -84,6 +93,7 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   const [videoPreview, setVideoPreview] = useState<VideoPreview | null>(null)
   const [pendingVideo, setPendingVideo] = useState<VideoPreview | null>(null)
   const [videoError, setVideoError] = useState('')
+  const [projectError, setProjectError] = useState('')
   const videoPreviewRef = useRef<VideoPreview | null>(null)
   const pendingVideoRef = useRef<VideoPreview | null>(null)
   const seekControllerRef = useRef<((time: number) => void) | null>(null)
@@ -113,6 +123,14 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     [cards, selectedCardId],
   )
   const activeParameters = selectedCard?.params ?? parameters[activeId]
+  const overlayProject = useMemo<OverlayProject>(
+    () => ({
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      cards,
+    }),
+    [cards],
+  )
 
   const replay = () => {
     const selectedId = overlayWorkspaceRef.current.selectedCardId
@@ -389,6 +407,32 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     }))
   }
 
+  const importOverlayProject = (text: string) => {
+    let importedProject: OverlayProject
+
+    try {
+      importedProject = parseOverlayProject(text, MOTION_DEFAULTS)
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'JSON 项目格式无效'
+      ) {
+        setProjectError('JSON 项目格式无效')
+        return
+      }
+      throw error
+    }
+
+    mutateOverlayWorkspace(() => ({
+      cards: importedProject.cards,
+      selectedCardId: null,
+      playbackKeys: Object.fromEntries(
+        importedProject.cards.map((card) => [card.id, 0]),
+      ),
+    }))
+    setProjectError('')
+  }
+
   const handleMediaTimeChange = useCallback((time: number) => {
     setVideoTime(Number.isFinite(time) ? Math.max(0, time) : 0)
   }, [])
@@ -488,6 +532,9 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
           videoError={videoError}
           onVideoFile={selectVideo}
           onRemoveVideo={removeVideo}
+          project={overlayProject}
+          projectError={projectError}
+          onProjectImport={importOverlayProject}
         />
       </div>
     </div>

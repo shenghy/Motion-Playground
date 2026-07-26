@@ -183,6 +183,54 @@ a:focus-visible {
   grid-template-rows: minmax(0, 1fr) auto;
 }
 
+.project-file-controls {
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel-raised);
+}
+
+.project-file-controls__heading,
+.project-file-controls__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.project-file-controls__heading {
+  margin-bottom: 10px;
+}
+
+.project-file-controls__heading small {
+  color: var(--muted);
+  font: 500 10px/1 var(--mono);
+}
+
+.project-file-controls__input {
+  display: none;
+}
+
+.project-file-controls__actions button {
+  flex: 1;
+  min-height: 30px;
+  border: 1px solid var(--line-strong);
+  color: var(--paper);
+  background: transparent;
+  font-size: 9px;
+  letter-spacing: .04em;
+  cursor: pointer;
+}
+
+.project-file-controls__actions button:hover {
+  border-color: var(--paper);
+}
+
+.project-file-controls__error {
+  margin: 10px 0 0;
+  color: #d8a19d;
+  font: 500 11px/1.5 var(--mono);
+}
+
 .timeline-editor {
   min-height: 132px;
   padding: 12px 18px;

@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import {
   buildBrowserCommand,
   ensureProjectReady,
@@ -64,5 +66,27 @@ describe('Overlay Studio launcher', () => {
         run,
       }),
     ).toThrow('项目构建失败')
+  })
+
+  it('provides a Windows double-click wrapper with a Node check', async () => {
+    const wrapper = await readFile(
+      resolve(process.cwd(), '启动 Overlay Studio.bat'),
+      'utf8',
+    )
+
+    expect(wrapper).toContain('where node')
+    expect(wrapper).toContain('scripts\\start-overlay-studio.mjs')
+    expect(wrapper).toContain('pause')
+  })
+
+  it('provides a macOS double-click wrapper with a Node check', async () => {
+    const wrapper = await readFile(
+      resolve(process.cwd(), '启动 Overlay Studio.command'),
+      'utf8',
+    )
+
+    expect(wrapper).toContain('command -v node')
+    expect(wrapper).toContain('scripts/start-overlay-studio.mjs')
+    expect(wrapper).toContain('按回车键退出')
   })
 })

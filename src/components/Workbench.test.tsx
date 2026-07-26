@@ -2,6 +2,50 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import { Workbench } from './Workbench'
 
+function mockTimelineRect(track: HTMLElement, left = 100, width = 400) {
+  vi.spyOn(track, 'getBoundingClientRect').mockReturnValue({
+    x: left,
+    y: 0,
+    left,
+    top: 0,
+    right: left + width,
+    bottom: 60,
+    width,
+    height: 60,
+    toJSON: () => ({}),
+  })
+}
+
+function dropMotion(track: HTMLElement, motionId: string, clientX: number) {
+  const event = new Event('drop', { bubbles: true, cancelable: true })
+  Object.defineProperties(event, {
+    clientX: { value: clientX },
+    dataTransfer: {
+      value: {
+        types: ['application/x-overlay-motion'],
+        getData: () => motionId,
+      },
+    },
+  })
+  fireEvent(track, event)
+}
+
+function firePointer(
+  target: HTMLElement,
+  type: 'pointerdown' | 'pointermove' | 'pointerup',
+  pointerId: number,
+  clientX: number,
+  clientY = 0,
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true })
+  Object.defineProperties(event, {
+    pointerId: { value: pointerId },
+    clientX: { value: clientX },
+    clientY: { value: clientY },
+  })
+  fireEvent(target, event)
+}
+
 describe('Workbench', () => {
   const createObjectURL = vi.fn(() => 'blob:local-video-preview')
   const revokeObjectURL = vi.fn()
@@ -18,6 +62,23 @@ describe('Workbench', () => {
       value: revokeObjectURL,
     })
   })
+
+  function loadVideo(duration: number) {
+    const file = new File(['timeline-video'], '时间轴视频.mp4', {
+      type: 'video/mp4',
+    })
+    fireEvent.change(screen.getByLabelText('导入本地视频'), {
+      target: { files: [file] },
+    })
+    fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
+    const video = screen.getByTestId('presenter-video') as HTMLVideoElement
+    Object.defineProperty(video, 'duration', {
+      configurable: true,
+      value: duration,
+    })
+    fireEvent.durationChange(video)
+    return video
+  }
 
   afterEach(() => {
     vi.restoreAllMocks()
@@ -404,5 +465,169 @@ describe('Workbench', () => {
       screen.getByRole('img', { name: '口播人物参考背景' }),
     ).toBeInTheDocument()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:runtime-failure')
+  })
+
+  it('refuses timeline drops until a usable video is loaded', () => {
+    render(<Workbench />)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+
+    expect(screen.getByText('请先导入视频')).toBeInTheDocument()
+    dropMotion(track, 'metric-focus', 200)
+
+    expect(
+      screen.queryByRole('button', { name: '选择核心指标片段' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('creates selected unique cards with defaults, z-order, and end clamping', () => {
+    const ids = ['uuid-1', 'uuid-2', 'uuid-3']
+    render(<Workbench idFactory={() => ids.shift() ?? 'fallback-id'} />)
+    const video = loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+
+    dropMotion(track, 'metric-focus', 180)
+    dropMotion(track, 'compare-split', 180)
+    dropMotion(track, 'metric-focus', 500)
+
+    const clips = document.querySelectorAll<HTMLElement>('.timeline-editor__card')
+    expect(clips).toHaveLength(3)
+    expect(clips[0]).toHaveStyle({ left: '20%', width: '30%' })
+    expect(Number.parseFloat(clips[2].style.left)).toBeCloseTo(98)
+    expect(Number.parseFloat(clips[2].style.width)).toBeCloseTo(2)
+    expect(screen.getByLabelText('核心数值')).toHaveValue('248')
+    expect(
+      screen.getAllByRole('button', { name: '选择核心指标片段' })[1],
+    ).toHaveAttribute('aria-pressed', 'true')
+
+    video.currentTime = 2
+    fireEvent.timeUpdate(video)
+    const overlays = screen.getAllByTestId(/^overlay-card-/)
+    expect(overlays.map((overlay) => overlay.dataset.overlayCardId)).toEqual([
+      'uuid-1',
+      'uuid-2',
+    ])
+    expect(overlays[0]).toHaveStyle({ zIndex: '0' })
+    expect(overlays[1]).toHaveStyle({ zIndex: '1' })
+  })
+
+  it('edits and resets only the selected card parameters', () => {
+    render(<Workbench idFactory={vi.fn()
+      .mockReturnValueOnce('first-card')
+      .mockReturnValueOnce('second-card')} />)
+    const video = loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+    dropMotion(track, 'metric-focus', 100)
+    dropMotion(track, 'metric-focus', 100)
+    const stableVideo = screen.getByTestId('presenter-video')
+    const cardButtons = screen.getAllByRole('button', {
+      name: '选择核心指标片段',
+    })
+
+    fireEvent.change(screen.getByLabelText('核心数值'), {
+      target: { value: '320' },
+    })
+    fireEvent.click(cardButtons[0])
+    expect(screen.getByLabelText('核心数值')).toHaveValue('248')
+    fireEvent.change(screen.getByLabelText('核心数值'), {
+      target: { value: '111' },
+    })
+    fireEvent.click(cardButtons[1])
+    expect(screen.getByLabelText('核心数值')).toHaveValue('320')
+    fireEvent.click(screen.getByRole('button', { name: '恢复默认' }))
+    expect(screen.getByLabelText('核心数值')).toHaveValue('248')
+    fireEvent.click(cardButtons[0])
+    expect(screen.getByLabelText('核心数值')).toHaveValue('111')
+    expect(screen.getByTestId('presenter-video')).toBe(stableVideo)
+    expect(video).toBe(stableVideo)
+  })
+
+  it('moves, resizes, and deletes the selected timeline card', () => {
+    render(<Workbench idFactory={() => 'editable-card'} />)
+    loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+    dropMotion(track, 'metric-focus', 180)
+    const body = screen.getByRole('button', { name: '选择核心指标片段' })
+    const startHandle = screen.getByRole('button', {
+      name: '调整核心指标片段开始时间',
+    })
+    const endHandle = screen.getByRole('button', {
+      name: '调整核心指标片段结束时间',
+    })
+
+    firePointer(body, 'pointerdown', 1, 100)
+    firePointer(track, 'pointermove', 1, 180)
+    firePointer(track, 'pointerup', 1, 180)
+    expect(body.parentElement).toHaveStyle({ left: '40%', width: '30%' })
+
+    firePointer(startHandle, 'pointerdown', 2, 100)
+    firePointer(track, 'pointermove', 2, 140)
+    firePointer(track, 'pointerup', 2, 140)
+    expect(body.parentElement).toHaveStyle({ left: '50%', width: '20%' })
+
+    firePointer(endHandle, 'pointerdown', 3, 100)
+    firePointer(track, 'pointermove', 3, 140)
+    firePointer(track, 'pointerup', 3, 140)
+    expect(body.parentElement).toHaveStyle({ left: '50%', width: '30%' })
+
+    fireEvent.click(screen.getByRole('button', { name: '删除选中片段' }))
+    expect(
+      screen.queryByRole('button', { name: '选择核心指标片段' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('updates preview position and synchronizes media time, duration, and seeking', () => {
+    render(<Workbench idFactory={() => 'position-card'} />)
+    const video = loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+    dropMotion(track, 'metric-focus', 100)
+    const stage = screen.getByTestId('preview-stage')
+    const overlay = screen.getByTestId('overlay-card-position-card')
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 960,
+      bottom: 540,
+      width: 960,
+      height: 540,
+      toJSON: () => ({}),
+    })
+
+    firePointer(overlay, 'pointerdown', 1, 0, 0)
+    firePointer(stage, 'pointermove', 1, 192, 108)
+    firePointer(stage, 'pointerup', 1, 192, 108)
+    expect(screen.getByTestId('overlay-card-position-card')).toHaveStyle({
+      transform: 'translate(20%, 20%)',
+    })
+
+    video.currentTime = 3
+    fireEvent.timeUpdate(video)
+    expect(screen.getByTestId('timeline-playhead')).toHaveStyle({ left: '30%' })
+    fireEvent.click(track, { clientX: 300 })
+    expect(video.currentTime).toBe(5)
+  })
+
+  it('switches between timeline-card editing and rail-only legacy preview', () => {
+    render(<Workbench idFactory={() => 'timeline-card'} />)
+    loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+    dropMotion(track, 'metric-focus', 100)
+    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+
+    fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
+    expect(screen.getByText('提升 2.05 倍')).toBeInTheDocument()
+    expect(card).toHaveAttribute('aria-pressed', 'false')
+    expect(document.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+
+    fireEvent.click(card)
+    expect(screen.getByLabelText('核心数值')).toHaveValue('248')
+    expect(card).toHaveAttribute('aria-pressed', 'true')
   })
 })

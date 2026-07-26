@@ -176,6 +176,44 @@ a:focus-visible {
   grid-template-columns: 258px minmax(600px, 1fr) 320px;
 }
 
+.preview-workspace {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.timeline-editor {
+  min-height: 132px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.timeline-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.timeline-editor__header h2 {
+  margin: 0;
+  font: 600 12px/1 var(--display);
+}
+
+.timeline-editor__track {
+  position: relative;
+  min-height: 64px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+}
+
+.timeline-editor__card,
+.timeline-editor__playhead {
+  position: absolute;
+}
+
 .component-rail,
 .parameter-panel {
   min-height: 0;

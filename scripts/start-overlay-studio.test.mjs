@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import { readFile } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
+  acquireStartupLock,
   buildBrowserCommand,
   chooseLauncherTarget,
+  createProjectId,
   ensureProjectReady,
+  findRunningOverlayStudio,
 } from './start-overlay-studio.mjs'
 
 describe('Overlay Studio launcher', () => {
@@ -115,6 +121,70 @@ describe('Overlay Studio launcher', () => {
       ['127.0.0.1', 4180, 4180],
       ['127.0.0.1', 4173, 4192],
     ])
+  })
+
+  it('binds the status marker to the current project path', () => {
+    expect(createProjectId('E:\\Code\\Motion-playground')).toBe(
+      createProjectId('E:\\Code\\Motion-playground'),
+    )
+    expect(createProjectId('E:\\Code\\Motion-playground')).not.toBe(
+      createProjectId('E:\\Code\\another-copy'),
+    )
+  })
+
+  it('finds only a running Overlay Studio with the same project identity', async () => {
+    const probe = vi.fn(
+      async (_host, port, projectId) =>
+        port === 4175 && projectId === 'project-a',
+    )
+
+    await expect(
+      findRunningOverlayStudio({
+        host: '127.0.0.1',
+        startPort: 4173,
+        endPort: 4176,
+        savedPort: 4175,
+        projectId: 'project-a',
+        probe,
+      }),
+    ).resolves.toEqual({
+      port: 4175,
+      url: 'http://127.0.0.1:4175/',
+      reused: true,
+    })
+    expect(probe).toHaveBeenCalledWith('127.0.0.1', 4175, 'project-a')
+  })
+
+  it('allows only one launcher to hold the project startup lock', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
+    const lockPath = join(directory, 'startup.local')
+
+    try {
+      const firstRelease = acquireStartupLock(lockPath)
+      expect(firstRelease).toEqual(expect.any(Function))
+      expect(acquireStartupLock(lockPath)).toBeNull()
+
+      firstRelease()
+      const secondRelease = acquireStartupLock(lockPath)
+      expect(secondRelease).toEqual(expect.any(Function))
+      secondRelease()
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('reports lock filesystem errors instead of waiting for another launcher', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
+
+    try {
+      expect(() =>
+        acquireStartupLock(
+          join(directory, 'missing-directory', 'startup.local'),
+        ),
+      ).toThrow()
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
   })
 
   it('provides a Windows double-click wrapper with a Node check', async () => {

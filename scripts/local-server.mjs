@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
+import { realpath, stat } from 'node:fs/promises'
 import { createServer as createHttpServer } from 'node:http'
 import { createServer as createNetServer } from 'node:net'
 import { extname, resolve, sep } from 'node:path'
@@ -89,7 +89,11 @@ async function findResponseFile(rootDirectory, requestUrl) {
   try {
     const candidateStat = await stat(candidatePath)
     if (candidateStat.isFile()) {
-      return { statusCode: 200, filePath: candidatePath }
+      const realCandidatePath = await realpath(candidatePath)
+      if (!isInsideRoot(rootDirectory, realCandidatePath)) {
+        return { statusCode: 403 }
+      }
+      return { statusCode: 200, filePath: realCandidatePath }
     }
   } catch {
     // Missing extensionless routes fall through to the SPA entry point.
@@ -100,7 +104,11 @@ async function findResponseFile(rootDirectory, requestUrl) {
     try {
       const indexStat = await stat(indexPath)
       if (indexStat.isFile()) {
-        return { statusCode: 200, filePath: indexPath }
+        const realIndexPath = await realpath(indexPath)
+        if (!isInsideRoot(rootDirectory, realIndexPath)) {
+          return { statusCode: 403 }
+        }
+        return { statusCode: 200, filePath: realIndexPath }
       }
     } catch {
       return { statusCode: 404 }
@@ -114,8 +122,9 @@ export async function createLocalStaticServer({
   rootDirectory,
   host = '127.0.0.1',
   port,
+  projectId,
 }) {
-  const absoluteRoot = resolve(rootDirectory)
+  const absoluteRoot = await realpath(resolve(rootDirectory))
   const indexPath = resolve(absoluteRoot, 'index.html')
   try {
     const indexStat = await stat(indexPath)
@@ -141,6 +150,7 @@ export async function createLocalStaticServer({
         JSON.stringify({
           app: 'overlay-studio',
           version: 1,
+          projectId,
         }),
       )
       return

@@ -1,5 +1,11 @@
 import { createServer } from 'node:http'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -73,7 +79,11 @@ describe('local static server', () => {
     await writeFile(join(root, 'index.html'), '<main>Overlay Studio</main>')
     await writeFile(join(root, 'app.js'), 'globalThis.overlay = true')
     const port = await findAvailablePort()
-    const local = await createLocalStaticServer({ rootDirectory: root, port })
+    const local = await createLocalStaticServer({
+      rootDirectory: root,
+      port,
+      projectId: 'test-project',
+    })
 
     try {
       const asset = await fetch(`${local.url}/app.js`)
@@ -89,6 +99,7 @@ describe('local static server', () => {
       expect(await status.json()).toEqual({
         app: 'overlay-studio',
         version: 1,
+        projectId: 'test-project',
       })
     } finally {
       await local.close()
@@ -103,12 +114,46 @@ describe('local static server', () => {
     await writeFile(join(root, 'index.html'), '<main>Overlay Studio</main>')
     await writeFile(join(parent, 'secret.txt'), 'must-not-leak')
     const port = await findAvailablePort()
-    const local = await createLocalStaticServer({ rootDirectory: root, port })
+    const local = await createLocalStaticServer({
+      rootDirectory: root,
+      port,
+      projectId: 'test-project',
+    })
 
     try {
       const response = await fetch(`${local.url}/..%2Fsecret.txt`)
       expect([403, 404]).toContain(response.status)
       expect(await response.text()).not.toContain('must-not-leak')
+    } finally {
+      await local.close()
+      await rm(parent, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects symlinks that resolve outside dist', async () => {
+    const parent = await mkdtemp(join(tmpdir(), 'overlay-server-'))
+    const root = join(parent, 'dist')
+    const outside = join(parent, 'outside')
+    await mkdir(root)
+    await mkdir(outside)
+    await writeFile(join(root, 'index.html'), '<main>Overlay Studio</main>')
+    await writeFile(join(outside, 'secret.txt'), 'symlink-secret')
+    await symlink(
+      outside,
+      join(root, 'escape'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    )
+    const port = await findAvailablePort()
+    const local = await createLocalStaticServer({
+      rootDirectory: root,
+      port,
+      projectId: 'test-project',
+    })
+
+    try {
+      const response = await fetch(`${local.url}escape/secret.txt`)
+      expect([403, 404]).toContain(response.status)
+      expect(await response.text()).not.toContain('symlink-secret')
     } finally {
       await local.close()
       await rm(parent, { recursive: true, force: true })

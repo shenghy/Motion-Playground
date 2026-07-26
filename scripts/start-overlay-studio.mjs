@@ -1,5 +1,14 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  closeSync,
+  existsSync,
+  openSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { spawn, spawnSync } from 'node:child_process'
+import { createHash, randomUUID } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
@@ -103,7 +112,18 @@ export function savePreferredPort(filePath, port) {
   writeFileSync(filePath, `${port}\n`, 'utf8')
 }
 
-export async function probeOverlayStudio(host, port) {
+export function createProjectId(projectRoot) {
+  const normalizedRoot =
+    process.platform === 'win32'
+      ? resolve(projectRoot).toLowerCase()
+      : resolve(projectRoot)
+  return createHash('sha256')
+    .update(normalizedRoot)
+    .digest('hex')
+    .slice(0, 20)
+}
+
+export async function probeOverlayStudio(host, port, projectId) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 350)
   try {
@@ -118,7 +138,11 @@ export async function probeOverlayStudio(host, port) {
       return false
     }
     const status = await response.json()
-    return status?.app === 'overlay-studio' && status?.version === 1
+    return (
+      status?.app === 'overlay-studio' &&
+      status?.version === 1 &&
+      status?.projectId === projectId
+    )
   } catch {
     return false
   } finally {
@@ -131,11 +155,12 @@ export async function chooseLauncherTarget({
   startPort,
   endPort,
   savedPort,
+  projectId,
   probe = probeOverlayStudio,
   findPort = findAvailablePort,
 }) {
   if (isValidPort(savedPort)) {
-    if (await probe(host, savedPort)) {
+    if (await probe(host, savedPort, projectId)) {
       return {
         port: savedPort,
         url: `http://${host}:${savedPort}/`,
@@ -155,7 +180,7 @@ export async function chooseLauncherTarget({
     }
   } else {
     for (let port = startPort; port <= endPort; port += 1) {
-      if (await probe(host, port)) {
+      if (await probe(host, port, projectId)) {
         return {
           port,
           url: `http://${host}:${port}/`,
@@ -173,6 +198,157 @@ export async function chooseLauncherTarget({
   }
 }
 
+export async function findRunningOverlayStudio({
+  host,
+  startPort,
+  endPort,
+  savedPort,
+  projectId,
+  probe = probeOverlayStudio,
+}) {
+  const ports = []
+  if (
+    isValidPort(savedPort) &&
+    savedPort >= startPort &&
+    savedPort <= endPort
+  ) {
+    ports.push(savedPort)
+  }
+  for (let port = startPort; port <= endPort; port += 1) {
+    if (!ports.includes(port)) {
+      ports.push(port)
+    }
+  }
+
+  for (const port of ports) {
+    if (await probe(host, port, projectId)) {
+      return {
+        port,
+        url: `http://${host}:${port}/`,
+        reused: true,
+      }
+    }
+  }
+  return null
+}
+
+function isProcessRunning(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false
+  }
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function removeDeadStartupLock(lockPath) {
+  try {
+    const lockAge = Date.now() - statSync(lockPath).mtimeMs
+    const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
+    if (isProcessRunning(Number(lock.pid))) {
+      return false
+    }
+    unlinkSync(lockPath)
+    return true
+  } catch {
+    try {
+      if (Date.now() - statSync(lockPath).mtimeMs > 5000) {
+        unlinkSync(lockPath)
+        return true
+      }
+    } catch {
+      return true
+    }
+    return false
+  }
+}
+
+export function acquireStartupLock(lockPath) {
+  const token = randomUUID()
+  let fileDescriptor
+
+  const createLock = () => {
+    fileDescriptor = openSync(lockPath, 'wx')
+    writeFileSync(
+      fileDescriptor,
+      JSON.stringify({ pid: process.pid, token, createdAt: Date.now() }),
+      'utf8',
+    )
+    closeSync(fileDescriptor)
+    fileDescriptor = undefined
+  }
+
+  try {
+    createLock()
+  } catch (error) {
+    if (fileDescriptor !== undefined) {
+      closeSync(fileDescriptor)
+    }
+    if (error?.code !== 'EEXIST') {
+      throw error
+    }
+    if (!removeDeadStartupLock(lockPath)) {
+      return null
+    }
+    createLock()
+  }
+
+  return () => {
+    try {
+      const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
+      if (lock.token === token) {
+        unlinkSync(lockPath)
+      }
+    } catch {
+      // A terminated process or manual cleanup may have removed the lock.
+    }
+  }
+}
+
+async function waitForRunningOverlayStudio(options) {
+  for (let attempt = 0; attempt < 240; attempt += 1) {
+    const running = await findRunningOverlayStudio(options)
+    if (running) {
+      return running
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 250))
+  }
+  throw new Error('另一个启动器长时间未完成，请关闭旧窗口后重试。')
+}
+
+function openBrowserWithFallback(url) {
+  try {
+    const browserProcess = openDefaultBrowser(url)
+    browserProcess.once('error', () => {
+      console.warn(
+        `[Overlay Studio] 浏览器未能自动打开，请手动访问：${url}`,
+      )
+    })
+  } catch {
+    console.warn(
+      `[Overlay Studio] 浏览器未能自动打开，请手动访问：${url}`,
+    )
+  }
+}
+
+function announceExistingInstance(target, noOpen) {
+  console.log('')
+  console.log('[Overlay Studio] 已检测到正在运行的本地编辑器')
+  console.log(`[Overlay Studio] 访问地址：${target.url}`)
+  console.log('')
+  if (!noOpen) {
+    openBrowserWithFallback(target.url)
+  }
+  return {
+    url: target.url,
+    reused: true,
+    close: async () => undefined,
+  }
+}
+
 export async function startOverlayStudio({
   projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..'),
   host = DEFAULT_HOST,
@@ -185,40 +361,68 @@ export async function startOverlayStudio({
   skipBuild = process.env.OVERLAY_STUDIO_SKIP_BUILD === '1',
   noOpen = process.env.OVERLAY_STUDIO_NO_OPEN === '1',
 } = {}) {
-  if (!skipBuild) {
-    ensureProjectReady({ projectRoot })
-  }
-
   const distDirectory = join(projectRoot, 'dist')
   const portFile = join(projectRoot, '.overlay-studio-port.local')
-  const target = await chooseLauncherTarget({
+  const lockFile = join(projectRoot, '.overlay-studio-starting.local')
+  const projectId = createProjectId(projectRoot)
+  const savedPort = readSavedPort(portFile)
+  const runningBeforeLock = await findRunningOverlayStudio({
     host,
     startPort,
     endPort,
-    savedPort: readSavedPort(portFile),
+    savedPort,
+    projectId,
   })
-
-  if (target.reused) {
-    console.log('')
-    console.log('[Overlay Studio] 已检测到正在运行的本地编辑器')
-    console.log(`[Overlay Studio] 访问地址：${target.url}`)
-    console.log('')
-    if (!noOpen) {
-      openDefaultBrowser(target.url)
-    }
-    return {
-      url: target.url,
-      reused: true,
-      close: async () => undefined,
-    }
+  if (runningBeforeLock) {
+    return announceExistingInstance(runningBeforeLock, noOpen)
   }
 
-  const local = await createLocalStaticServer({
-    rootDirectory: distDirectory,
-    host,
-    port: target.port,
-  })
-  savePreferredPort(portFile, target.port)
+  const releaseStartupLock = acquireStartupLock(lockFile)
+  if (!releaseStartupLock) {
+    const running = await waitForRunningOverlayStudio({
+      host,
+      startPort,
+      endPort,
+      savedPort,
+      projectId,
+    })
+    return announceExistingInstance(running, noOpen)
+  }
+
+  let local
+  try {
+    const runningAfterLock = await findRunningOverlayStudio({
+      host,
+      startPort,
+      endPort,
+      savedPort,
+      projectId,
+    })
+    if (runningAfterLock) {
+      return announceExistingInstance(runningAfterLock, noOpen)
+    }
+
+    if (!skipBuild) {
+      ensureProjectReady({ projectRoot })
+    }
+
+    const target = await chooseLauncherTarget({
+      host,
+      startPort,
+      endPort,
+      savedPort,
+      projectId,
+    })
+    local = await createLocalStaticServer({
+      rootDirectory: distDirectory,
+      host,
+      port: target.port,
+      projectId,
+    })
+    savePreferredPort(portFile, target.port)
+  } finally {
+    releaseStartupLock()
+  }
 
   console.log('')
   console.log('[Overlay Studio] 本地网页编辑器已启动')
@@ -227,18 +431,7 @@ export async function startOverlayStudio({
   console.log('')
 
   if (!noOpen) {
-    try {
-      const browserProcess = openDefaultBrowser(local.url)
-      browserProcess.once('error', () => {
-        console.warn(
-          `[Overlay Studio] 浏览器未能自动打开，请手动访问：${local.url}`,
-        )
-      })
-    } catch {
-      console.warn(
-        `[Overlay Studio] 浏览器未能自动打开，请手动访问：${local.url}`,
-      )
-    }
+    openBrowserWithFallback(local.url)
   }
 
   let closing = false

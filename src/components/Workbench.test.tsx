@@ -594,6 +594,71 @@ describe('Workbench', () => {
     expect(screen.getByLabelText('核心数值')).toHaveValue('320')
   })
 
+  it('double-clicks a component to add one card at the current playhead', async () => {
+    const user = userEvent.setup()
+    const idFactory = vi.fn(() => 'double-click-card')
+    const { container } = render(<Workbench idFactory={idFactory} />)
+    const video = loadVideo(10)
+    video.currentTime = 2
+    fireEvent.timeUpdate(video)
+    const metricButton = container.querySelector<HTMLButtonElement>(
+      '.rail-item-shell .rail-item',
+    )
+
+    expect(metricButton).not.toBeNull()
+    await user.dblClick(metricButton as HTMLButtonElement)
+
+    expect(idFactory).toHaveBeenCalledTimes(1)
+    const clips = container.querySelectorAll<HTMLElement>('.timeline-editor__card')
+    expect(clips).toHaveLength(1)
+    expect(clips[0]).toHaveStyle({ left: '20%', width: '30%' })
+  })
+
+  it('deletes the selected card with Delete unless an editable control has focus', async () => {
+    const user = userEvent.setup()
+    const ids = ['delete-card', 'guarded-card']
+    const { container } = render(
+      <Workbench idFactory={() => ids.shift() ?? 'fallback-card'} />,
+    )
+    loadVideo(10)
+    const addButton = container.querySelector<HTMLButtonElement>('.rail-item__add')
+
+    expect(addButton).not.toBeNull()
+    await user.click(addButton as HTMLButtonElement)
+    expect(container.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+
+    await user.keyboard('{Delete}')
+    expect(container.querySelectorAll('.timeline-editor__card')).toHaveLength(0)
+
+    await user.click(addButton as HTMLButtonElement)
+    const textInput = container.querySelector<HTMLInputElement>(
+      '.control-field input:not([type="range"])',
+    )
+    const rangeInput = container.querySelector<HTMLInputElement>(
+      '.control-field input[type="range"]',
+    )
+
+    expect(textInput).not.toBeNull()
+    expect(rangeInput).not.toBeNull()
+
+    textInput?.focus()
+    await user.keyboard('{Delete}')
+    expect(container.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+
+    rangeInput?.focus()
+    await user.keyboard('{Delete}')
+    expect(container.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+
+    const editable = document.createElement('div')
+    editable.setAttribute('contenteditable', 'true')
+    editable.tabIndex = 0
+    document.body.append(editable)
+    editable.focus()
+    await user.keyboard('{Delete}')
+    expect(container.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+    editable.remove()
+  })
+
   it('edits and resets only the selected card parameters', () => {
     render(<Workbench idFactory={vi.fn()
       .mockReturnValueOnce('first-card')

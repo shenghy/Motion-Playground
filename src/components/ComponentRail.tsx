@@ -37,6 +37,7 @@ export function ComponentRail({
               aria-pressed={activeId === item.id}
               draggable
               onClick={() => onSelect(item.id)}
+              onDoubleClick={() => onAddMotion?.(item.id)}
               onDragStart={(event) => {
                 event.dataTransfer.effectAllowed = 'copy'
                 event.dataTransfer.setData('application/x-overlay-motion', item.id)

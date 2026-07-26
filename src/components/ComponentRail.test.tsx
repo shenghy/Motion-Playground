@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { ComponentRail } from './ComponentRail'
 
@@ -88,5 +89,29 @@ describe('ComponentRail', () => {
     expect(addButton.closest('button button')).toBeNull()
     expect(container.querySelector('.rail-item-shell')?.querySelectorAll('button'))
       .toHaveLength(2)
+  })
+
+  it('adds exactly one motion when its main component button is double-clicked', async () => {
+    const user = userEvent.setup()
+    const onAddMotion = vi.fn()
+    const onSelect = vi.fn()
+    const { container } = render(
+      <ComponentRail
+        items={items}
+        activeId="metric-focus"
+        onSelect={onSelect}
+        onAddMotion={onAddMotion}
+      />,
+    )
+    const mainButton = container.querySelector<HTMLButtonElement>(
+      '.rail-item-shell .rail-item',
+    )
+
+    expect(mainButton).not.toBeNull()
+    await user.dblClick(mainButton as HTMLButtonElement)
+
+    expect(onSelect).toHaveBeenCalled()
+    expect(onAddMotion).toHaveBeenCalledTimes(1)
+    expect(onAddMotion).toHaveBeenCalledWith('metric-focus')
   })
 })

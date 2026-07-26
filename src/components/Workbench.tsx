@@ -80,6 +80,18 @@ const createOverlayWorkspaceState = (): OverlayWorkspaceState => ({
   playbackKeys: {},
 })
 
+function isEditableDeleteTarget(target: EventTarget | null) {
+  return (
+    typeof HTMLElement !== 'undefined' &&
+    target instanceof HTMLElement &&
+    Boolean(
+      target.closest(
+        'input, textarea, select, [contenteditable="true"]',
+      ),
+    )
+  )
+}
+
 export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   const [activeId, setActiveId] = useState<MotionId>('metric-focus')
   const [showSafeArea, setShowSafeArea] = useState(true)
@@ -384,7 +396,7 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     }))
   }
 
-  const deleteCard = (cardId: string) => {
+  const deleteCard = useCallback((cardId: string) => {
     mutateOverlayWorkspace((current) => {
       const nextPlaybackKeys = { ...current.playbackKeys }
       delete nextPlaybackKeys[cardId]
@@ -396,7 +408,26 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
         playbackKeys: nextPlaybackKeys,
       }
     })
-  }
+  }, [mutateOverlayWorkspace])
+
+  useEffect(() => {
+    const handleDeleteShortcut = (event: KeyboardEvent) => {
+      const selectedId = overlayWorkspaceRef.current.selectedCardId
+      if (
+        event.key !== 'Delete' ||
+        !selectedId ||
+        isEditableDeleteTarget(event.target)
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      deleteCard(selectedId)
+    }
+
+    document.addEventListener('keydown', handleDeleteShortcut)
+    return () => document.removeEventListener('keydown', handleDeleteShortcut)
+  }, [deleteCard])
 
   const updatePosition = (cardId: string, position: OverlayPosition) => {
     mutateOverlayWorkspace((current) => ({

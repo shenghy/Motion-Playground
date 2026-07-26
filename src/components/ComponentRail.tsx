@@ -27,7 +27,12 @@ export function ComponentRail({ items, activeId, onSelect }: ComponentRailProps)
             type="button"
             className="rail-item"
             aria-pressed={activeId === item.id}
+            draggable
             onClick={() => onSelect(item.id)}
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = 'copy'
+              event.dataTransfer.setData('application/x-overlay-motion', item.id)
+            }}
             key={item.id}
           >
             <span className={`rail-item__preview rail-item__preview--${item.id}`} aria-hidden="true">

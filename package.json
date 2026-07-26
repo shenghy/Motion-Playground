@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start:local": "node scripts/start-overlay-studio.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "vitest"
+    "test": "vitest",
+    "test:launcher": "vitest --run scripts"
   },
   "dependencies": {
     "@fontsource-variable/syne": "latest",

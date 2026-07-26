@@ -21,7 +21,31 @@ import {
   type PersistedWorkspaceV1,
   type WorkspaceStorage,
 } from '../persistence/workspaceStorage'
+import {
+  exportPngSequence,
+  type ExportProgress,
+} from '../export/exportController'
+import {
+  ExportSurface,
+  type ExportSurfaceHandle,
+} from '../export/ExportSurface'
+import {
+  supportsOverlayFileExport,
+  type OverlayFileWindow,
+} from '../export/fileSystemAccess'
+import {
+  calculateFrameCount,
+} from '../export/frameMath'
+import {
+  discardTransparentMov,
+  renderTransparentMov,
+  saveTransparentMov,
+} from '../export/movExportClient'
 import { ComponentRail } from './ComponentRail'
+import {
+  ExportPanel,
+  type ExportStatus,
+} from './ExportPanel'
 import { ParameterPanel } from './ParameterPanel'
 import { PreviewStage } from './PreviewStage'
 import { TimelineEditor } from './TimelineEditor'
@@ -170,6 +194,16 @@ export function Workbench({
   const persistenceOperationRef = useRef<Promise<unknown>>(Promise.resolve())
   const clearingWorkspaceRef = useRef(false)
   const seekControllerRef = useRef<((time: number) => void) | null>(null)
+  const exportSurfaceRef = useRef<ExportSurfaceHandle>(null)
+  const exportAbortRef = useRef<AbortController | null>(null)
+  const pendingMovJobRef = useRef<string | null>(null)
+  const [movAvailable, setMovAvailable] = useState(false)
+  const [exportStatus, setExportStatus] = useState<ExportStatus>('idle')
+  const [exportProgress, setExportProgress] = useState({
+    completedFrames: 0,
+    totalFrames: 0,
+  })
+  const [exportMessage, setExportMessage] = useState('')
   const [playbackKeys, setPlaybackKeys] = useState(createMotionPlaybackKeys)
   const { cards, selectedCardId } = overlayWorkspace
   const queuePersistenceOperation = useCallback(
@@ -210,6 +244,25 @@ export function Workbench({
     }),
     [cards],
   )
+
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/__overlay_export__/capabilities', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return false
+        const capability = (await response.json()) as { mov?: unknown }
+        return capability.mov === true
+      })
+      .then((available) => {
+        if (!cancelled) setMovAvailable(available)
+      })
+      .catch(() => {
+        if (!cancelled) setMovAvailable(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!storage) {
@@ -617,6 +670,14 @@ export function Workbench({
     }
 
     try {
+      if (pendingMovJobRef.current) {
+        try {
+          await discardTransparentMov(pendingMovJobRef.current)
+        } catch {
+          // The local export service may already have cleaned this job.
+        }
+        pendingMovJobRef.current = null
+      }
       if (storage) {
         await queuePersistenceOperation(() => storage.clear())
       }
@@ -651,6 +712,9 @@ export function Workbench({
     setVideoError('')
     setProjectError('')
     setStorageError('')
+    setExportStatus('idle')
+    setExportProgress({ completedFrames: 0, totalFrames: 0 })
+    setExportMessage('')
     clearingWorkspaceRef.current = false
     setIsClearingWorkspace(false)
   }
@@ -838,8 +902,158 @@ export function Workbench({
     [],
   )
 
+  const captureExportFrame = useCallback(async (time: number) => {
+    const surface = exportSurfaceRef.current
+    if (!surface) throw new Error('透明导出舞台尚未准备完成')
+    await surface.prepareFrame(time)
+    return surface.capturePng()
+  }, [])
+
+  const updateExportProgress = useCallback((progress: ExportProgress) => {
+    setExportStatus(progress.phase)
+    setExportProgress({
+      completedFrames: progress.completedFrames,
+      totalFrames: progress.totalFrames,
+    })
+  }, [])
+
+  const cancelExport = useCallback(() => {
+    exportAbortRef.current?.abort()
+  }, [])
+
+  const exportPng = useCallback(async () => {
+    const fileWindow = window as unknown as OverlayFileWindow
+    if (!fileWindow.showDirectoryPicker) {
+      setExportStatus('error')
+      setExportMessage('当前浏览器不支持选择导出文件夹，请使用 Chrome 或 Edge')
+      return
+    }
+
+    const controller = new AbortController()
+    exportAbortRef.current = controller
+    setExportStatus('rendering')
+    setExportMessage('')
+    setExportProgress({
+      completedFrames: 0,
+      totalFrames: calculateFrameCount(videoDuration),
+    })
+
+    try {
+      const result = await exportPngSequence({
+        duration: videoDuration,
+        captureFrame: captureExportFrame,
+        chooseDirectory: () => fileWindow.showDirectoryPicker!(),
+        signal: controller.signal,
+        onProgress: updateExportProgress,
+      })
+      setExportStatus(
+        result.status === 'completed' ? 'completed' : 'cancelled',
+      )
+      setExportMessage(
+        result.status === 'completed'
+          ? `PNG 序列已保存到 ${result.outputName}`
+          : `已取消，已生成的 ${result.completedFrames} 帧仍保留在目标文件夹`,
+      )
+    } catch (error) {
+      setExportStatus('error')
+      setExportMessage(
+        error instanceof Error ? error.message : 'PNG 序列导出失败',
+      )
+    } finally {
+      exportAbortRef.current = null
+    }
+  }, [captureExportFrame, updateExportProgress, videoDuration])
+
+  const exportMov = useCallback(async () => {
+    const fileWindow = window as unknown as OverlayFileWindow
+    if (!fileWindow.showSaveFilePicker) {
+      setExportStatus('error')
+      setExportMessage('当前浏览器不支持保存 MOV，请使用 Chrome 或 Edge')
+      return
+    }
+
+    let fileHandle
+    try {
+      fileHandle = await fileWindow.showSaveFilePicker({
+        suggestedName: 'Overlay-transparent.mov',
+        types: [
+          {
+            description: '透明 QuickTime 视频',
+            accept: { 'video/quicktime': ['.mov'] },
+          },
+        ],
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        setExportStatus('cancelled')
+        setExportMessage(
+          pendingMovJobRef.current
+            ? '已编码的 MOV 仍保留，点击导出透明 MOV 可重新保存'
+            : '已取消导出',
+        )
+        return
+      }
+      setExportStatus('error')
+      setExportMessage(
+        error instanceof Error ? error.message : '无法选择 MOV 保存位置',
+      )
+      return
+    }
+
+    const controller = new AbortController()
+    exportAbortRef.current = controller
+    let jobId = pendingMovJobRef.current
+
+    try {
+      if (!jobId) {
+        setExportStatus('rendering')
+        setExportMessage('')
+        setExportProgress({
+          completedFrames: 0,
+          totalFrames: calculateFrameCount(videoDuration),
+        })
+        const result = await renderTransparentMov({
+          duration: videoDuration,
+          captureFrame: captureExportFrame,
+          signal: controller.signal,
+          onProgress: updateExportProgress,
+        })
+        if (result.status === 'cancelled' || !result.jobId) {
+          setExportStatus('cancelled')
+          setExportMessage(`已取消，共生成 ${result.completedFrames} 帧`)
+          return
+        }
+        jobId = result.jobId
+        pendingMovJobRef.current = jobId
+      }
+
+      setExportStatus('saving')
+      setExportMessage('')
+      await saveTransparentMov({
+        jobId,
+        fileHandle,
+        signal: controller.signal,
+      })
+      pendingMovJobRef.current = null
+      setExportStatus('completed')
+      setExportMessage(`透明 MOV 已保存为 ${fileHandle.name}`)
+    } catch (error) {
+      setExportStatus(controller.signal.aborted ? 'cancelled' : 'error')
+      setExportMessage(
+        pendingMovJobRef.current
+          ? 'MOV 已编码完成但保存失败，点击导出透明 MOV 可重新保存'
+          : error instanceof Error
+            ? error.message
+            : '透明 MOV 导出失败',
+      )
+    } finally {
+      exportAbortRef.current = null
+    }
+  }, [captureExportFrame, updateExportProgress, videoDuration])
+
   useEffect(
     () => () => {
+      exportAbortRef.current?.abort()
       if (videoPreviewRef.current) {
         URL.revokeObjectURL(videoPreviewRef.current.url)
       }
@@ -850,8 +1064,15 @@ export function Workbench({
     [],
   )
 
+  const fileExportSupported = supportsOverlayFileExport(
+    window as unknown as OverlayFileWindow,
+  )
+  const canExport =
+    fileExportSupported && videoDuration > 0 && cards.length > 0
+
   return (
     <div className="workbench" aria-busy={isClearingWorkspace}>
+      <ExportSurface ref={exportSurfaceRef} cards={cards} />
       {hydrationStatus === 'loading' && (
         <p className="workspace-status" role="status" aria-live="polite">
           正在恢复本地工作区
@@ -937,6 +1158,19 @@ export function Workbench({
           projectError={projectError || storageError}
           onProjectImport={importOverlayProject}
           onClearWorkspace={clearWorkspace}
+          exportControls={
+            <ExportPanel
+              canExport={canExport}
+              movAvailable={movAvailable}
+              status={exportStatus}
+              completedFrames={exportProgress.completedFrames}
+              totalFrames={exportProgress.totalFrames}
+              message={exportMessage || undefined}
+              onExportPng={() => void exportPng()}
+              onExportMov={() => void exportMov()}
+              onCancel={cancelExport}
+            />
+          }
         />
       </div>
     </div>

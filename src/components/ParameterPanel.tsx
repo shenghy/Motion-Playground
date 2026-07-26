@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Control, ParameterValue, ParameterValues } from '../motion/types'
 import type { OverlayProject } from '../timeline/types'
 import { ProjectFileControls } from './ProjectFileControls'
@@ -19,6 +20,7 @@ interface ParameterPanelProps {
   projectError?: string
   onProjectImport?: (text: string) => void | Promise<void>
   onClearWorkspace?: () => void | Promise<void>
+  exportControls?: ReactNode
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -41,6 +43,7 @@ export function ParameterPanel({
   projectError,
   onProjectImport,
   onClearWorkspace,
+  exportControls,
 }: ParameterPanelProps) {
   return (
     <aside className="parameter-panel" aria-label="动效参数">
@@ -53,6 +56,7 @@ export function ParameterPanel({
       </div>
 
       <div className="control-list">
+        {exportControls}
         {project && onProjectImport ? (
           <ProjectFileControls
             project={project}

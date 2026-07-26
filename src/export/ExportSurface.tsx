@@ -37,10 +37,13 @@ export const ExportSurface = forwardRef<
   ExportSurfaceProps
 >(function ExportSurface({ cards }, ref) {
   const rootRef = useRef<HTMLDivElement>(null)
-  const [frameTime, setFrameTime] = useState(0)
-  const activeCards = cards
-    .filter((card) => getCardPlaybackState(card, frameTime).active)
-    .sort((left, right) => left.zIndex - right.zIndex)
+  const [frameTime, setFrameTime] = useState<number | null>(null)
+  const activeCards =
+    frameTime === null
+      ? []
+      : cards
+          .filter((card) => getCardPlaybackState(card, frameTime).active)
+          .sort((left, right) => left.zIndex - right.zIndex)
 
   useImperativeHandle(ref, () => ({
     async prepareFrame(time) {
@@ -90,7 +93,7 @@ export const ExportSurface = forwardRef<
             card.motionId,
           ) as unknown as MotionDefinition<ParameterValues>
           const MotionComponent = definition.component
-          const { localTime } = getCardPlaybackState(card, frameTime)
+          const { localTime } = getCardPlaybackState(card, frameTime ?? 0)
 
           return (
             <div

@@ -1258,6 +1258,167 @@ a:focus-visible {
   scrollbar-color: var(--line-strong) transparent;
 }
 
+.export-panel {
+  display: grid;
+  gap: 13px;
+  padding: 16px 18px 17px;
+  border-bottom: 1px solid var(--line-strong);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.028), transparent 48%),
+    rgba(255,255,255,.009);
+}
+
+.export-panel__heading,
+.export-progress__meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.export-panel__heading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.export-panel__heading span {
+  color: var(--paper);
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+
+.export-panel__heading small,
+.export-panel__message,
+.export-progress small {
+  color: var(--quiet);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.export-panel__format {
+  flex: none;
+  padding: 3px 5px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted) !important;
+  font-size: 7px !important;
+  letter-spacing: .08em !important;
+}
+
+.export-panel__actions {
+  display: grid;
+  gap: 7px;
+}
+
+.export-button {
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .18s ease, color .18s ease, background .18s ease;
+}
+
+.export-button strong {
+  color: inherit;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: .06em;
+}
+
+.export-button small {
+  color: var(--quiet);
+  font-size: 7px;
+  letter-spacing: .04em;
+}
+
+.export-button--primary {
+  border-color: rgba(241,238,229,.72);
+  color: var(--paper);
+  background: rgba(241,238,229,.035);
+}
+
+.export-button:not(:disabled):hover,
+.export-button:not(:disabled):focus-visible {
+  border-color: var(--paper);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.export-button:not(:disabled):hover small,
+.export-button:not(:disabled):focus-visible small {
+  color: rgba(8,9,10,.62);
+}
+
+.export-button:disabled {
+  opacity: .36;
+  cursor: not-allowed;
+}
+
+.export-panel__message {
+  min-height: 12px;
+  margin: -3px 0 0;
+}
+
+.export-panel__message--completed {
+  color: var(--signal);
+}
+
+.export-panel__message--error {
+  color: #d8a19d;
+}
+
+.export-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.export-progress__meta span,
+.export-progress__meta output {
+  color: var(--paper);
+  font-size: 8px;
+  letter-spacing: .06em;
+}
+
+.export-progress progress {
+  width: 100%;
+  height: 3px;
+  border: 0;
+  background: rgba(255,255,255,.09);
+  accent-color: var(--paper);
+}
+
+.export-progress progress::-webkit-progress-bar {
+  background: rgba(255,255,255,.09);
+}
+
+.export-progress progress::-webkit-progress-value {
+  background: var(--paper);
+}
+
+.export-progress button {
+  min-height: 30px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 8px;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+
+.export-progress button:hover,
+.export-progress button:focus-visible {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
 .workspace-status {
   position: fixed;
   z-index: 100;

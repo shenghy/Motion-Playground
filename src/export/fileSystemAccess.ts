@@ -21,7 +21,7 @@ export interface OverlayFileSystemDirectoryHandle {
   ): Promise<OverlayFileSystemFileHandle>
 }
 
-interface OverlayFileWindow {
+export interface OverlayFileWindow {
   showSaveFilePicker?: (options?: unknown) => Promise<OverlayFileSystemFileHandle>
   showDirectoryPicker?: () => Promise<OverlayFileSystemDirectoryHandle>
 }

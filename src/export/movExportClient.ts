@@ -51,12 +51,14 @@ export async function renderTransparentMov({
   captureFrame,
   signal,
   onProgress,
+  onJobCreated,
   fetcher = fetch,
 }: {
   duration: number
   captureFrame(time: number): Promise<Blob>
   signal: AbortSignal
   onProgress(progress: ExportProgress): void
+  onJobCreated?: (jobId: string) => void
   fetcher?: Fetcher
 }): Promise<RenderMovResult> {
   const totalFrames = calculateFrameCount(duration)
@@ -82,6 +84,7 @@ export async function renderTransparentMov({
       throw new Error('本地导出服务没有返回任务编号')
     }
     jobId = createdBody.id
+    onJobCreated?.(jobId)
 
     for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
       if (signal.aborted) break

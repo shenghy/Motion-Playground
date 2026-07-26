@@ -110,6 +110,23 @@ interface OverlayWorkspaceState {
   playbackKeys: Record<string, number>
 }
 
+interface PendingMovJob {
+  id: string
+  fingerprint: string
+}
+
+function cloneOverlayCards(cards: OverlayCard[]) {
+  return cards.map((card) => ({
+    ...card,
+    position: { ...card.position },
+    params: { ...card.params },
+  }))
+}
+
+function exportFingerprint(cards: OverlayCard[], duration: number) {
+  return JSON.stringify({ duration, cards })
+}
+
 const createOverlayWorkspaceState = (): OverlayWorkspaceState => ({
   cards: [],
   selectedCardId: null,
@@ -196,7 +213,11 @@ export function Workbench({
   const seekControllerRef = useRef<((time: number) => void) | null>(null)
   const exportSurfaceRef = useRef<ExportSurfaceHandle>(null)
   const exportAbortRef = useRef<AbortController | null>(null)
-  const pendingMovJobRef = useRef<string | null>(null)
+  const serverExportJobRef = useRef<string | null>(null)
+  const pendingMovJobRef = useRef<PendingMovJob | null>(null)
+  const exportOperationRef = useRef(false)
+  const [exportOperationActive, setExportOperationActive] = useState(false)
+  const [exportCards, setExportCards] = useState<OverlayCard[]>([])
   const [movAvailable, setMovAvailable] = useState(false)
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle')
   const [exportProgress, setExportProgress] = useState({
@@ -219,7 +240,7 @@ export function Workbench({
 
   const mutateOverlayWorkspace = useCallback(
     (mutation: (current: OverlayWorkspaceState) => OverlayWorkspaceState) => {
-      if (clearingWorkspaceRef.current) {
+      if (clearingWorkspaceRef.current || exportOperationRef.current) {
         return overlayWorkspaceRef.current
       }
       const next = mutation(overlayWorkspaceRef.current)
@@ -672,11 +693,12 @@ export function Workbench({
     try {
       if (pendingMovJobRef.current) {
         try {
-          await discardTransparentMov(pendingMovJobRef.current)
+          await discardTransparentMov(pendingMovJobRef.current.id)
         } catch {
           // The local export service may already have cleaned this job.
         }
         pendingMovJobRef.current = null
+        serverExportJobRef.current = null
       }
       if (storage) {
         await queuePersistenceOperation(() => storage.clear())
@@ -922,6 +944,7 @@ export function Workbench({
   }, [])
 
   const exportPng = useCallback(async () => {
+    if (exportOperationRef.current) return
     const fileWindow = window as unknown as OverlayFileWindow
     if (!fileWindow.showDirectoryPicker) {
       setExportStatus('error')
@@ -929,6 +952,9 @@ export function Workbench({
       return
     }
 
+    exportOperationRef.current = true
+    setExportOperationActive(true)
+    setExportCards(cloneOverlayCards(cards))
     const controller = new AbortController()
     exportAbortRef.current = controller
     setExportStatus('rendering')
@@ -961,10 +987,13 @@ export function Workbench({
       )
     } finally {
       exportAbortRef.current = null
+      exportOperationRef.current = false
+      setExportOperationActive(false)
     }
-  }, [captureExportFrame, updateExportProgress, videoDuration])
+  }, [captureExportFrame, cards, updateExportProgress, videoDuration])
 
   const exportMov = useCallback(async () => {
+    if (exportOperationRef.current) return
     const fileWindow = window as unknown as OverlayFileWindow
     if (!fileWindow.showSaveFilePicker) {
       setExportStatus('error')
@@ -972,59 +1001,89 @@ export function Workbench({
       return
     }
 
-    let fileHandle
+    exportOperationRef.current = true
+    setExportOperationActive(true)
+    const snapshotCards = cloneOverlayCards(cards)
+    const snapshotDuration = videoDuration
+    const snapshotFingerprint = exportFingerprint(
+      snapshotCards,
+      snapshotDuration,
+    )
+    setExportCards(snapshotCards)
+    setExportStatus('idle')
+    setExportMessage('请选择 MOV 保存位置')
+    let controller: AbortController | null = null
+
     try {
-      fileHandle = await fileWindow.showSaveFilePicker({
-        suggestedName: 'Overlay-transparent.mov',
-        types: [
-          {
-            description: '透明 QuickTime 视频',
-            accept: { 'video/quicktime': ['.mov'] },
-          },
-        ],
-      })
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        setExportStatus('cancelled')
+      let fileHandle
+      try {
+        fileHandle = await fileWindow.showSaveFilePicker({
+          suggestedName: 'Overlay-transparent.mov',
+          types: [
+            {
+              description: '透明 QuickTime 视频',
+              accept: { 'video/quicktime': ['.mov'] },
+            },
+          ],
+        })
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          setExportStatus('cancelled')
+          setExportMessage(
+            pendingMovJobRef.current
+              ? '已编码的 MOV 仍保留，点击导出透明 MOV 可重新保存'
+              : '已取消导出',
+          )
+          return
+        }
+        setExportStatus('error')
         setExportMessage(
-          pendingMovJobRef.current
-            ? '已编码的 MOV 仍保留，点击导出透明 MOV 可重新保存'
-            : '已取消导出',
+          error instanceof Error ? error.message : '无法选择 MOV 保存位置',
         )
         return
       }
-      setExportStatus('error')
-      setExportMessage(
-        error instanceof Error ? error.message : '无法选择 MOV 保存位置',
-      )
-      return
-    }
 
-    const controller = new AbortController()
-    exportAbortRef.current = controller
-    let jobId = pendingMovJobRef.current
+      let pendingJob = pendingMovJobRef.current
+      if (
+        pendingJob &&
+        pendingJob.fingerprint !== snapshotFingerprint
+      ) {
+        await discardTransparentMov(pendingJob.id).catch(() => undefined)
+        pendingMovJobRef.current = null
+        serverExportJobRef.current = null
+        pendingJob = null
+      }
 
-    try {
+      controller = new AbortController()
+      exportAbortRef.current = controller
+      let jobId = pendingJob?.id
       if (!jobId) {
         setExportStatus('rendering')
         setExportMessage('')
         setExportProgress({
           completedFrames: 0,
-          totalFrames: calculateFrameCount(videoDuration),
+          totalFrames: calculateFrameCount(snapshotDuration),
         })
         const result = await renderTransparentMov({
-          duration: videoDuration,
+          duration: snapshotDuration,
           captureFrame: captureExportFrame,
           signal: controller.signal,
           onProgress: updateExportProgress,
+          onJobCreated: (createdJobId) => {
+            serverExportJobRef.current = createdJobId
+          },
         })
         if (result.status === 'cancelled' || !result.jobId) {
+          serverExportJobRef.current = null
           setExportStatus('cancelled')
           setExportMessage(`已取消，共生成 ${result.completedFrames} 帧`)
           return
         }
         jobId = result.jobId
-        pendingMovJobRef.current = jobId
+        pendingMovJobRef.current = {
+          id: jobId,
+          fingerprint: snapshotFingerprint,
+        }
       }
 
       setExportStatus('saving')
@@ -1035,10 +1094,11 @@ export function Workbench({
         signal: controller.signal,
       })
       pendingMovJobRef.current = null
+      serverExportJobRef.current = null
       setExportStatus('completed')
       setExportMessage(`透明 MOV 已保存为 ${fileHandle.name}`)
     } catch (error) {
-      setExportStatus(controller.signal.aborted ? 'cancelled' : 'error')
+      setExportStatus(controller?.signal.aborted ? 'cancelled' : 'error')
       setExportMessage(
         pendingMovJobRef.current
           ? 'MOV 已编码完成但保存失败，点击导出透明 MOV 可重新保存'
@@ -1048,12 +1108,41 @@ export function Workbench({
       )
     } finally {
       exportAbortRef.current = null
+      if (!pendingMovJobRef.current) {
+        serverExportJobRef.current = null
+      }
+      exportOperationRef.current = false
+      setExportOperationActive(false)
     }
-  }, [captureExportFrame, updateExportProgress, videoDuration])
+  }, [captureExportFrame, cards, updateExportProgress, videoDuration])
+
+  useEffect(() => {
+    const pendingJob = pendingMovJobRef.current
+    if (
+      !pendingJob ||
+      exportOperationRef.current ||
+      pendingJob.fingerprint === exportFingerprint(cards, videoDuration)
+    ) {
+      return
+    }
+
+    pendingMovJobRef.current = null
+    serverExportJobRef.current = null
+    void discardTransparentMov(pendingJob.id).catch(() => undefined)
+    setExportStatus('idle')
+    setExportMessage('工程已修改，之前编码的 MOV 已放弃')
+  }, [cards, videoDuration])
 
   useEffect(
     () => () => {
       exportAbortRef.current?.abort()
+      const jobId = serverExportJobRef.current
+      if (jobId) {
+        void fetch(
+          `/__overlay_export__/jobs/${encodeURIComponent(jobId)}`,
+          { method: 'DELETE', keepalive: true },
+        ).catch(() => undefined)
+      }
       if (videoPreviewRef.current) {
         URL.revokeObjectURL(videoPreviewRef.current.url)
       }
@@ -1068,11 +1157,17 @@ export function Workbench({
     window as unknown as OverlayFileWindow,
   )
   const canExport =
-    fileExportSupported && videoDuration > 0 && cards.length > 0
+    fileExportSupported &&
+    !exportOperationActive &&
+    videoDuration > 0 &&
+    cards.length > 0
 
   return (
-    <div className="workbench" aria-busy={isClearingWorkspace}>
-      <ExportSurface ref={exportSurfaceRef} cards={cards} />
+    <div
+      className="workbench"
+      aria-busy={isClearingWorkspace || exportOperationActive}
+    >
+      <ExportSurface ref={exportSurfaceRef} cards={exportCards} />
       {hydrationStatus === 'loading' && (
         <p className="workspace-status" role="status" aria-live="polite">
           正在恢复本地工作区
@@ -1093,7 +1188,12 @@ export function Workbench({
         </div>
       </header>
 
-      <div className="workspace" inert={isClearingWorkspace ? true : undefined}>
+      <div
+        className="workspace"
+        inert={
+          isClearingWorkspace || exportOperationActive ? true : undefined
+        }
+      >
         <ComponentRail
           items={motionRegistry}
           activeId={activeId}

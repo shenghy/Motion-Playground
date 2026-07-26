@@ -9,9 +9,16 @@ import {
   findAvailablePort,
 } from './local-server.mjs'
 
-const PNG = Buffer.from([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1,
-])
+const PNG = Buffer.alloc(33)
+Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+]).copy(PNG)
+PNG.writeUInt32BE(13, 8)
+PNG.write('IHDR', 12, 'ascii')
+PNG.writeUInt32BE(1920, 16)
+PNG.writeUInt32BE(1080, 20)
+PNG[24] = 8
+PNG[25] = 6
 
 describe('localhost transparent export API', () => {
   it('handles the complete MOV job lifecycle on the same origin', async () => {

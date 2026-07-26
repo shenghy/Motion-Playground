@@ -32,12 +32,14 @@ describe('transparent MOV client', () => {
     const captureFrame = vi.fn(async (time: number) =>
       new Blob([String(time)], { type: 'image/png' }),
     )
+    const onJobCreated = vi.fn()
 
     const result = await renderTransparentMov({
       duration: 0.1,
       captureFrame,
       signal: new AbortController().signal,
       onProgress: vi.fn(),
+      onJobCreated,
       fetcher,
     })
 
@@ -72,6 +74,7 @@ describe('transparent MOV client', () => {
       totalFrames: 3,
       size: 321,
     })
+    expect(onJobCreated).toHaveBeenCalledWith('job-1')
   })
 
   it('cancels the server job without sending another frame', async () => {

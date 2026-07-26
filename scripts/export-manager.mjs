@@ -19,6 +19,21 @@ function isPng(buffer) {
   )
 }
 
+function readPngDimensions(buffer) {
+  if (
+    !isPng(buffer) ||
+    buffer.length < 26 ||
+    buffer.readUInt32BE(8) !== 13 ||
+    buffer.toString('ascii', 12, 16) !== 'IHDR'
+  ) {
+    return null
+  }
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20),
+  }
+}
+
 function validateJobOptions({ width, height, fps, totalFrames }) {
   if (
     width !== 1920 ||
@@ -62,12 +77,22 @@ export function createExportManager({
   ffmpegPath,
   spawnProcess = spawn,
   temporaryRoot = join(tmpdir(), 'overlay-studio-exports'),
+  jobTtlMs = 30 * 60 * 1000,
 }) {
   let activeJob = null
 
   async function removeJob(job) {
+    if (job.expiryTimer) clearTimeout(job.expiryTimer)
     await rm(job.directory, { recursive: true, force: true })
     if (activeJob?.id === job.id) activeJob = null
+  }
+
+  function refreshExpiry(job) {
+    if (job.expiryTimer) clearTimeout(job.expiryTimer)
+    job.expiryTimer = setTimeout(() => {
+      void cancelJob(job.id).catch(() => undefined)
+    }, jobTtlMs)
+    job.expiryTimer.unref?.()
   }
 
   async function createJob(options) {
@@ -90,9 +115,12 @@ export function createExportManager({
       child,
       nextFrame: 0,
       totalFrames: options.totalFrames,
+      width: options.width,
+      height: options.height,
       status: 'rendering',
       stderr: '',
       closeResult: null,
+      expiryTimer: null,
     }
     child.stderr?.on('data', (chunk) => {
       job.stderr = `${job.stderr}${chunk}`.slice(-8000)
@@ -102,6 +130,7 @@ export function createExportManager({
       child.once('close', (code, signal) => resolveClose({ code, signal }))
     })
     activeJob = job
+    refreshExpiry(job)
     return { id: job.id, outputPath }
   }
 
@@ -119,10 +148,19 @@ export function createExportManager({
     if (!isPng(buffer) || buffer.length > MAX_FRAME_BYTES) {
       throw new Error('透明导出 PNG 帧无效')
     }
+    const dimensions = readPngDimensions(buffer)
+    if (
+      !dimensions ||
+      dimensions.width !== job.width ||
+      dimensions.height !== job.height
+    ) {
+      throw new Error('透明导出 PNG 帧尺寸必须为 1920×1080')
+    }
     if (!job.child.stdin.write(buffer)) {
       await once(job.child.stdin, 'drain')
     }
     job.nextFrame += 1
+    refreshExpiry(job)
   }
 
   async function finishJob(id) {
@@ -139,6 +177,7 @@ export function createExportManager({
     }
     await stat(job.outputPath)
     job.status = 'completed'
+    refreshExpiry(job)
     return { id: job.id, size: (await stat(job.outputPath)).size }
   }
 

@@ -310,16 +310,16 @@ describe('TimelineEditor', () => {
   })
 
   it.each([
-    ['non-finite', Number.NaN],
-    ['shorter than the model minimum', 0.1],
-  ])('treats a %s duration as unavailable for all interactions', (_name, duration) => {
+    ['non-finite', Number.NaN, '请先导入视频'],
+    ['shorter than the model minimum', 0.1, '视频时长不足，无法添加动效'],
+  ])('treats a %s duration as unavailable for all interactions', (_name, duration, status) => {
     const props = createProps({ duration })
     render(<TimelineEditor {...props} />)
     const track = screen.getByTestId('timeline-track')
     const card = screen.getByRole('button', { name: '选择核心指标片段' })
     mockTrackRect(track)
 
-    expect(screen.getByRole('status')).toHaveTextContent('请先导入视频')
+    expect(screen.getByRole('status')).toHaveTextContent(status)
     dropAt(track, 200, createDataTransfer())
     fireEvent.click(track, { clientX: 200 })
     firePointer(card, 'pointerdown', 1, 100)

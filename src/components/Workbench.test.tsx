@@ -17,6 +17,10 @@ function mockTimelineRect(track: HTMLElement, left = 100, width = 400) {
 }
 
 function dropMotion(track: HTMLElement, motionId: string, clientX: number) {
+  fireEvent(track, createMotionDropEvent(motionId, clientX))
+}
+
+function createMotionDropEvent(motionId: string, clientX: number) {
   const event = new Event('drop', { bubbles: true, cancelable: true })
   Object.defineProperties(event, {
     clientX: { value: clientX },
@@ -27,7 +31,7 @@ function dropMotion(track: HTMLElement, motionId: string, clientX: number) {
       },
     },
   })
-  fireEvent(track, event)
+  return event
 }
 
 function firePointer(
@@ -480,6 +484,18 @@ describe('Workbench', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('reports a loaded video that is too short for an overlay card', () => {
+    const idFactory = vi.fn(() => 'unused-card')
+    render(<Workbench idFactory={idFactory} />)
+    loadVideo(0.1)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+
+    expect(screen.getByText('视频时长不足，无法添加动效')).toBeInTheDocument()
+    dropMotion(track, 'metric-focus', 100)
+    expect(idFactory).not.toHaveBeenCalled()
+  })
+
   it('creates selected unique cards with defaults, z-order, and end clamping', () => {
     const ids = ['uuid-1', 'uuid-2', 'uuid-3']
     render(<Workbench idFactory={() => ids.shift() ?? 'fallback-id'} />)
@@ -613,21 +629,85 @@ describe('Workbench', () => {
     expect(video.currentTime).toBe(5)
   })
 
-  it('switches between timeline-card editing and rail-only legacy preview', () => {
+  it('keeps active timeline cards visible after switching the parameter panel to rail mode', () => {
     render(<Workbench idFactory={() => 'timeline-card'} />)
-    loadVideo(10)
+    const video = loadVideo(10)
     const track = screen.getByTestId('timeline-track')
     mockTimelineRect(track)
     dropMotion(track, 'metric-focus', 100)
     const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    const overlay = screen.getByTestId('overlay-card-timeline-card')
 
     fireEvent.click(screen.getByRole('button', { name: /对比卡片/ }))
-    expect(screen.getByText('提升 2.05 倍')).toBeInTheDocument()
     expect(card).toHaveAttribute('aria-pressed', 'false')
     expect(document.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+    expect(screen.getByTestId('overlay-card-timeline-card')).toBe(overlay)
+    expect(screen.queryByText('提升 2.05 倍')).not.toBeInTheDocument()
+
+    video.currentTime = 4
+    fireEvent.timeUpdate(video)
+    expect(screen.queryByTestId('overlay-card-timeline-card')).not.toBeInTheDocument()
+    video.currentTime = 1
+    fireEvent.timeUpdate(video)
+    expect(screen.getByTestId('overlay-card-timeline-card')).toBeInTheDocument()
 
     fireEvent.click(card)
     expect(screen.getByLabelText('核心数值')).toHaveValue('248')
     expect(card).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('replays and parameter-remounts only the selected timeline card', () => {
+    const ids = ['stable-card', 'selected-card']
+    render(<Workbench idFactory={() => ids.shift() ?? 'unused'} />)
+    loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+    dropMotion(track, 'metric-focus', 100)
+    dropMotion(track, 'metric-focus', 100)
+
+    const stableOverlay = screen.getByTestId('overlay-card-stable-card')
+    let selectedOverlay = screen.getByTestId('overlay-card-selected-card')
+
+    fireEvent.click(screen.getByRole('button', { name: '重新播放' }))
+    expect(screen.getByTestId('overlay-card-stable-card')).toBe(stableOverlay)
+    expect(screen.getByTestId('overlay-card-selected-card')).not.toBe(selectedOverlay)
+
+    selectedOverlay = screen.getByTestId('overlay-card-selected-card')
+    fireEvent.change(screen.getByLabelText('核心数值'), {
+      target: { value: '320' },
+    })
+    expect(screen.getByTestId('overlay-card-stable-card')).toBe(stableOverlay)
+    expect(screen.getByTestId('overlay-card-selected-card')).not.toBe(selectedOverlay)
+
+    selectedOverlay = screen.getByTestId('overlay-card-selected-card')
+    fireEvent.click(screen.getByRole('button', { name: '恢复默认' }))
+    expect(screen.getByTestId('overlay-card-stable-card')).toBe(stableOverlay)
+    expect(screen.getByTestId('overlay-card-selected-card')).not.toBe(selectedOverlay)
+  })
+
+  it('atomically creates unique cards with increasing z-index from same-batch drops', () => {
+    const ids = ['duplicate', 'duplicate', '', '   ']
+    render(<Workbench idFactory={() => ids.shift() ?? ''} />)
+    loadVideo(10)
+    const track = screen.getByTestId('timeline-track')
+    mockTimelineRect(track)
+
+    act(() => {
+      track.dispatchEvent(createMotionDropEvent('metric-focus', 100))
+      track.dispatchEvent(createMotionDropEvent('metric-focus', 100))
+      track.dispatchEvent(createMotionDropEvent('metric-focus', 100))
+      track.dispatchEvent(createMotionDropEvent('metric-focus', 100))
+    })
+
+    const overlays = screen.getAllByTestId(/^overlay-card-/)
+    const cardIds = overlays.map((overlay) => overlay.dataset.overlayCardId ?? '')
+    expect(new Set(cardIds).size).toBe(4)
+    expect(cardIds.every((id) => id.trim().length > 0)).toBe(true)
+    expect(overlays.map((overlay) => overlay.style.zIndex)).toEqual([
+      '0',
+      '1',
+      '2',
+      '3',
+    ])
   })
 })

@@ -164,7 +164,9 @@ export function TimelineEditor({
 
       {!hasUsableDuration ? (
         <p className="timeline-editor__status" role="status" aria-live="polite">
-          请先导入视频
+          {Number.isFinite(duration) && duration > 0
+            ? '视频时长不足，无法添加动效'
+            : '请先导入视频'}
         </p>
       ) : null}
 

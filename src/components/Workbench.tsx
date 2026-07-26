@@ -36,7 +36,10 @@ const createBrowserCardId = () => {
 
 function createUniqueCardId(cards: OverlayCard[], idFactory: () => string) {
   const requestedId = idFactory()
-  if (requestedId && !cards.some((card) => card.id === requestedId)) {
+  if (
+    requestedId.trim() !== '' &&
+    !cards.some((card) => card.id === requestedId)
+  ) {
     return requestedId
   }
 
@@ -56,12 +59,26 @@ interface WorkbenchProps {
   idFactory?: () => string
 }
 
+interface OverlayWorkspaceState {
+  cards: OverlayCard[]
+  selectedCardId: string | null
+  playbackKeys: Record<string, number>
+}
+
+const createOverlayWorkspaceState = (): OverlayWorkspaceState => ({
+  cards: [],
+  selectedCardId: null,
+  playbackKeys: {},
+})
+
 export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   const [activeId, setActiveId] = useState<MotionId>('metric-focus')
   const [showSafeArea, setShowSafeArea] = useState(true)
   const [parameters, setParameters] = useState(createInitialParameters)
-  const [cards, setCards] = useState<OverlayCard[]>([])
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [overlayWorkspace, setOverlayWorkspace] = useState(
+    createOverlayWorkspaceState,
+  )
+  const overlayWorkspaceRef = useRef(overlayWorkspace)
   const [videoTime, setVideoTime] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
   const [videoPreview, setVideoPreview] = useState<VideoPreview | null>(null)
@@ -78,6 +95,17 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     'share-ring': 0,
     'step-flow': 0,
   })
+  const { cards, selectedCardId } = overlayWorkspace
+
+  const mutateOverlayWorkspace = useCallback(
+    (mutation: (current: OverlayWorkspaceState) => OverlayWorkspaceState) => {
+      const next = mutation(overlayWorkspaceRef.current)
+      overlayWorkspaceRef.current = next
+      setOverlayWorkspace(next)
+      return next
+    },
+    [],
+  )
 
   const activeDefinition = useMemo(() => getMotionDefinition(activeId), [activeId])
   const selectedCard = useMemo(
@@ -87,6 +115,18 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   const activeParameters = selectedCard?.params ?? parameters[activeId]
 
   const replay = () => {
+    const selectedId = overlayWorkspaceRef.current.selectedCardId
+    if (selectedId) {
+      mutateOverlayWorkspace((current) => ({
+        ...current,
+        playbackKeys: {
+          ...current.playbackKeys,
+          [selectedId]: (current.playbackKeys[selectedId] ?? 0) + 1,
+        },
+      }))
+      return
+    }
+
     setPlaybackKeys((current) => ({
       ...current,
       [activeId]: current[activeId] + 1,
@@ -94,21 +134,29 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const selectMotion = (id: MotionId) => {
-    setSelectedCardId(null)
+    mutateOverlayWorkspace((current) => ({
+      ...current,
+      selectedCardId: null,
+    }))
     setActiveId(id)
     setPlaybackKeys((current) => ({ ...current, [id]: current[id] + 1 }))
   }
 
   const updateParameter = (key: string, value: ParameterValue) => {
-    if (selectedCard) {
-      setCards((current) =>
-        current.map((card) =>
-          card.id === selectedCard.id
+    const selectedId = overlayWorkspaceRef.current.selectedCardId
+    if (selectedId) {
+      mutateOverlayWorkspace((current) => ({
+        ...current,
+        cards: current.cards.map((card) =>
+          card.id === selectedId
             ? { ...card, params: { ...card.params, [key]: value } }
             : card,
         ),
-      )
-      replay()
+        playbackKeys: {
+          ...current.playbackKeys,
+          [selectedId]: (current.playbackKeys[selectedId] ?? 0) + 1,
+        },
+      }))
       return
     }
 
@@ -120,15 +168,23 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
   }
 
   const resetParameters = () => {
-    if (selectedCard) {
-      setCards((current) =>
-        current.map((card) =>
-          card.id === selectedCard.id
-            ? { ...card, params: { ...activeDefinition.defaults } }
+    const selectedId = overlayWorkspaceRef.current.selectedCardId
+    if (selectedId) {
+      mutateOverlayWorkspace((current) => ({
+        ...current,
+        cards: current.cards.map((card) =>
+          card.id === selectedId
+            ? {
+                ...card,
+                params: { ...getMotionDefinition(card.motionId).defaults },
+              }
             : card,
         ),
-      )
-      replay()
+        playbackKeys: {
+          ...current.playbackKeys,
+          [selectedId]: (current.playbackKeys[selectedId] ?? 0) + 1,
+        },
+      }))
       return
     }
 
@@ -228,50 +284,64 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     }
 
     const definition = getMotionDefinition(motionId)
-    const zIndex =
-      cards.reduce((maximum, card) => Math.max(maximum, card.zIndex), -1) + 1
-
-    try {
+    mutateOverlayWorkspace((current) => {
+      const zIndex =
+        current.cards.reduce(
+          (maximum, card) => Math.max(maximum, card.zIndex),
+          -1,
+        ) + 1
       const card = createOverlayCard(
-        createUniqueCardId(cards, idFactory),
+        createUniqueCardId(current.cards, idFactory),
         motionId,
         startTime,
         videoDuration,
         zIndex,
         definition.defaults,
       )
-      setCards((current) => [...current, card])
-      setSelectedCardId(card.id)
-      setActiveId(card.motionId)
-    } catch {
-      // A stale or unusable media duration should not surface as a UI error.
-    }
+
+      return {
+        cards: [...current.cards, card],
+        selectedCardId: card.id,
+        playbackKeys: {
+          ...current.playbackKeys,
+          [card.id]: 0,
+        },
+      }
+    })
+    setActiveId(motionId)
   }
 
   const selectCard = (cardId: string) => {
-    const card = cards.find((candidate) => candidate.id === cardId)
+    const card = overlayWorkspaceRef.current.cards.find(
+      (candidate) => candidate.id === cardId,
+    )
     if (!card) {
       return
     }
 
-    setSelectedCardId(card.id)
+    mutateOverlayWorkspace((current) => ({
+      ...current,
+      selectedCardId: card.id,
+    }))
     setActiveId(card.motionId)
   }
 
   const moveCard = (cardId: string, startTime: number) => {
-    setCards((current) =>
-      current.map((card) => {
-        if (card.id !== cardId) {
-          return card
-        }
+    if (
+      !Number.isFinite(videoDuration) ||
+      videoDuration < MIN_CARD_DURATION
+    ) {
+      return
+    }
 
-        try {
-          return moveCardTiming(card, startTime, videoDuration)
-        } catch {
-          return card
-        }
-      }),
-    )
+    mutateOverlayWorkspace((current) => ({
+      ...current,
+      cards: current.cards.map((card) =>
+        card.id === cardId
+          ? moveCardTiming(card, startTime, videoDuration)
+          : card,
+      ),
+    }))
   }
 
   const resizeCard = (
@@ -279,34 +349,44 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
     edge: 'start' | 'end',
     time: number,
   ) => {
-    setCards((current) =>
-      current.map((card) => {
-        if (card.id !== cardId) {
-          return card
-        }
+    if (
+      !Number.isFinite(videoDuration) ||
+      videoDuration < MIN_CARD_DURATION
+    ) {
+      return
+    }
 
-        try {
-          return resizeCardTiming(card, edge, time, videoDuration)
-        } catch {
-          return card
-        }
-      }),
-    )
+    mutateOverlayWorkspace((current) => ({
+      ...current,
+      cards: current.cards.map((card) =>
+        card.id === cardId
+          ? resizeCardTiming(card, edge, time, videoDuration)
+          : card,
+      ),
+    }))
   }
 
   const deleteCard = (cardId: string) => {
-    setCards((current) => current.filter((card) => card.id !== cardId))
-    if (selectedCardId === cardId) {
-      setSelectedCardId(null)
-    }
+    mutateOverlayWorkspace((current) => {
+      const nextPlaybackKeys = { ...current.playbackKeys }
+      delete nextPlaybackKeys[cardId]
+
+      return {
+        cards: current.cards.filter((card) => card.id !== cardId),
+        selectedCardId:
+          current.selectedCardId === cardId ? null : current.selectedCardId,
+        playbackKeys: nextPlaybackKeys,
+      }
+    })
   }
 
   const updatePosition = (cardId: string, position: OverlayPosition) => {
-    setCards((current) =>
-      current.map((card) =>
+    mutateOverlayWorkspace((current) => ({
+      ...current,
+      cards: current.cards.map((card) =>
         card.id === cardId ? updateCardPosition(card, position) : card,
       ),
-    )
+    }))
   }
 
   const handleMediaTimeChange = useCallback((time: number) => {
@@ -371,7 +451,8 @@ export function Workbench({ idFactory = createBrowserCardId }: WorkbenchProps) {
             onVideoReady={confirmVideo}
             onVideoError={rejectVideo}
             onActiveVideoError={handleActiveVideoError}
-            overlayCards={selectedCard ? cards : []}
+            overlayCards={cards}
+            overlayPlaybackKeys={overlayWorkspace.playbackKeys}
             selectedCardId={selectedCardId}
             currentTime={videoTime}
             onMediaTimeChange={handleMediaTimeChange}

@@ -28,6 +28,7 @@ interface PreviewStageProps {
   onSeekControllerReady?: (seek: ((time: number) => void) | null) => void
   onSelectOverlayCard?: (id: string) => void
   onCardPositionChange?: (id: string, position: OverlayPosition) => void
+  overlayPlaybackKeys?: Readonly<Record<string, number>>
 }
 
 interface PlaybackState {
@@ -88,6 +89,7 @@ export function PreviewStage({
   onSeekControllerReady,
   onSelectOverlayCard,
   onCardPositionChange,
+  overlayPlaybackKeys = {},
 }: PreviewStageProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -337,7 +339,7 @@ export function PreviewStage({
 
                 return (
                   <div
-                    key={card.id}
+                    key={`${card.id}-${overlayPlaybackKeys[card.id] ?? 0}`}
                     className={`overlay-card${selected ? ' overlay-card--selected' : ''}`}
                     data-testid={`overlay-card-${card.id}`}
                     data-overlay-card-id={card.id}

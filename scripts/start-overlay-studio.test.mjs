@@ -243,6 +243,39 @@ describe('Overlay Studio launcher', () => {
     }
   })
 
+  it('exposes transparent MOV capability from a newly started local editor', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'overlay-export-server-'))
+    const distDirectory = join(projectRoot, 'dist')
+    let local
+
+    try {
+      await mkdir(distDirectory)
+      await writeFile(join(distDirectory, 'index.html'), '<main>ready</main>')
+      const port = await findAvailablePort('127.0.0.1', 4400, 4499)
+
+      local = await startOverlayStudio({
+        projectRoot,
+        startPort: port,
+        endPort: port,
+        noOpen: true,
+        skipBuild: true,
+      })
+
+      const response = await fetch(
+        `${local.url}__overlay_export__/capabilities`,
+      )
+      await expect(response.json()).resolves.toMatchObject({
+        mov: true,
+        width: 1920,
+        height: 1080,
+        fps: 30,
+      })
+    } finally {
+      await local?.close()
+      await rm(projectRoot, { recursive: true, force: true })
+    }
+  })
+
   it('ignores obsolete on-disk lock files because the OS owns the mutex', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
     const lockPath = join(directory, 'startup.local')

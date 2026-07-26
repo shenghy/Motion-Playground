@@ -8,10 +8,13 @@ import { createHash } from 'node:crypto'
 import { createServer as createNetServer } from 'node:net'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import ffmpegPath from 'ffmpeg-static'
 import {
   createLocalStaticServer,
   findAvailablePort,
 } from './local-server.mjs'
+import { createExportApi } from './export-api.mjs'
+import { createExportManager } from './export-manager.mjs'
 
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_START_PORT = 4173
@@ -139,7 +142,7 @@ export async function probeOverlayStudio(host, port, projectId) {
     const status = await response.json()
     return (
       status?.app === 'overlay-studio' &&
-      status?.version === 1 &&
+      status?.version === 2 &&
       status?.projectId === projectId
     )
   } catch {
@@ -372,12 +375,23 @@ export async function startOverlayStudio({
       savedPort,
       projectId,
     })
-    local = await createLocalStaticServer({
-      rootDirectory: distDirectory,
-      host,
-      port: target.port,
-      projectId,
+    const exportManager = createExportManager({ ffmpegPath })
+    const exportApi = createExportApi({
+      manager: exportManager,
+      origin: `http://${host}:${target.port}`,
     })
+    try {
+      local = await createLocalStaticServer({
+        rootDirectory: distDirectory,
+        host,
+        port: target.port,
+        projectId,
+        exportApi,
+      })
+    } catch (error) {
+      await exportManager.close()
+      throw error
+    }
     savePreferredPort(portFile, target.port)
   } finally {
     await releaseStartupLock()

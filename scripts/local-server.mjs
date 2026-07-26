@@ -123,6 +123,7 @@ export async function createLocalStaticServer({
   host = '127.0.0.1',
   port,
   projectId,
+  exportApi,
 }) {
   const absoluteRoot = await realpath(resolve(rootDirectory))
   const indexPath = resolve(absoluteRoot, 'index.html')
@@ -136,6 +137,10 @@ export async function createLocalStaticServer({
   }
 
   const server = createHttpServer(async (request, response) => {
+    if (exportApi && (await exportApi.handle(request, response))) {
+      return
+    }
+
     const requestPath = (request.url ?? '/')
       .split('?', 1)[0]
       .replace(/^\/+/, '/')
@@ -149,7 +154,7 @@ export async function createLocalStaticServer({
       response.end(
         JSON.stringify({
           app: 'overlay-studio',
-          version: 1,
+          version: 2,
           projectId,
         }),
       )
@@ -197,8 +202,9 @@ export async function createLocalStaticServer({
   return {
     server,
     url: `http://${host}:${port}/`,
-    close: () =>
-      new Promise((resolveClose, rejectClose) => {
+    close: async () => {
+      await exportApi?.close()
+      return new Promise((resolveClose, rejectClose) => {
         server.close((error) => {
           if (error) {
             rejectClose(error)
@@ -206,6 +212,7 @@ export async function createLocalStaticServer({
           }
           resolveClose()
         })
-      }),
+      })
+    },
   }
 }

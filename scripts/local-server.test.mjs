@@ -98,7 +98,7 @@ describe('local static server', () => {
       const status = await fetch(`${local.url}/__overlay_studio_status__`)
       expect(await status.json()).toEqual({
         app: 'overlay-studio',
-        version: 1,
+        version: 2,
         projectId: 'test-project',
       })
     } finally {

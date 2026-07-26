@@ -34,12 +34,13 @@ function makeCard(overrides: Partial<OverlayCard> = {}): OverlayCard {
 }
 
 describe('createOverlayCard', () => {
-  it('creates a three-second card with copied defaults', () => {
+  it('creates a three-second card with an explicit id and copied defaults', () => {
     const defaults = { title: '示例', value: 42 }
 
-    const card = createOverlayCard('metric-focus', 2, 10, 3, defaults)
+    const card = createOverlayCard('card-explicit', 'metric-focus', 2, 10, 3, defaults)
 
     expect(card).toMatchObject({
+      id: 'card-explicit',
       motionId: 'metric-focus',
       start: 2,
       end: 5,
@@ -47,16 +48,23 @@ describe('createOverlayCard', () => {
       zIndex: 3,
       params: defaults,
     })
-    expect(card.id).toMatch(/^overlay-/)
     expect(card.params).not.toBe(defaults)
   })
 
-  it('clamps start and end to the video and handles invalid duration safely', () => {
-    expect(createOverlayCard('metric-focus', -2, 2, 0, {}).start).toBe(0)
-    expect(createOverlayCard('metric-focus', 1, 2, 0, {}).end).toBe(2)
+  it('clamps timing to the video and backs up start near the end', () => {
+    expect(createOverlayCard('card-a', 'metric-focus', -2, 2, 0, {}).start).toBe(0)
+    expect(createOverlayCard('card-b', 'metric-focus', 1, 2, 0, {}).end).toBe(2)
 
-    const withoutVideo = createOverlayCard('metric-focus', 4, 0, 0, {})
-    expect(withoutVideo).toMatchObject({ start: 4, end: 7 })
+    expect(createOverlayCard('card-c', 'metric-focus', 9.95, 10, 0, {})).toMatchObject({
+      start: 10 - MIN_CARD_DURATION,
+      end: 10,
+    })
+  })
+
+  it.each([0, 0.1])('rejects a video duration of %s seconds', (videoDuration) => {
+    expect(() =>
+      createOverlayCard('card-a', 'metric-focus', 0, videoDuration, 0, {}),
+    ).toThrow(new Error('视频时长不足'))
   })
 })
 
@@ -81,6 +89,12 @@ describe('timing edits', () => {
     expect(card).toMatchObject({ start: 2, end: 5 })
   })
 
+  it('expands an invalid short card to the minimum duration when moving', () => {
+    const moved = moveCardTiming(makeCard({ start: 1, end: 1.1 }), 9.95, 10)
+
+    expect(moved).toMatchObject({ start: 10 - MIN_CARD_DURATION, end: 10 })
+  })
+
   it('resizes either edge within the video while preserving the minimum duration', () => {
     const card = makeCard()
 
@@ -98,6 +112,19 @@ describe('timing edits', () => {
     expect(
       resizeCardTiming(makeCard({ start: 8, end: 12 }), 'start', 20, 10),
     ).toMatchObject({ start: 10 - MIN_CARD_DURATION, end: 10 })
+
+    expect(
+      resizeCardTiming(makeCard({ start: 9.95, end: 10 }), 'end', 10, 10),
+    ).toMatchObject({ start: 10 - MIN_CARD_DURATION, end: 10 })
+  })
+
+  it.each([0, 0.1])('rejects timing edits for a %s-second video', (videoDuration) => {
+    expect(() => moveCardTiming(makeCard(), 0, videoDuration)).toThrow(
+      new Error('视频时长不足'),
+    )
+    expect(() => resizeCardTiming(makeCard(), 'end', 1, videoDuration)).toThrow(
+      new Error('视频时长不足'),
+    )
   })
 })
 
@@ -109,6 +136,13 @@ describe('updateCardPosition', () => {
 
     expect(updated.position).toEqual({ x: 0, y: 100 })
     expect(card.position).toEqual({ x: 20, y: 30 })
+  })
+
+  it('keeps the previous coordinate for non-finite input', () => {
+    const card = makeCard()
+
+    expect(updateCardPosition(card, { x: Number.NaN, y: Number.POSITIVE_INFINITY }).position)
+      .toEqual({ x: 20, y: 30 })
   })
 })
 
@@ -162,6 +196,109 @@ describe('parseOverlayProject', () => {
   })
 
   it.each([
+    ['number default overridden with string', { value: '99' }],
+    ['string default overridden with number', { label: 99 }],
+    ['unknown parameter key', { extra: 1 }],
+  ])('rejects %s', (_name, params) => {
+    const text = JSON.stringify({
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      cards: [
+        {
+          id: 'card-1',
+          motionId: 'metric-focus',
+          start: 0,
+          end: 1,
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          params,
+        },
+      ],
+    })
+
+    expect(() => parseOverlayProject(text, defaultsByMotion)).toThrow(
+      new Error('JSON 项目格式无效'),
+    )
+  })
+
+  it.each([
+    ['null defaults', { ...defaultsByMotion, 'metric-focus': null }],
+    ['invalid default value', { ...defaultsByMotion, 'metric-focus': { value: true } }],
+  ])('rejects %s for a registered motion', (_name, malformedDefaults) => {
+    expect(() =>
+      parseOverlayProject(
+        JSON.stringify({
+          version: 1,
+          canvas: { width: 1920, height: 1080 },
+          cards: [
+            {
+              id: 'card-1',
+              motionId: 'metric-focus',
+              start: 0,
+              end: 1,
+              position: { x: 0, y: 0 },
+              zIndex: 0,
+              params: {},
+            },
+          ],
+        }),
+        malformedDefaults as unknown as Record<MotionId, ParameterValues>,
+      ),
+    ).toThrow(new Error('JSON 项目格式无效'))
+  })
+
+  it.each([
+    [
+      'empty id',
+      [
+        {
+          id: '',
+          motionId: 'metric-focus',
+          start: 0,
+          end: 1,
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          params: {},
+        },
+      ],
+    ],
+    [
+      'duplicate ids',
+      [
+        {
+          id: 'same-id',
+          motionId: 'metric-focus',
+          start: 0,
+          end: 1,
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          params: {},
+        },
+        {
+          id: 'same-id',
+          motionId: 'metric-focus',
+          start: 1,
+          end: 2,
+          position: { x: 0, y: 0 },
+          zIndex: 1,
+          params: {},
+        },
+      ],
+    ],
+  ])('rejects %s', (_name, cards) => {
+    expect(() =>
+      parseOverlayProject(
+        JSON.stringify({
+          version: 1,
+          canvas: { width: 1920, height: 1080 },
+          cards,
+        }),
+        defaultsByMotion,
+      ),
+    ).toThrow(new Error('JSON 项目格式无效'))
+  })
+
+  it.each([
     ['bad JSON', '{'],
     [
       'wrong version',
@@ -174,6 +311,42 @@ describe('parseOverlayProject', () => {
     [
       'non-finite timing',
       `{"version":1,"canvas":{"width":1920,"height":1080},"cards":[{"id":"card-1","motionId":"metric-focus","start":1e400,"end":2,"position":{"x":0,"y":0},"zIndex":0,"params":{}}]}`,
+    ],
+    [
+      'negative start',
+      JSON.stringify({
+        version: 1,
+        canvas: { width: 1920, height: 1080 },
+        cards: [
+          {
+            id: 'card-1',
+            motionId: 'metric-focus',
+            start: -0.1,
+            end: 1,
+            position: { x: 0, y: 0 },
+            zIndex: 0,
+            params: {},
+          },
+        ],
+      }),
+    ],
+    [
+      'short card',
+      JSON.stringify({
+        version: 1,
+        canvas: { width: 1920, height: 1080 },
+        cards: [
+          {
+            id: 'card-1',
+            motionId: 'metric-focus',
+            start: 0,
+            end: 0.1,
+            position: { x: 0, y: 0 },
+            zIndex: 0,
+            params: {},
+          },
+        ],
+      }),
     ],
   ])('rejects %s', (_name, text) => {
     expect(() => parseOverlayProject(text, defaultsByMotion)).toThrow(

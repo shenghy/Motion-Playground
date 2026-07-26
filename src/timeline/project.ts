@@ -5,7 +5,7 @@ export const MIN_CARD_DURATION = 0.2
 export const DEFAULT_CARD_DURATION = 3
 
 const INVALID_PROJECT_MESSAGE = 'JSON 项目格式无效'
-let nextOverlayCardId = 1
+const VIDEO_TOO_SHORT_MESSAGE = '视频时长不足'
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum)
@@ -15,12 +15,23 @@ function clampPercentage(value: number) {
   return clamp(value, 0, 100)
 }
 
+function assertSufficientVideoDuration(videoDuration: number) {
+  if (!Number.isFinite(videoDuration) || videoDuration < MIN_CARD_DURATION) {
+    throw new Error(VIDEO_TOO_SHORT_MESSAGE)
+  }
+}
+
 function invalidProject(): never {
   throw new Error(INVALID_PROJECT_MESSAGE)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -42,26 +53,46 @@ function hasMotionDefaults(
   defaultsByMotion: Partial<Record<MotionId, ParameterValues>>,
   motionId: string,
 ): motionId is MotionId {
-  return Object.prototype.hasOwnProperty.call(defaultsByMotion, motionId)
+  return (
+    Object.prototype.hasOwnProperty.call(defaultsByMotion, motionId) &&
+    isParameterValues(
+      (defaultsByMotion as Record<string, ParameterValues | undefined>)[motionId],
+    )
+  )
+}
+
+function paramsMatchDefaults(
+  params: unknown,
+  defaults: ParameterValues,
+): params is ParameterValues {
+  return (
+    isParameterValues(params) &&
+    Object.entries(params).every(
+      ([key, value]) =>
+        Object.prototype.hasOwnProperty.call(defaults, key) &&
+        typeof value === typeof defaults[key],
+    )
+  )
 }
 
 export function createOverlayCard(
+  id: string,
   motionId: MotionId,
   start: number,
   videoDuration: number,
   zIndex: number,
   defaults: ParameterValues,
 ): OverlayCard {
+  assertSufficientVideoDuration(videoDuration)
+
   const requestedStart = Number.isFinite(start) ? Math.max(0, start) : 0
-  const hasVideoDuration = Number.isFinite(videoDuration) && videoDuration > 0
-  const upperBound = hasVideoDuration ? videoDuration : requestedStart + DEFAULT_CARD_DURATION
-  const safeStart = clamp(requestedStart, 0, upperBound)
+  const safeStart = clamp(requestedStart, 0, videoDuration - MIN_CARD_DURATION)
 
   return {
-    id: `overlay-${nextOverlayCardId++}`,
+    id,
     motionId,
     start: safeStart,
-    end: Math.min(safeStart + DEFAULT_CARD_DURATION, upperBound),
+    end: Math.min(safeStart + DEFAULT_CARD_DURATION, videoDuration),
     position: { x: 0, y: 0 },
     zIndex,
     params: { ...defaults },
@@ -79,10 +110,15 @@ export function moveCardTiming(
   nextStart: number,
   videoDuration: number,
 ): OverlayCard {
-  const maximumEnd = Math.max(0, Number.isFinite(videoDuration) ? videoDuration : card.end)
-  const duration = Math.min(Math.max(0, card.end - card.start), maximumEnd)
+  assertSufficientVideoDuration(videoDuration)
+
+  const duration = clamp(
+    card.end - card.start,
+    MIN_CARD_DURATION,
+    videoDuration,
+  )
   const safeNextStart = Number.isFinite(nextStart) ? nextStart : card.start
-  const start = clamp(safeNextStart, 0, maximumEnd - duration)
+  const start = clamp(safeNextStart, 0, videoDuration - duration)
 
   return {
     ...card,
@@ -97,26 +133,26 @@ export function resizeCardTiming(
   time: number,
   videoDuration: number,
 ): OverlayCard {
-  const maximumEnd = Math.max(0, Number.isFinite(videoDuration) ? videoDuration : card.end)
+  assertSufficientVideoDuration(videoDuration)
+
   const safeTime = Number.isFinite(time) ? time : edge === 'start' ? card.start : card.end
 
   if (edge === 'start') {
-    const end = Math.min(card.end, maximumEnd)
+    const end = clamp(card.end, MIN_CARD_DURATION, videoDuration)
 
     return {
       ...card,
-      start: clamp(safeTime, 0, Math.max(0, end - MIN_CARD_DURATION)),
+      start: clamp(safeTime, 0, end - MIN_CARD_DURATION),
       end,
     }
   }
 
+  const start = clamp(card.start, 0, videoDuration - MIN_CARD_DURATION)
+
   return {
     ...card,
-    end: clamp(
-      safeTime,
-      Math.min(maximumEnd, card.start + MIN_CARD_DURATION),
-      maximumEnd,
-    ),
+    start,
+    end: clamp(safeTime, start + MIN_CARD_DURATION, videoDuration),
   }
 }
 
@@ -127,8 +163,12 @@ export function updateCardPosition(
   return {
     ...card,
     position: {
-      x: clampPercentage(position.x),
-      y: clampPercentage(position.y),
+      x: Number.isFinite(position.x)
+        ? clampPercentage(position.x)
+        : clampPercentage(Number.isFinite(card.position.x) ? card.position.x : 0),
+      y: Number.isFinite(position.y)
+        ? clampPercentage(position.y)
+        : clampPercentage(Number.isFinite(card.position.y) ? card.position.y : 0),
     },
   }
 }
@@ -156,23 +196,33 @@ export function parseOverlayProject(
     return invalidProject()
   }
 
+  const cardIds = new Set<string>()
   const cards = parsed.cards.map((candidate): OverlayCard => {
     if (
       !isRecord(candidate) ||
       typeof candidate.id !== 'string' ||
+      candidate.id.trim() === '' ||
+      cardIds.has(candidate.id) ||
       typeof candidate.motionId !== 'string' ||
       !hasMotionDefaults(defaultsByMotion, candidate.motionId) ||
       !isFiniteNumber(candidate.start) ||
+      candidate.start < 0 ||
       !isFiniteNumber(candidate.end) ||
-      candidate.end <= candidate.start ||
+      candidate.end - candidate.start < MIN_CARD_DURATION ||
       !isFiniteNumber(candidate.zIndex) ||
       !isRecord(candidate.position) ||
       !isFiniteNumber(candidate.position.x) ||
       !isFiniteNumber(candidate.position.y) ||
-      !isParameterValues(candidate.params)
+      !paramsMatchDefaults(
+        candidate.params,
+        defaultsByMotion[candidate.motionId] as ParameterValues,
+      )
     ) {
       return invalidProject()
     }
+
+    cardIds.add(candidate.id)
+    const defaults = defaultsByMotion[candidate.motionId] as ParameterValues
 
     return {
       id: candidate.id,
@@ -185,7 +235,7 @@ export function parseOverlayProject(
       },
       zIndex: candidate.zIndex,
       params: {
-        ...defaultsByMotion[candidate.motionId],
+        ...defaults,
         ...candidate.params,
       },
     }

@@ -1,20 +1,12 @@
-import { useRef, useState } from 'react'
-import { BarCompare } from '../motion/BarCompare'
-import { CompareSplit } from '../motion/CompareSplit'
-import { MetricFocus } from '../motion/MetricFocus'
-import { ProfileReveal } from '../motion/ProfileReveal'
-import { ShareRing } from '../motion/ShareRing'
-import { StepFlow } from '../motion/StepFlow'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { getMotionDefinition } from '../motion/registry'
+import { getActiveCards } from '../timeline/project'
+import type { OverlayCard, OverlayPosition } from '../timeline/types'
 import { VideoPlaybackControls } from './VideoPlaybackControls'
 import type {
-  BarCompareParams,
-  CompareSplitParams,
-  MetricFocusParams,
+  MotionDefinition,
   MotionId,
   ParameterValues,
-  ProfileRevealParams,
-  ShareRingParams,
-  StepFlowParams,
 } from '../motion/types'
 
 interface PreviewStageProps {
@@ -28,6 +20,14 @@ interface PreviewStageProps {
   onVideoReady?: (url: string) => void
   onVideoError?: (url: string) => void
   onActiveVideoError?: (url: string) => void
+  overlayCards?: OverlayCard[]
+  selectedCardId?: string | null
+  currentTime?: number
+  onMediaTimeChange?: (time: number) => void
+  onMediaDurationChange?: (duration: number) => void
+  onSeekControllerReady?: (seek: ((time: number) => void) | null) => void
+  onSelectOverlayCard?: (id: string) => void
+  onCardPositionChange?: (id: string, position: OverlayPosition) => void
 }
 
 interface PlaybackState {
@@ -36,6 +36,14 @@ interface PlaybackState {
   isMuted: boolean
   currentTime: number
   duration: number
+}
+
+interface PositionGesture {
+  cardId: string
+  pointerId: number
+  initialClientX: number
+  initialClientY: number
+  initialPosition: OverlayPosition
 }
 
 const createPlaybackState = (source?: string): PlaybackState => ({
@@ -47,20 +55,17 @@ const createPlaybackState = (source?: string): PlaybackState => ({
 })
 
 function renderMotion(id: MotionId, params: ParameterValues) {
-  switch (id) {
-    case 'compare-split':
-      return <CompareSplit params={params as CompareSplitParams} />
-    case 'profile-reveal':
-      return <ProfileReveal params={params as ProfileRevealParams} />
-    case 'bar-compare':
-      return <BarCompare params={params as BarCompareParams} />
-    case 'share-ring':
-      return <ShareRing params={params as ShareRingParams} />
-    case 'step-flow':
-      return <StepFlow params={params as StepFlowParams} />
-    default:
-      return <MetricFocus params={params as MetricFocusParams} />
-  }
+  const definition = getMotionDefinition(id) as unknown as MotionDefinition
+  const MotionComponent = definition.component
+  return <MotionComponent params={params} />
+}
+
+function finiteMediaValue(value: number) {
+  return Number.isFinite(value) ? Math.max(0, value) : 0
+}
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(Math.max(value, minimum), maximum)
 }
 
 export function PreviewStage({
@@ -74,8 +79,18 @@ export function PreviewStage({
   onVideoReady,
   onVideoError,
   onActiveVideoError,
+  overlayCards = [],
+  selectedCardId = null,
+  currentTime,
+  onMediaTimeChange,
+  onMediaDurationChange,
+  onSeekControllerReady,
+  onSelectOverlayCard,
+  onCardPositionChange,
 }: PreviewStageProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const positionGestureRef = useRef<PositionGesture | null>(null)
   const [playbackState, setPlaybackState] = useState<PlaybackState>(() =>
     createPlaybackState(videoUrl),
   )
@@ -84,14 +99,26 @@ export function PreviewStage({
       ? playbackState
       : createPlaybackState(videoUrl)
 
-  const updatePlaybackState = (updates: Partial<PlaybackState>) => {
+  const updatePlaybackState = useCallback((updates: Partial<PlaybackState>) => {
     setPlaybackState((current) => ({
       ...(current.source === videoUrl
         ? current
         : createPlaybackState(videoUrl)),
       ...updates,
     }))
-  }
+  }, [videoUrl])
+
+  const reportMediaTime = useCallback((time: number) => {
+    const nextTime = finiteMediaValue(time)
+    updatePlaybackState({ currentTime: nextTime })
+    onMediaTimeChange?.(nextTime)
+  }, [onMediaTimeChange, updatePlaybackState])
+
+  const reportMediaDuration = useCallback((duration: number) => {
+    const nextDuration = finiteMediaValue(duration)
+    updatePlaybackState({ duration: nextDuration })
+    onMediaDurationChange?.(nextDuration)
+  }, [onMediaDurationChange, updatePlaybackState])
 
   const togglePlayback = () => {
     const video = videoRef.current
@@ -122,18 +149,100 @@ export function PreviewStage({
     updatePlaybackState({ isMuted: video.muted })
   }
 
-  const seek = (time: number) => {
+  const seek = useCallback((time: number) => {
     const video = videoRef.current
     if (!video) {
       return
     }
 
-    const nextTime = Math.min(
-      Math.max(time, 0),
-      currentPlaybackState.duration || 0,
-    )
+    const maximum = finiteMediaValue(video.duration)
+    const requestedTime = Number.isFinite(time) ? time : 0
+    const nextTime = clamp(requestedTime, 0, maximum)
     video.currentTime = nextTime
     updatePlaybackState({ currentTime: nextTime })
+    onMediaTimeChange?.(nextTime)
+  }, [onMediaTimeChange, updatePlaybackState])
+
+  useEffect(() => {
+    if (!onSeekControllerReady) {
+      return
+    }
+
+    onSeekControllerReady(seek)
+    return () => onSeekControllerReady(null)
+  }, [onSeekControllerReady, seek])
+
+  const effectiveTime =
+    currentTime === undefined
+      ? currentPlaybackState.currentTime
+      : finiteMediaValue(currentTime)
+  const activeCards =
+    overlayCards.length > 0
+      ? getActiveCards(overlayCards, effectiveTime)
+      : []
+
+  const startPositionGesture = (
+    event: React.PointerEvent<HTMLDivElement>,
+    card: OverlayCard,
+  ) => {
+    event.stopPropagation()
+    onSelectOverlayCard?.(card.id)
+
+    if (
+      selectedCardId !== card.id ||
+      (positionGestureRef.current !== null &&
+        positionGestureRef.current.pointerId !== event.pointerId)
+    ) {
+      return
+    }
+
+    positionGestureRef.current = {
+      cardId: card.id,
+      pointerId: event.pointerId,
+      initialClientX: event.clientX,
+      initialClientY: event.clientY,
+      initialPosition: card.position,
+    }
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+  }
+
+  const handlePositionMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const gesture = positionGestureRef.current
+    const stage = stageRef.current
+    if (!gesture || gesture.pointerId !== event.pointerId || !stage) {
+      return
+    }
+
+    const bounds = stage.getBoundingClientRect()
+    if (
+      !Number.isFinite(bounds.width) ||
+      !Number.isFinite(bounds.height) ||
+      bounds.width <= 0 ||
+      bounds.height <= 0
+    ) {
+      return
+    }
+
+    onCardPositionChange?.(gesture.cardId, {
+      x: clamp(
+        gesture.initialPosition.x +
+          ((event.clientX - gesture.initialClientX) / bounds.width) * 100,
+        0,
+        100,
+      ),
+      y: clamp(
+        gesture.initialPosition.y +
+          ((event.clientY - gesture.initialClientY) / bounds.height) * 100,
+        0,
+        100,
+      ),
+    })
+  }
+
+  const clearPositionGesture = (pointerId: number) => {
+    if (positionGestureRef.current?.pointerId === pointerId) {
+      positionGestureRef.current = null
+    }
   }
 
   return (
@@ -158,9 +267,14 @@ export function PreviewStage({
           {Array.from({ length: 8 }, (_, index) => <i key={index} />)}
         </div>
         <div
+          ref={stageRef}
           className="preview-canvas"
           data-testid="preview-stage"
           data-playback-key={playbackKey}
+          onPointerMove={handlePositionMove}
+          onPointerUp={(event) => clearPositionGesture(event.pointerId)}
+          onPointerCancel={(event) => clearPositionGesture(event.pointerId)}
+          onLostPointerCapture={(event) => clearPositionGesture(event.pointerId)}
         >
           {videoUrl ? (
             <video
@@ -176,17 +290,19 @@ export function PreviewStage({
               playsInline
               onPlay={() => updatePlaybackState({ isPlaying: true })}
               onPause={() => updatePlaybackState({ isPlaying: false })}
-              onTimeUpdate={(event) =>
-                updatePlaybackState({
-                  currentTime: event.currentTarget.currentTime,
-                })
-              }
-              onDurationChange={(event) => {
-                const nextDuration = event.currentTarget.duration
-                updatePlaybackState({
-                  duration: Number.isFinite(nextDuration) ? nextDuration : 0,
-                })
+              onLoadedMetadata={(event) => {
+                reportMediaDuration(event.currentTarget.duration)
+                reportMediaTime(event.currentTarget.currentTime)
               }}
+              onTimeUpdate={(event) =>
+                reportMediaTime(event.currentTarget.currentTime)
+              }
+              onSeeking={(event) =>
+                reportMediaTime(event.currentTarget.currentTime)
+              }
+              onDurationChange={(event) =>
+                reportMediaDuration(event.currentTarget.duration)
+              }
               onVolumeChange={(event) =>
                 updatePlaybackState({ isMuted: event.currentTarget.muted })
               }
@@ -212,9 +328,50 @@ export function PreviewStage({
               onError={() => onVideoError?.(pendingVideoUrl)}
             />
           )}
-          <div className="motion-slot" key={`${motionId}-${playbackKey}`}>
-            {renderMotion(motionId, params)}
-          </div>
+          {overlayCards.length === 0 ? (
+            <div className="motion-slot" key={`${motionId}-${playbackKey}`}>
+              {renderMotion(motionId, params)}
+            </div>
+          ) : (
+            <div className="overlay-layer">
+              {activeCards.map((card) => {
+                const definition = getMotionDefinition(card.motionId)
+                const selected = selectedCardId === card.id
+
+                return (
+                  <div
+                    key={card.id}
+                    className={`overlay-card${selected ? ' overlay-card--selected' : ''}`}
+                    data-testid={`overlay-card-${card.id}`}
+                    data-overlay-card-id={card.id}
+                    data-selected={selected ? 'true' : 'false'}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`选择叠加卡片 ${definition.name}`}
+                    style={{
+                      left: `${card.position.x}%`,
+                      top: `${card.position.y}%`,
+                      zIndex: card.zIndex + 2,
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onSelectOverlayCard?.(card.id)
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        onSelectOverlayCard?.(card.id)
+                      }
+                    }}
+                    onPointerDown={(event) => startPositionGesture(event, card)}
+                  >
+                    {renderMotion(card.motionId, card.params)}
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {videoUrl && (
             <VideoPlaybackControls
               isPlaying={currentPlaybackState.isPlaying}

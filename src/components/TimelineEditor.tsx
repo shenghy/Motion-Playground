@@ -1,15 +1,24 @@
 import { useRef } from 'react'
+import type { MotionId } from '../motion/types'
 import type { OverlayCard } from '../timeline/types'
 
 const OVERLAY_MOTION_TYPE = 'application/x-overlay-motion'
+const MOTION_IDS = new Set<MotionId>([
+  'metric-focus',
+  'compare-split',
+  'profile-reveal',
+  'bar-compare',
+  'share-ring',
+  'step-flow',
+])
 
 interface TimelineEditorProps {
   cards: OverlayCard[]
   duration: number
   currentTime: number
   selectedCardId: string | null
-  motionNames: Record<string, string>
-  onDropMotion: (motionId: string, startTime: number) => void
+  motionNames: Partial<Record<MotionId, string>>
+  onDropMotion: (motionId: MotionId, startTime: number) => void
   onSelectCard: (cardId: string) => void
   onMoveCard: (cardId: string, startTime: number) => void
   onResizeCard: (
@@ -24,6 +33,7 @@ interface TimelineEditorProps {
 interface PointerGesture {
   cardId: string
   mode: 'move' | 'start' | 'end'
+  pointerId: number
   initialClientX: number
   initialTime: number
 }
@@ -38,6 +48,17 @@ function percentage(time: number, duration: number) {
   }
 
   return clamp((time / duration) * 100, 0, 100)
+}
+
+function hasMotionName(
+  motionNames: Partial<Record<MotionId, string>>,
+  motionId: string,
+): motionId is MotionId {
+  return (
+    MOTION_IDS.has(motionId as MotionId) &&
+    Object.prototype.hasOwnProperty.call(motionNames, motionId) &&
+    typeof motionNames[motionId as MotionId] === 'string'
+  )
 }
 
 export function TimelineEditor({
@@ -56,10 +77,11 @@ export function TimelineEditor({
   const trackRef = useRef<HTMLDivElement>(null)
   const pointerGestureRef = useRef<PointerGesture | null>(null)
   const selectedCard = cards.find((card) => card.id === selectedCardId)
+  const hasUsableDuration = Number.isFinite(duration) && duration > 0
 
   const timeAtClientX = (clientX: number) => {
     const track = trackRef.current
-    if (!track || !Number.isFinite(duration) || duration <= 0) {
+    if (!track || !hasUsableDuration) {
       return null
     }
 
@@ -75,6 +97,14 @@ export function TimelineEditor({
     event: React.PointerEvent<HTMLElement>,
     gesture: PointerGesture,
   ) => {
+    if (
+      !hasUsableDuration ||
+      (pointerGestureRef.current !== null &&
+        pointerGestureRef.current.pointerId !== gesture.pointerId)
+    ) {
+      return
+    }
+
     pointerGestureRef.current = gesture
     event.currentTarget.setPointerCapture?.(event.pointerId)
   }
@@ -82,7 +112,12 @@ export function TimelineEditor({
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const gesture = pointerGestureRef.current
     const track = trackRef.current
-    if (!gesture || !track || !Number.isFinite(duration) || duration <= 0) {
+    if (
+      !gesture ||
+      gesture.pointerId !== event.pointerId ||
+      !track ||
+      !hasUsableDuration
+    ) {
       return
     }
 
@@ -103,6 +138,32 @@ export function TimelineEditor({
     onResizeCard(gesture.cardId, gesture.mode, targetTime)
   }
 
+  const clearPointerGesture = (pointerId: number) => {
+    if (pointerGestureRef.current?.pointerId === pointerId) {
+      pointerGestureRef.current = null
+    }
+  }
+
+  const handleResizeKey = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    card: OverlayCard,
+    edge: 'start' | 'end',
+  ) => {
+    if (
+      !hasUsableDuration ||
+      (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')
+    ) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    const step = Math.max(0.1, duration / 100)
+    const direction = event.key === 'ArrowLeft' ? -1 : 1
+    const current = edge === 'start' ? card.start : card.end
+    onResizeCard(card.id, edge, clamp(current + direction * step, 0, duration))
+  }
+
   return (
     <section className="timeline-editor" aria-label="叠加动效时间轴">
       <header className="timeline-editor__header">
@@ -118,7 +179,7 @@ export function TimelineEditor({
         ) : null}
       </header>
 
-      {duration <= 0 ? (
+      {!hasUsableDuration ? (
         <p className="timeline-editor__status" role="status" aria-live="polite">
           请先导入视频
         </p>
@@ -145,8 +206,12 @@ export function TimelineEditor({
           }
         }}
         onDrop={(event) => {
+          if (!Array.from(event.dataTransfer.types).includes(OVERLAY_MOTION_TYPE)) {
+            return
+          }
+
           const motionId = event.dataTransfer.getData(OVERLAY_MOTION_TYPE)
-          if (!motionId) {
+          if (!hasMotionName(motionNames, motionId)) {
             return
           }
 
@@ -157,11 +222,14 @@ export function TimelineEditor({
           }
         }}
         onPointerMove={handlePointerMove}
-        onPointerUp={() => {
-          pointerGestureRef.current = null
+        onPointerUp={(event) => {
+          clearPointerGesture(event.pointerId)
         }}
-        onPointerCancel={() => {
-          pointerGestureRef.current = null
+        onPointerCancel={(event) => {
+          clearPointerGesture(event.pointerId)
+        }}
+        onLostPointerCapture={(event) => {
+          clearPointerGesture(event.pointerId)
         }}
       >
         {cards.map((card) => {
@@ -176,52 +244,60 @@ export function TimelineEditor({
                 selectedCardId === card.id ? ' timeline-editor__card--selected' : ''
               }`}
               style={{ left: `${left}%`, width: `${Math.max(0, right - left)}%` }}
-              role="button"
-              tabIndex={0}
-              aria-label={`选择${motionName}片段`}
-              aria-pressed={selectedCardId === card.id}
-              onClick={() => onSelectCard(card.id)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  onSelectCard(card.id)
-                }
-              }}
-              onPointerDown={(event) => {
-                startPointerGesture(event, {
-                  cardId: card.id,
-                  mode: 'move',
-                  initialClientX: event.clientX,
-                  initialTime: card.start,
-                })
-              }}
             >
               <button
                 type="button"
                 className="timeline-editor__handle timeline-editor__handle--start"
                 aria-label={`调整${motionName}片段开始时间`}
                 onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => handleResizeKey(event, card, 'start')}
                 onPointerDown={(event) => {
                   event.stopPropagation()
                   startPointerGesture(event, {
                     cardId: card.id,
                     mode: 'start',
+                    pointerId: event.pointerId,
                     initialClientX: event.clientX,
                     initialTime: card.start,
                   })
                 }}
               />
-              <span className="timeline-editor__card-label">{motionName}</span>
+              <button
+                type="button"
+                className="timeline-editor__card-body"
+                aria-label={`选择${motionName}片段`}
+                aria-pressed={selectedCardId === card.id}
+                onClick={() => onSelectCard(card.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onSelectCard(card.id)
+                  }
+                }}
+                onPointerDown={(event) => {
+                  startPointerGesture(event, {
+                    cardId: card.id,
+                    mode: 'move',
+                    pointerId: event.pointerId,
+                    initialClientX: event.clientX,
+                    initialTime: card.start,
+                  })
+                }}
+              >
+                <span className="timeline-editor__card-label">{motionName}</span>
+              </button>
               <button
                 type="button"
                 className="timeline-editor__handle timeline-editor__handle--end"
                 aria-label={`调整${motionName}片段结束时间`}
                 onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => handleResizeKey(event, card, 'end')}
                 onPointerDown={(event) => {
                   event.stopPropagation()
                   startPointerGesture(event, {
                     cardId: card.id,
                     mode: 'end',
+                    pointerId: event.pointerId,
                     initialClientX: event.clientX,
                     initialTime: card.end,
                   })

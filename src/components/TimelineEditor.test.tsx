@@ -61,9 +61,12 @@ function mockTrackRect(track: HTMLElement, left = 100, width = 400) {
   })
 }
 
-function createDataTransfer(motionId = 'metric-focus') {
+function createDataTransfer(
+  motionId = 'metric-focus',
+  types = ['application/x-overlay-motion'],
+) {
   return {
-    types: ['application/x-overlay-motion'],
+    types,
     dropEffect: 'none',
     getData: vi.fn(() => motionId),
   }
@@ -82,6 +85,20 @@ function dropAt(
   fireEvent(track, event)
 }
 
+function firePointer(
+  target: HTMLElement,
+  type: 'pointerdown' | 'pointermove' | 'pointerup' | 'pointercancel' | 'lostpointercapture',
+  pointerId: number,
+  clientX = 0,
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true })
+  Object.defineProperties(event, {
+    pointerId: { value: pointerId },
+    clientX: { value: clientX },
+  })
+  fireEvent(target, event)
+}
+
 describe('TimelineEditor', () => {
   it('accepts motion drops at a clamped track time and allows copy drag-over', () => {
     const props = createProps()
@@ -98,6 +115,19 @@ describe('TimelineEditor', () => {
 
     expect(props.onDropMotion).toHaveBeenNthCalledWith(1, 'metric-focus', 5)
     expect(props.onDropMotion).toHaveBeenNthCalledWith(2, 'metric-focus', 10)
+  })
+
+  it('rejects empty, unknown, and wrong-MIME motion drops', () => {
+    const props = createProps()
+    render(<TimelineEditor {...props} />)
+    const track = screen.getByTestId('timeline-track')
+    mockTrackRect(track)
+
+    dropAt(track, 200, createDataTransfer(''))
+    dropAt(track, 200, createDataTransfer('not-a-motion'))
+    dropAt(track, 200, createDataTransfer('metric-focus', ['text/plain']))
+
+    expect(props.onDropMotion).not.toHaveBeenCalled()
   })
 
   it('rejects drops without a video and shows a Chinese status', () => {
@@ -119,23 +149,35 @@ describe('TimelineEditor', () => {
     const fallbackCard = screen.getByRole('button', {
       name: '选择compare-split片段',
     })
+    const firstClip = firstCard.parentElement
+    const fallbackClip = fallbackCard.parentElement
 
-    expect(firstCard).toHaveStyle({ left: '10%', width: '20%' })
+    expect(firstClip).toHaveStyle({ left: '10%', width: '20%' })
     expect(firstCard).toHaveAttribute('aria-pressed', 'true')
-    expect(fallbackCard).toHaveStyle({ left: '50%', width: '30%' })
+    expect(fallbackClip).toHaveStyle({ left: '50%', width: '30%' })
     expect(screen.getByTestId('timeline-playhead')).toHaveStyle({ left: '40%' })
+
+    const startHandle = screen.getByRole('button', {
+      name: '调整核心指标片段开始时间',
+    })
+    expect(firstCard).not.toContainElement(startHandle)
+    expect(firstCard.parentElement).toBe(startHandle.parentElement)
   })
 
-  it('selects a card and seeks when the empty track is clicked', () => {
+  it('selects a card by click or keyboard and seeks on empty-track click', () => {
     const props = createProps()
     render(<TimelineEditor {...props} />)
     const track = screen.getByTestId('timeline-track')
+    const card = screen.getByRole('button', { name: '选择核心指标片段' })
     mockTrackRect(track)
 
-    fireEvent.click(screen.getByRole('button', { name: '选择核心指标片段' }))
+    fireEvent.click(card)
+    fireEvent.keyDown(card, { key: 'Enter' })
+    fireEvent.keyDown(card, { key: ' ' })
     fireEvent.click(track, { clientX: 200 })
 
-    expect(props.onSelectCard).toHaveBeenCalledWith('card-1')
+    expect(props.onSelectCard).toHaveBeenCalledTimes(3)
+    expect(props.onSelectCard).toHaveBeenLastCalledWith('card-1')
     expect(props.onSeek).toHaveBeenCalledWith(2.5)
   })
 
@@ -146,9 +188,9 @@ describe('TimelineEditor', () => {
     const card = screen.getByRole('button', { name: '选择核心指标片段' })
     mockTrackRect(track)
 
-    fireEvent.pointerDown(card, { clientX: 140, pointerId: 1 })
-    fireEvent.pointerMove(track, { clientX: 220, pointerId: 1 })
-    fireEvent.pointerMove(track, { clientX: -500, pointerId: 1 })
+    firePointer(card, 'pointerdown', 1, 140)
+    firePointer(track, 'pointermove', 1, 220)
+    firePointer(track, 'pointermove', 1, -500)
 
     expect(props.onMoveCard).toHaveBeenNthCalledWith(1, 'card-1', 3)
     expect(props.onMoveCard).toHaveBeenNthCalledWith(2, 'card-1', 0)
@@ -166,15 +208,64 @@ describe('TimelineEditor', () => {
     })
     mockTrackRect(track)
 
-    fireEvent.pointerDown(startHandle, { clientX: 140, pointerId: 1 })
-    fireEvent.pointerMove(track, { clientX: 180, pointerId: 1 })
-    fireEvent.pointerUp(track, { pointerId: 1 })
-    fireEvent.pointerDown(endHandle, { clientX: 140, pointerId: 2 })
-    fireEvent.pointerMove(track, { clientX: 900, pointerId: 2 })
+    firePointer(startHandle, 'pointerdown', 1, 140)
+    firePointer(track, 'pointermove', 1, 180)
+    firePointer(track, 'pointerup', 1)
+    firePointer(endHandle, 'pointerdown', 2, 140)
+    firePointer(track, 'pointermove', 2, 900)
 
     expect(props.onResizeCard).toHaveBeenNthCalledWith(1, 'card-1', 'start', 2)
     expect(props.onResizeCard).toHaveBeenNthCalledWith(2, 'card-1', 'end', 10)
     expect(props.onSelectCard).not.toHaveBeenCalled()
+  })
+
+  it('resizes handles by arrow key without selecting the card', () => {
+    const props = createProps()
+    render(<TimelineEditor {...props} />)
+    const startHandle = screen.getByRole('button', {
+      name: '调整核心指标片段开始时间',
+    })
+    const endHandle = screen.getByRole('button', {
+      name: '调整核心指标片段结束时间',
+    })
+
+    fireEvent.keyDown(startHandle, { key: 'ArrowRight' })
+    fireEvent.keyDown(endHandle, { key: 'ArrowLeft' })
+
+    expect(props.onResizeCard).toHaveBeenNthCalledWith(1, 'card-1', 'start', 1.1)
+    expect(props.onResizeCard).toHaveBeenNthCalledWith(2, 'card-1', 'end', 2.9)
+    expect(props.onSelectCard).not.toHaveBeenCalled()
+  })
+
+  it('isolates pointer gestures by id and clears matching cancel or lost capture', () => {
+    const props = createProps()
+    render(<TimelineEditor {...props} />)
+    const track = screen.getByTestId('timeline-track')
+    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    const setPointerCapture = vi.fn()
+    Object.defineProperty(card, 'setPointerCapture', {
+      configurable: true,
+      value: setPointerCapture,
+    })
+    mockTrackRect(track)
+
+    firePointer(card, 'pointerdown', 7, 140)
+    expect(setPointerCapture).toHaveBeenCalledWith(7)
+    firePointer(card, 'pointerdown', 8, 140)
+    expect(setPointerCapture).toHaveBeenCalledTimes(1)
+    firePointer(track, 'pointermove', 8, 220)
+    expect(props.onMoveCard).not.toHaveBeenCalled()
+    firePointer(track, 'pointercancel', 8)
+    firePointer(track, 'pointermove', 7, 220)
+    expect(props.onMoveCard).toHaveBeenCalledTimes(1)
+    firePointer(track, 'pointercancel', 7)
+    firePointer(track, 'pointermove', 7, 260)
+    expect(props.onMoveCard).toHaveBeenCalledTimes(1)
+
+    firePointer(card, 'pointerdown', 9, 140)
+    firePointer(track, 'lostpointercapture', 9)
+    firePointer(track, 'pointermove', 9, 220)
+    expect(props.onMoveCard).toHaveBeenCalledTimes(1)
   })
 
   it('deletes only a selected card that still exists', () => {
@@ -199,11 +290,29 @@ describe('TimelineEditor', () => {
 
     fireEvent.click(track, { clientX: 200 })
     dropAt(track, 200, createDataTransfer())
-    fireEvent.pointerDown(card, { clientX: 100, pointerId: 1 })
-    fireEvent.pointerMove(track, { clientX: 200, pointerId: 1 })
+    firePointer(card, 'pointerdown', 1, 100)
+    firePointer(track, 'pointermove', 1, 200)
 
     expect(props.onSeek).not.toHaveBeenCalled()
     expect(props.onDropMotion).not.toHaveBeenCalled()
+    expect(props.onMoveCard).not.toHaveBeenCalled()
+  })
+
+  it('treats a non-finite duration as unavailable for all interactions', () => {
+    const props = createProps({ duration: Number.NaN })
+    render(<TimelineEditor {...props} />)
+    const track = screen.getByTestId('timeline-track')
+    const card = screen.getByRole('button', { name: '选择核心指标片段' })
+    mockTrackRect(track)
+
+    expect(screen.getByRole('status')).toHaveTextContent('请先导入视频')
+    dropAt(track, 200, createDataTransfer())
+    fireEvent.click(track, { clientX: 200 })
+    firePointer(card, 'pointerdown', 1, 100)
+    firePointer(track, 'pointermove', 1, 200)
+
+    expect(props.onDropMotion).not.toHaveBeenCalled()
+    expect(props.onSeek).not.toHaveBeenCalled()
     expect(props.onMoveCard).not.toHaveBeenCalled()
   })
 })

@@ -274,20 +274,33 @@ describe('ProjectFileControls', () => {
     expect(input).toHaveValue('')
   })
 
-  it('revokes the export URL and reports an alert when the anchor click throws', async () => {
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:throwing-export')
+  it('clears a failed export alert after a successful retry and revokes both URLs', async () => {
+    vi.spyOn(URL, 'createObjectURL')
+      .mockReturnValueOnce('blob:throwing-export')
+      .mockReturnValueOnce('blob:successful-export')
     const revokeObjectURL = vi
       .spyOn(URL, 'revokeObjectURL')
       .mockImplementation(() => undefined)
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
-      throw new Error('download failed')
-    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementationOnce(() => {
+        throw new Error('download failed')
+      })
+      .mockImplementationOnce(() => undefined)
     render(<ProjectFileControls project={project} onImport={vi.fn()} />)
+    const exportButton = screen.getByRole('button', { name: '导出 JSON' })
 
-    fireEvent.click(screen.getByRole('button', { name: '导出 JSON' }))
+    fireEvent.click(exportButton)
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '导出 JSON 项目失败',
     )
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:throwing-export')
+
+    fireEvent.click(exportButton)
+    await waitFor(() =>
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+    )
+    expect(revokeObjectURL.mock.calls).toEqual([
+      ['blob:throwing-export'],
+      ['blob:successful-export'],
+    ])
   })
 })

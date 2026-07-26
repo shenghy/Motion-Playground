@@ -58,6 +58,7 @@ export function ProjectFileControls({
   }
 
   const exportProject = () => {
+    setLocalError('')
     const blob = new Blob([JSON.stringify(project, null, 2)], {
       type: 'application/json;charset=utf-8',
     })

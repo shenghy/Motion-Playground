@@ -1478,6 +1478,17 @@ a:focus-visible {
   background: #d8a19d;
 }
 
+.workspace-clear-button:disabled {
+  opacity: .36;
+  cursor: not-allowed;
+}
+
+.workspace-clear-button:disabled:hover {
+  border-color: rgba(216, 161, 157, .42);
+  color: #d8a19d;
+  background: transparent;
+}
+
 .video-setting {
   display: grid;
   gap: 12px;

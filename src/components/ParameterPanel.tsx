@@ -20,6 +20,7 @@ interface ParameterPanelProps {
   projectError?: string
   onProjectImport?: (text: string) => void | Promise<void>
   onClearWorkspace?: () => void | Promise<void>
+  disableWorkspaceClear?: boolean
   exportControls?: ReactNode
 }
 
@@ -43,6 +44,7 @@ export function ParameterPanel({
   projectError,
   onProjectImport,
   onClearWorkspace,
+  disableWorkspaceClear = false,
   exportControls,
 }: ParameterPanelProps) {
   return (
@@ -73,9 +75,10 @@ export function ParameterPanel({
             <button
               className="workspace-clear-button"
               type="button"
+              disabled={disableWorkspaceClear}
               onClick={onClearWorkspace}
             >
-              清空工作区
+              {disableWorkspaceClear ? '导出期间不可清空' : '清空工作区'}
             </button>
           </section>
         )}

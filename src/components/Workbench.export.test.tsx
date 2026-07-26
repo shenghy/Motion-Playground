@@ -143,6 +143,9 @@ describe('Workbench transparent export coordination', () => {
       name: '取消导出',
     })
     expect(cancelButton).toBeEnabled()
+    expect(
+      screen.getByRole('button', { name: '导出期间不可清空' }),
+    ).toBeDisabled()
     expect(document.querySelector('.workspace')).not.toHaveAttribute('inert')
     fireEvent.click(cancelButton)
 

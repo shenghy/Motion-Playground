@@ -672,7 +672,7 @@ export function Workbench({
   }
 
   const clearWorkspace = async () => {
-    if (clearingWorkspaceRef.current) {
+    if (clearingWorkspaceRef.current || exportOperationRef.current) {
       return
     }
     if (
@@ -1256,6 +1256,7 @@ export function Workbench({
           projectError={projectError || storageError}
           onProjectImport={importOverlayProject}
           onClearWorkspace={clearWorkspace}
+          disableWorkspaceClear={exportOperationActive}
           exportControls={
             <ExportPanel
               canExport={canExport}

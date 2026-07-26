@@ -19,6 +19,7 @@ import {
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_START_PORT = 4173
 const DEFAULT_END_PORT = 4192
+const MAX_STARTUP_LOCK_AGE_MS = 10 * 60 * 1000
 
 export function buildBrowserCommand(platform, url) {
   if (platform === 'win32') {
@@ -246,16 +247,27 @@ function isProcessRunning(pid) {
 
 function removeDeadStartupLock(lockPath) {
   try {
-    const lockAge = Date.now() - statSync(lockPath).mtimeMs
+    const lockStat = statSync(lockPath)
     const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
-    if (isProcessRunning(Number(lock.pid))) {
+    const createdAt = Number(lock.createdAt)
+    const lockTimestamp = Number.isFinite(createdAt)
+      ? createdAt
+      : lockStat.mtimeMs
+    const lockAge = Date.now() - lockTimestamp
+    if (
+      lockAge <= MAX_STARTUP_LOCK_AGE_MS &&
+      isProcessRunning(Number(lock.pid))
+    ) {
       return false
     }
     unlinkSync(lockPath)
     return true
   } catch {
     try {
-      if (Date.now() - statSync(lockPath).mtimeMs > 5000) {
+      if (
+        Date.now() - statSync(lockPath).mtimeMs >
+        MAX_STARTUP_LOCK_AGE_MS
+      ) {
         unlinkSync(lockPath)
         return true
       }
@@ -308,11 +320,11 @@ export function acquireStartupLock(lockPath) {
   }
 }
 
-async function waitForRunningOverlayStudio(options) {
-  for (let attempt = 0; attempt < 240; attempt += 1) {
-    const running = await findRunningOverlayStudio(options)
-    if (running) {
-      return running
+async function waitForStartupLock(lockFile) {
+  for (let attempt = 0; attempt < 2400; attempt += 1) {
+    const releaseStartupLock = acquireStartupLock(lockFile)
+    if (releaseStartupLock) {
+      return releaseStartupLock
     }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 250))
   }
@@ -366,31 +378,15 @@ export async function startOverlayStudio({
   const lockFile = join(projectRoot, '.overlay-studio-starting.local')
   const projectId = createProjectId(projectRoot)
   const savedPort = readSavedPort(portFile)
-  const runningBeforeLock = await findRunningOverlayStudio({
-    host,
-    startPort,
-    endPort,
-    savedPort,
-    projectId,
-  })
-  if (runningBeforeLock) {
-    return announceExistingInstance(runningBeforeLock, noOpen)
-  }
-
-  const releaseStartupLock = acquireStartupLock(lockFile)
-  if (!releaseStartupLock) {
-    const running = await waitForRunningOverlayStudio({
-      host,
-      startPort,
-      endPort,
-      savedPort,
-      projectId,
-    })
-    return announceExistingInstance(running, noOpen)
-  }
+  const releaseStartupLock =
+    acquireStartupLock(lockFile) ?? (await waitForStartupLock(lockFile))
 
   let local
   try {
+    if (!skipBuild) {
+      ensureProjectReady({ projectRoot })
+    }
+
     const runningAfterLock = await findRunningOverlayStudio({
       host,
       startPort,
@@ -400,10 +396,6 @@ export async function startOverlayStudio({
     })
     if (runningAfterLock) {
       return announceExistingInstance(runningAfterLock, noOpen)
-    }
-
-    if (!skipBuild) {
-      ensureProjectReady({ projectRoot })
     }
 
     const target = await chooseLauncherTarget({

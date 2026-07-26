@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import { readFile } from 'node:fs/promises'
-import { mkdtemp, rm } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -11,7 +16,12 @@ import {
   createProjectId,
   ensureProjectReady,
   findRunningOverlayStudio,
+  startOverlayStudio,
 } from './start-overlay-studio.mjs'
+import {
+  createLocalStaticServer,
+  findAvailablePort,
+} from './local-server.mjs'
 
 describe('Overlay Studio launcher', () => {
   it('uses the native browser opener for each platform', () => {
@@ -182,6 +192,71 @@ describe('Overlay Studio launcher', () => {
           join(directory, 'missing-directory', 'startup.local'),
         ),
       ).toThrow()
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('builds the latest page before reusing an existing local service', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'overlay-build-'))
+    const distDirectory = join(projectRoot, 'dist')
+    const buildMarker = join(projectRoot, 'built.txt')
+    let local
+
+    try {
+      await mkdir(join(projectRoot, 'node_modules'))
+      await mkdir(distDirectory)
+      await writeFile(join(distDirectory, 'index.html'), '<main>ready</main>')
+      await writeFile(
+        join(projectRoot, 'package.json'),
+        JSON.stringify({
+          scripts: {
+            build:
+              'node -e "require(\'node:fs\').writeFileSync(\'built.txt\', \'yes\')"',
+          },
+        }),
+      )
+
+      const port = await findAvailablePort('127.0.0.1', 4300, 4399)
+      local = await createLocalStaticServer({
+        rootDirectory: distDirectory,
+        host: '127.0.0.1',
+        port,
+        projectId: createProjectId(projectRoot),
+      })
+
+      const result = await startOverlayStudio({
+        projectRoot,
+        startPort: port,
+        endPort: port,
+        noOpen: true,
+      })
+
+      expect(result.reused).toBe(true)
+      await expect(readFile(buildMarker, 'utf8')).resolves.toBe('yes')
+    } finally {
+      await local?.close()
+      await rm(projectRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('reclaims an expired startup lock even when its PID is currently live', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'overlay-lock-'))
+    const lockPath = join(directory, 'startup.local')
+
+    try {
+      await writeFile(
+        lockPath,
+        JSON.stringify({
+          pid: process.pid,
+          token: 'expired-lock',
+          createdAt: Date.now() - 11 * 60 * 1000,
+        }),
+      )
+
+      const release = acquireStartupLock(lockPath)
+      expect(release).toEqual(expect.any(Function))
+      release()
     } finally {
       await rm(directory, { recursive: true, force: true })
     }

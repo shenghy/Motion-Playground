@@ -6,10 +6,13 @@ import { useCountUp } from './useCountUp'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
-export function CompareSplit({ params }: MotionComponentProps<CompareSplitParams>) {
+export function CompareSplit({
+  params,
+  playbackTime,
+}: MotionComponentProps<CompareSplitParams>) {
   const reduceMotion = useReducedMotion()
-  const leftValue = useCountUp(params.leftValue, params.duration, 0)
-  const rightValue = useCountUp(params.rightValue, params.duration, 0)
+  const leftValue = useCountUp(params.leftValue, params.duration, 0, playbackTime)
+  const rightValue = useCountUp(params.rightValue, params.duration, 0, playbackTime)
   const duration = reduceMotion ? 0 : params.duration * 0.45
   const split = Math.min(68, Math.max(32, params.split))
   const primaryWidth = 27 + ((split - 32) / 36) * 7

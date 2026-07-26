@@ -5,9 +5,17 @@ import { useCountUp } from './useCountUp'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
-export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>) {
+export function MetricFocus({
+  params,
+  playbackTime,
+}: MotionComponentProps<MetricFocusParams>) {
   const reduceMotion = useReducedMotion()
-  const count = useCountUp(params.value, params.duration, params.decimals)
+  const count = useCountUp(
+    params.value,
+    params.duration,
+    params.decimals,
+    playbackTime,
+  )
   const transition = (delay = 0) => ({
     duration: reduceMotion ? 0 : params.duration * 0.42,
     delay: reduceMotion ? 0 : delay,
@@ -63,7 +71,9 @@ export function MetricFocus({ params }: MotionComponentProps<MetricFocusParams>)
           aria-label={`核心指标 ${params.prefix}${params.value.toFixed(params.decimals)}${params.suffix}`}
         >
           <span className="metric-focus__prefix">{params.prefix}</span>
-          <span className="metric-focus__number">{count}</span>
+          <span className="metric-focus__number" data-testid="metric-number">
+            {count}
+          </span>
           <span className="metric-focus__suffix">{params.suffix}</span>
         </motion.div>
 

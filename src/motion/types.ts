@@ -140,6 +140,7 @@ export type Control =
 
 export interface MotionComponentProps<T extends ParameterValues> {
   params: T
+  playbackTime?: number
 }
 
 export interface MotionDefinition<T extends ParameterValues = ParameterValues> {

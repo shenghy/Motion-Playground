@@ -14,6 +14,17 @@ const params: MetricFocusParams = {
 }
 
 describe('MetricFocus', () => {
+  it('renders count-up values from an explicit export time', () => {
+    const { rerender } = render(
+      <MetricFocus params={params} playbackTime={0} />,
+    )
+
+    expect(screen.getByTestId('metric-number')).toHaveTextContent('0')
+
+    rerender(<MetricFocus params={params} playbackTime={2} />)
+    expect(screen.getByTestId('metric-number')).toHaveTextContent('248')
+  })
+
   it('locks the metric and its supporting context into the frame', () => {
     render(<MetricFocus params={params} />)
 

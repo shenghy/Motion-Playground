@@ -14,6 +14,7 @@
   "dependencies": {
     "@fontsource-variable/syne": "latest",
     "@fontsource/ibm-plex-mono": "latest",
+    "html-to-image": "^1.11.13",
     "motion": "latest",
     "react": "latest",
     "react-dom": "latest"

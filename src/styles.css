@@ -3388,3 +3388,29 @@ a:focus-visible {
     transition-duration: .01ms !important;
   }
 }
+
+.export-surface-host {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: -10000px;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.export-surface {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent;
+  container-type: inline-size;
+}
+
+.export-card {
+  position: absolute;
+  inset: 0;
+  transform-origin: center;
+}

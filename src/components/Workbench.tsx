@@ -43,9 +43,9 @@ import {
 } from '../export/exportPerformance'
 import {
   discardTransparentMov,
-  renderTransparentMov,
   saveTransparentMov,
 } from '../export/movExportClient'
+import { renderTransparentMovRaw } from '../export/rawMovClient'
 import { ComponentRail } from './ComponentRail'
 import {
   ExportPanel,
@@ -277,8 +277,14 @@ export function Workbench({
     void fetch('/__overlay_export__/capabilities', { cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) return false
-        const capability = (await response.json()) as { mov?: unknown }
+        const capability = (await response.json()) as {
+          mov?: unknown
+          rawRgba?: unknown
+          transport?: unknown
+        }
         return capability.mov === true
+          && capability.rawRgba === true
+          && capability.transport === 'websocket'
       })
       .then((available) => {
         if (!cancelled) setMovAvailable(available)
@@ -1086,6 +1092,14 @@ export function Workbench({
       const exportPerformance = createExportPerformance()
       let jobId = pendingJob?.id
       if (!jobId) {
+        const unsupported = snapshotCards.find(
+          (card) => card.motionId !== 'metric-focus',
+        )
+        if (unsupported) {
+          throw new Error(
+            `Canvas 快速导出原型尚未覆盖动效：${MOTION_NAMES[unsupported.motionId]}`,
+          )
+        }
         setExportStatus('rendering')
         setExportMessage('')
         setExportProgress({
@@ -1095,9 +1109,9 @@ export function Workbench({
         })
         const surface = exportSurfaceRef.current
         if (!surface) throw new Error('透明导出舞台尚未准备完成')
-        const result = await renderTransparentMov({
+        const result = await renderTransparentMovRaw({
           duration: snapshotDuration,
-          captureFrame: (time) => captureExportFrame(time, exportPerformance),
+          renderFrame: (time) => surface.renderRgba(time),
           signal: controller.signal,
           onProgress: updateExportProgress,
           onJobCreated: (createdJobId) => {
@@ -1149,7 +1163,7 @@ export function Workbench({
       exportOperationRef.current = false
       setExportOperationActive(false)
     }
-  }, [captureExportFrame, cards, updateExportProgress, videoDuration])
+  }, [cards, updateExportProgress, videoDuration])
 
   useEffect(() => {
     const pendingJob = pendingMovJobRef.current

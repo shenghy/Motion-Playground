@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "cards": [
+    {
+      "id": "benchmark-metric-focus",
+      "motionId": "metric-focus",
+      "start": 0,
+      "end": 10,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "zIndex": 0,
+      "params": {
+        "eyebrow": "透明导出性能基准",
+        "value": 248,
+        "prefix": "+",
+        "suffix": "%",
+        "description": "Canvas RGBA 原始帧",
+        "trend": "目标 30 帧/秒",
+        "decimals": 0,
+        "duration": 1.4
+      }
+    }
+  ]
+}

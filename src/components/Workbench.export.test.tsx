@@ -27,6 +27,44 @@ function loadOneSecondVideo() {
   )
 }
 
+class WorkbenchSocket {
+  static instances: WorkbenchSocket[] = []
+  sent: Array<ArrayBuffer | string> = []
+  listeners = new Map<string, Set<(event: Event | MessageEvent) => void>>()
+  readyState = 0
+
+  constructor() {
+    WorkbenchSocket.instances.push(this)
+    queueMicrotask(() => {
+      this.readyState = 1
+      this.emit('open', new Event('open'))
+    })
+  }
+
+  addEventListener(type: string, listener: (event: Event | MessageEvent) => void) {
+    const listeners = this.listeners.get(type) ?? new Set()
+    listeners.add(listener)
+    this.listeners.set(type, listeners)
+  }
+
+  removeEventListener(type: string, listener: (event: Event | MessageEvent) => void) {
+    this.listeners.get(type)?.delete(listener)
+  }
+
+  send(data: ArrayBuffer | string) {
+    this.sent.push(data)
+  }
+
+  close() {
+    this.readyState = 3
+    this.emit('close', new Event('close'))
+  }
+
+  emit(type: string, event: Event | MessageEvent) {
+    for (const listener of this.listeners.get(type) ?? []) listener(event)
+  }
+}
+
 describe('Workbench transparent export coordination', () => {
   beforeEach(() => {
     vi.mocked(getFontEmbedCSS).mockClear()
@@ -47,6 +85,8 @@ describe('Workbench transparent export coordination', () => {
             width: 1920,
             height: 1080,
             fps: 30,
+            rawRgba: true,
+            transport: 'websocket',
           }),
           { headers: { 'Content-Type': 'application/json' } },
         ),
@@ -98,6 +138,8 @@ describe('Workbench transparent export coordination', () => {
   })
 
   it('keeps the cancel button interactive during frame rendering', async () => {
+    WorkbenchSocket.instances = []
+    vi.stubGlobal('WebSocket', WorkbenchSocket)
     const showSaveFilePicker = vi.fn(async () => ({
       name: 'overlay.mov',
       async createWritable() {
@@ -113,7 +155,11 @@ describe('Workbench transparent export coordination', () => {
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input)
         if (url.endsWith('/capabilities')) {
-          return new Response(JSON.stringify({ mov: true }), {
+          return new Response(JSON.stringify({
+            mov: true,
+            rawRgba: true,
+            transport: 'websocket',
+          }), {
             headers: { 'Content-Type': 'application/json' },
           })
         }
@@ -123,13 +169,7 @@ describe('Workbench transparent export coordination', () => {
             headers: { 'Content-Type': 'application/json' },
           })
         }
-        if (url.includes('/frames/')) {
-          return await new Promise<Response>((_resolve, reject) => {
-            init?.signal?.addEventListener('abort', () => {
-              reject(new DOMException('cancelled', 'AbortError'))
-            })
-          })
-        }
+        if (url.includes('/frames/')) throw new Error('legacy PNG frame upload')
         return new Response(null, { status: 204 })
       }),
     )
@@ -141,6 +181,9 @@ describe('Workbench transparent export coordination', () => {
     })
     await waitFor(() => expect(movButton).toBeEnabled())
     fireEvent.click(movButton)
+
+    await waitFor(() => expect(WorkbenchSocket.instances).toHaveLength(1))
+    await waitFor(() => expect(WorkbenchSocket.instances[0].sent).toHaveLength(1))
 
     const cancelButton = await screen.findByRole('button', {
       name: '取消导出',

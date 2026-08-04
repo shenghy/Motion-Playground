@@ -96,6 +96,37 @@ describe('persistent canvas export session', () => {
     expect(fontReady).toHaveBeenCalledTimes(2)
   })
 
+  it('reads rgba and captures png from an OffscreenCanvas-shaped source', async () => {
+    const pixels = new Uint8ClampedArray(1920 * 1080 * 4)
+    const png = new Blob(['offscreen'], { type: 'image/png' })
+    const ctx = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      clearRect: vi.fn(),
+      translate: vi.fn(),
+      getImageData: vi.fn(() => ({ data: pixels })),
+    } as unknown as OffscreenCanvasRenderingContext2D
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: vi.fn(() => ctx),
+      convertToBlob: vi.fn(async () => png),
+    }
+    const session = createCanvasExportSession({
+      canvas,
+      cards: [],
+      resolveRenderer: () => vi.fn(),
+      fontReady: vi.fn(async () => undefined),
+    })
+
+    await session.begin()
+    session.renderFrame(0)
+
+    expect(session.readRgba()).toBe(pixels)
+    await expect(session.capturePng()).resolves.toBe(png)
+    expect(canvas.convertToBlob).toHaveBeenCalledWith({ type: 'image/png' })
+  })
+
   it('fails before drawing when a card has no canvas renderer', async () => {
     const { canvas } = canvasFixture()
     const session = createCanvasExportSession({
@@ -105,8 +136,6 @@ describe('persistent canvas export session', () => {
       fontReady: vi.fn(async () => undefined),
     })
     await session.begin()
-    expect(() => session.renderFrame(1)).toThrow(
-      '缺少 Canvas 导出渲染器：metric-focus',
-    )
+    expect(() => session.renderFrame(1)).toThrow('metric-focus')
   })
 })

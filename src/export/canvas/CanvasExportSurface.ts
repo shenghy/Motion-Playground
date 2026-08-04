@@ -18,8 +18,19 @@ export interface CanvasExportSession {
   end(): void
 }
 
+export interface ExportCanvasSource {
+  width: number
+  height: number
+  getContext(
+    contextId: '2d',
+    options: { alpha: true; willReadFrequently: true },
+  ): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
+  toBlob?(callback: BlobCallback, type?: string): void
+  convertToBlob?(options?: ImageEncodeOptions): Promise<Blob>
+}
+
 interface CanvasExportSessionOptions {
-  canvas: HTMLCanvasElement
+  canvas: ExportCanvasSource
   cards: OverlayCard[]
   resolveRenderer(
     motionId: MotionId,
@@ -45,11 +56,12 @@ export function createCanvasExportSession({
 }: CanvasExportSessionOptions): CanvasExportSession {
   canvas.width = EXPORT_WIDTH
   canvas.height = EXPORT_HEIGHT
-  const ctx = canvas.getContext('2d', {
+  const sourceContext = canvas.getContext('2d', {
     alpha: true,
     willReadFrequently: true,
   })
-  if (!ctx) throw new Error('浏览器无法创建 Canvas 导出舞台')
+  if (!sourceContext) throw new Error('浏览器无法创建 Canvas 导出舞台')
+  const ctx = sourceContext as unknown as CanvasRenderingContext2D
 
   const orderedCards = cards
     .map((card, sourceIndex) => ({ card, sourceIndex }))
@@ -95,12 +107,16 @@ export function createCanvasExportSession({
       if (!begun) throw new Error('Canvas 导出会话尚未开始')
       return ctx.getImageData(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT).data
     },
-    capturePng() {
-      if (!begun) {
-        return Promise.reject(new Error('Canvas 导出会话尚未开始'))
+    async capturePng() {
+      if (!begun) throw new Error('Canvas 导出会话尚未开始')
+      if (canvas.convertToBlob) {
+        return canvas.convertToBlob({ type: 'image/png' })
+      }
+      if (!canvas.toBlob) {
+        throw new Error('当前 Canvas 不支持 PNG 捕获')
       }
       return new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
+        canvas.toBlob?.((blob) => {
           if (blob) resolve(blob)
           else reject(new Error('生成透明 PNG 帧失败'))
         }, 'image/png')

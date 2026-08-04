@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import type { CanvasMotionRenderer } from '../export/canvas/types'
 
 export const MOTION_IDS = [
   'metric-focus',
@@ -152,4 +153,5 @@ export interface MotionDefinition<T extends ParameterValues = ParameterValues> {
   defaults: T
   controls: Control[]
   component: ComponentType<MotionComponentProps<T>>
+  canvasRenderer: CanvasMotionRenderer<T>
 }

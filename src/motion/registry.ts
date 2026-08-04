@@ -4,6 +4,12 @@ import { MetricFocus } from './MetricFocus'
 import { ProfileReveal } from './ProfileReveal'
 import { ShareRing } from './ShareRing'
 import { StepFlow } from './StepFlow'
+import { renderBarCompareToCanvas } from './canvas/barCompareRenderer'
+import { renderCompareSplitToCanvas } from './canvas/compareSplitRenderer'
+import { renderMetricFocusToCanvas } from './canvas/metricFocusRenderer'
+import { renderProfileRevealToCanvas } from './canvas/profileRevealRenderer'
+import { renderShareRingToCanvas } from './canvas/shareRingRenderer'
+import { renderStepFlowToCanvas } from './canvas/stepFlowRenderer'
 import type {
   BarCompareParams,
   CompareSplitParams,
@@ -31,6 +37,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 指标',
     description: '核心数字动效',
     component: MetricFocus,
+    canvasRenderer: renderMetricFocusToCanvas,
     defaults: {
       eyebrow: '季度增长',
       value: 248,
@@ -59,6 +66,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '双项 / 对比',
     description: '左右对比卡',
     component: CompareSplit,
+    canvasRenderer: renderCompareSplitToCanvas,
     defaults: {
       title: '转化率',
       leftLabel: '优化前',
@@ -99,6 +107,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '叙事 / 人物',
     description: '逐句动态信息卡',
     component: ProfileReveal,
+    canvasRenderer: renderProfileRevealToCanvas,
     defaults: {
       category: '创作者 / 人物档案',
       descriptor: '独立开发者 · 产品构建者',
@@ -135,6 +144,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 柱状',
     description: '柱状数据对比',
     component: BarCompare,
+    canvasRenderer: renderBarCompareToCanvas,
     defaults: {
       eyebrow: '04 / 数据对比',
       title: '季度增长',
@@ -187,6 +197,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 占比',
     description: '环形占比分析',
     component: ShareRing,
+    canvasRenderer: renderShareRingToCanvas,
     defaults: {
       eyebrow: '05 / 占比分析',
       title: '用户构成',
@@ -239,6 +250,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '流程 / 步骤',
     description: '步骤流程讲解',
     component: StepFlow,
+    canvasRenderer: renderStepFlowToCanvas,
     defaults: {
       eyebrow: '06 / 流程图',
       title: '发布流程',

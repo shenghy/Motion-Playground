@@ -46,6 +46,12 @@ import {
   saveTransparentMov,
 } from '../export/movExportClient'
 import { renderTransparentMovRaw } from '../export/rawMovClient'
+import {
+  canUseWorkerMovExport,
+  renderTransparentMovWorker,
+  supportsWorkerMovPipeline,
+  WorkerMovPreparationError,
+} from '../export/worker/workerMovClient'
 import { ComponentRail } from './ComponentRail'
 import {
   ExportPanel,
@@ -224,6 +230,7 @@ export function Workbench({
   const [exportOperationActive, setExportOperationActive] = useState(false)
   const [exportCards, setExportCards] = useState<OverlayCard[]>([])
   const [movAvailable, setMovAvailable] = useState(false)
+  const [workerMovAvailable, setWorkerMovAvailable] = useState(false)
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle')
   const [exportProgress, setExportProgress] = useState({
     completedFrames: 0,
@@ -276,21 +283,33 @@ export function Workbench({
     let cancelled = false
     void fetch('/__overlay_export__/capabilities', { cache: 'no-store' })
       .then(async (response) => {
-        if (!response.ok) return false
+        if (!response.ok) return { mov: false, worker: false }
         const capability = (await response.json()) as {
           mov?: unknown
           rawRgba?: unknown
           transport?: unknown
+          orderedRawProtocol?: unknown
+          workerPipeline?: unknown
         }
-        return capability.mov === true
+        const mov = capability.mov === true
           && capability.rawRgba === true
           && capability.transport === 'websocket'
+        return {
+          mov,
+          worker: mov && supportsWorkerMovPipeline(capability),
+        }
       })
       .then((available) => {
-        if (!cancelled) setMovAvailable(available)
+        if (!cancelled) {
+          setMovAvailable(available.mov)
+          setWorkerMovAvailable(available.worker)
+        }
       })
       .catch(() => {
-        if (!cancelled) setMovAvailable(false)
+        if (!cancelled) {
+          setMovAvailable(false)
+          setWorkerMovAvailable(false)
+        }
       })
     return () => {
       cancelled = true
@@ -1099,20 +1118,41 @@ export function Workbench({
           totalFrames: calculateFrameCount(snapshotDuration),
           performance: null,
         })
-        const surface = exportSurfaceRef.current
-        if (!surface) throw new Error('透明导出舞台尚未准备完成')
-        const result = await renderTransparentMovRaw({
-          duration: snapshotDuration,
-          renderFrame: (time) => surface.renderRgba(time),
-          signal: controller.signal,
-          onProgress: updateExportProgress,
-          onJobCreated: (createdJobId) => {
-            serverExportJobRef.current = createdJobId
-          },
-          beginCapture: () => surface.beginCaptureSession(),
-          endCapture: () => surface.endCaptureSession(),
-          performance: exportPerformance,
-        })
+        const onJobCreated = (createdJobId: string) => {
+          serverExportJobRef.current = createdJobId
+        }
+        const renderOnMainThread = () => {
+          const surface = exportSurfaceRef.current
+          if (!surface) throw new Error('透明导出舞台尚未准备完成')
+          return renderTransparentMovRaw({
+            duration: snapshotDuration,
+            renderFrame: (time) => surface.renderRgba(time),
+            signal: controller!.signal,
+            onProgress: updateExportProgress,
+            onJobCreated,
+            beginCapture: () => surface.beginCaptureSession(),
+            endCapture: () => surface.endCaptureSession(),
+            performance: exportPerformance,
+          })
+        }
+        let result
+        if (workerMovAvailable && canUseWorkerMovExport()) {
+          try {
+            result = await renderTransparentMovWorker({
+              cards: snapshotCards,
+              duration: snapshotDuration,
+              signal: controller.signal,
+              onProgress: updateExportProgress,
+              onJobCreated,
+              performance: exportPerformance,
+            })
+          } catch (error) {
+            if (!(error instanceof WorkerMovPreparationError)) throw error
+            result = await renderOnMainThread()
+          }
+        } else {
+          result = await renderOnMainThread()
+        }
         if (result.status === 'cancelled' || !result.jobId) {
           serverExportJobRef.current = null
           setExportStatus('cancelled')
@@ -1155,7 +1195,7 @@ export function Workbench({
       exportOperationRef.current = false
       setExportOperationActive(false)
     }
-  }, [cards, updateExportProgress, videoDuration])
+  }, [cards, updateExportProgress, videoDuration, workerMovAvailable])
 
   useEffect(() => {
     const pendingJob = pendingMovJobRef.current

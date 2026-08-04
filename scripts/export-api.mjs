@@ -90,7 +90,11 @@ export function createExportApi({ manager, origin }) {
         const action = actionMatch[2]
         if (request.method === 'POST' && action === 'finish') {
           const result = await manager.finishJob(id)
-          sendJson(response, 200, { id, size: result.size })
+          sendJson(response, 200, {
+            id,
+            size: result.size,
+            encodingMs: result.encodingMs,
+          })
           return true
         }
         if (request.method === 'GET' && action === 'file') {

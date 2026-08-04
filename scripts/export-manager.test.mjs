@@ -22,7 +22,7 @@ function pngHeader(width = 1920, height = 1080) {
 
 const PNG = pngHeader()
 
-function createFakeProcess() {
+function createFakeProcess(onFinish = () => undefined) {
   const child = new EventEmitter()
   child.stdin = new PassThrough()
   child.stderr = new PassThrough()
@@ -31,6 +31,7 @@ function createFakeProcess() {
     return true
   })
   child.stdin.once('finish', () => {
+    onFinish()
     queueMicrotask(() => child.emit('close', 0, null))
   })
   return child
@@ -39,12 +40,16 @@ function createFakeProcess() {
 describe('transparent MOV export manager', () => {
   it('streams ordered PNG frames to ProRes 4444 with alpha', async () => {
     const temporaryRoot = await mkdtemp(join(tmpdir(), 'overlay-export-'))
-    const child = createFakeProcess()
+    let clock = 100
+    const child = createFakeProcess(() => {
+      clock = 145
+    })
     const spawnProcess = vi.fn(() => child)
     const manager = createExportManager({
       ffmpegPath: 'bundled-ffmpeg',
       spawnProcess,
       temporaryRoot,
+      now: () => clock,
     })
 
     try {
@@ -63,7 +68,7 @@ describe('transparent MOV export manager', () => {
       )
       await manager.appendFrame(job.id, 1, PNG)
       await writeFile(job.outputPath, 'mov')
-      await manager.finishJob(job.id)
+      const finished = await manager.finishJob(job.id)
 
       expect(Buffer.concat(input)).toEqual(Buffer.concat([PNG, PNG]))
       const [command, args] = spawnProcess.mock.calls[0]
@@ -77,6 +82,7 @@ describe('transparent MOV export manager', () => {
         '-alpha_bits', '16',
       ]))
       expect(args.join(' ')).not.toContain('.mp4')
+      expect(finished.encodingMs).toBe(45)
     } finally {
       await manager.close()
       await rm(temporaryRoot, { recursive: true, force: true })

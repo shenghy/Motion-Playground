@@ -11,7 +11,7 @@ describe('export performance', () => {
     expect(performance.snapshot()).toEqual({
       completedFrames: 0,
       totalFrames: 0,
-      elapsedMs: 250,
+      elapsedMs: 0,
       framesPerSecond: null,
       estimatedRemainingMs: null,
       phases: {
@@ -60,5 +60,18 @@ describe('export performance', () => {
       totalFrames: 0,
       phases: { encoding: 0, saving: 0 },
     })
+  })
+
+  it('measures an async phase and preserves its result', async () => {
+    let now = 50
+    const performance = createExportPerformance(() => now)
+
+    const result = await performance.measure('preparing', async () => {
+      now = 90
+      return 'ready'
+    })
+
+    expect(result).toBe('ready')
+    expect(performance.snapshot().phases.preparing).toBe(40)
   })
 })

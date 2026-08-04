@@ -31,6 +31,21 @@ describe('ExportPanel', () => {
         status="rendering"
         completedFrames={45}
         totalFrames={90}
+        performance={{
+          completedFrames: 45,
+          totalFrames: 90,
+          elapsedMs: 3_600,
+          framesPerSecond: 12.5,
+          estimatedRemainingMs: 3_600,
+          phases: {
+            preparing: 10,
+            framePrepare: 500,
+            frameCapture: 2_500,
+            frameTransfer: 500,
+            encoding: 0,
+            saving: 0,
+          },
+        }}
         onExportPng={vi.fn()}
         onExportMov={vi.fn()}
         onCancel={onCancel}
@@ -38,6 +53,8 @@ describe('ExportPanel', () => {
     )
 
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '45')
+    expect(screen.getByText(/12\.5 帧\/秒/)).toBeInTheDocument()
+    expect(screen.getByText(/预计剩余 4 秒/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '取消导出' }))
     expect(onCancel).toHaveBeenCalled()
   })

@@ -78,6 +78,7 @@ export function createExportManager({
   spawnProcess = spawn,
   temporaryRoot = join(tmpdir(), 'overlay-studio-exports'),
   jobTtlMs = 30 * 60 * 1000,
+  now = () => performance.now(),
 }) {
   let activeJob = null
 
@@ -169,6 +170,7 @@ export function createExportManager({
       throw new Error('透明导出帧数量不完整')
     }
     job.status = 'encoding'
+    const encodingStartedAt = now()
     job.child.stdin.end()
     const result = await job.closeResult
     if (result.code !== 0) {
@@ -178,7 +180,15 @@ export function createExportManager({
     await stat(job.outputPath)
     job.status = 'completed'
     refreshExpiry(job)
-    return { id: job.id, size: (await stat(job.outputPath)).size }
+    const measuredEncodingMs = now() - encodingStartedAt
+    const encodingMs = Number.isFinite(measuredEncodingMs)
+      ? Math.max(0, measuredEncodingMs)
+      : 0
+    return {
+      id: job.id,
+      size: (await stat(job.outputPath)).size,
+      encodingMs,
+    }
   }
 
   async function cancelJob(id) {

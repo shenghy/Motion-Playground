@@ -26,7 +26,7 @@ function safeNonNegative(value: number) {
 export function createExportPerformance(
   now: () => number = () => performance.now(),
 ) {
-  const startedAt = now()
+  let startedAt: number | null = null
   const phases = Object.fromEntries(
     EXPORT_PERFORMANCE_PHASES.map((phase) => [phase, 0]),
   ) as Record<ExportPerformancePhase, number>
@@ -35,14 +35,29 @@ export function createExportPerformance(
 
   return {
     addDuration(phase: ExportPerformancePhase, durationMs: number) {
+      startedAt ??= now()
       phases[phase] += safeNonNegative(durationMs)
     },
+    async measure<T>(
+      phase: ExportPerformancePhase,
+      operation: () => Promise<T>,
+    ) {
+      const phaseStartedAt = now()
+      startedAt ??= phaseStartedAt
+      try {
+        return await operation()
+      } finally {
+        phases[phase] += safeNonNegative(now() - phaseStartedAt)
+      }
+    },
     completeFrame(completed: number, total: number) {
+      startedAt ??= now()
       completedFrames = Math.max(0, Math.floor(safeNonNegative(completed)))
       totalFrames = Math.max(0, Math.floor(safeNonNegative(total)))
     },
     snapshot(): ExportPerformanceSnapshot {
-      const elapsedMs = safeNonNegative(now() - startedAt)
+      const elapsedMs =
+        startedAt === null ? 0 : safeNonNegative(now() - startedAt)
       const framesPerSecond =
         completedFrames > 0 && elapsedMs > 0
           ? completedFrames / (elapsedMs / 1_000)

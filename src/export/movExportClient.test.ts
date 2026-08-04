@@ -5,6 +5,7 @@ import {
   renderTransparentMov,
   saveTransparentMov,
 } from './movExportClient'
+import { createExportPerformance } from './exportPerformance'
 
 function jsonResponse(value: unknown, init?: ResponseInit) {
   return new Response(JSON.stringify(value), {
@@ -17,6 +18,8 @@ function jsonResponse(value: unknown, init?: ResponseInit) {
 describe('transparent MOV client', () => {
   it('renders PNG frames sequentially and finishes one export job', async () => {
     const requests: Array<{ url: string; method: string }> = []
+    let clock = 0
+    const performance = createExportPerformance(() => clock)
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       const method = init?.method ?? 'GET'
@@ -25,22 +28,31 @@ describe('transparent MOV client', () => {
         return jsonResponse({ id: 'job-1' }, { status: 201 })
       }
       if (url.endsWith('/finish')) {
-        return jsonResponse({ id: 'job-1', size: 321 })
+        return jsonResponse({ id: 'job-1', size: 321, encodingMs: 25 })
       }
+      if (url.includes('/frames/')) clock += 5
       return new Response(null, { status: 204 })
     })
     const captureFrame = vi.fn(async (time: number) =>
       new Blob([String(time)], { type: 'image/png' }),
     )
     const onJobCreated = vi.fn()
+    const beginCapture = vi.fn(async () => undefined)
+    const endCapture = vi.fn()
 
     const result = await renderTransparentMov({
       duration: 0.1,
-      captureFrame,
+      captureFrame: async (time) => {
+        clock += 10
+        return captureFrame(time)
+      },
       signal: new AbortController().signal,
       onProgress: vi.fn(),
       onJobCreated,
       fetcher,
+      beginCapture,
+      endCapture,
+      performance,
     })
 
     expect(requests).toEqual([
@@ -73,12 +85,20 @@ describe('transparent MOV client', () => {
       completedFrames: 3,
       totalFrames: 3,
       size: 321,
+      encodingMs: 25,
     })
     expect(onJobCreated).toHaveBeenCalledWith('job-1')
+    expect(beginCapture).toHaveBeenCalledTimes(1)
+    expect(endCapture).toHaveBeenCalledTimes(1)
+    expect(performance.snapshot().phases).toMatchObject({
+      frameTransfer: 15,
+      encoding: 25,
+    })
   })
 
   it('cancels the server job without sending another frame', async () => {
     const controller = new AbortController()
+    const endCapture = vi.fn()
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url.endsWith('/jobs') && init?.method === 'POST') {
@@ -96,6 +116,8 @@ describe('transparent MOV client', () => {
       signal: controller.signal,
       onProgress: vi.fn(),
       fetcher,
+      beginCapture: async () => undefined,
+      endCapture,
     })
 
     expect(result.status).toBe('cancelled')
@@ -104,6 +126,7 @@ describe('transparent MOV client', () => {
       expect.objectContaining({ method: 'DELETE' }),
     )
     expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(endCapture).toHaveBeenCalledTimes(1)
   })
 
   it('streams the MOV to the chosen file and deletes the completed job', async () => {

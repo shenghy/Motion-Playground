@@ -29,7 +29,11 @@ describe('localhost transparent export API', () => {
     const manager = {
       createJob: vi.fn(async () => ({ id: 'job-1' })),
       appendFrame: vi.fn(async () => undefined),
-      finishJob: vi.fn(async () => ({ id: 'job-1', size: 3 })),
+      finishJob: vi.fn(async () => ({
+        id: 'job-1',
+        size: 3,
+        encodingMs: 18,
+      })),
       openResult: vi.fn(() => Readable.from(Buffer.from('mov'))),
       completeDownload: vi.fn(async () => undefined),
       cancelJob: vi.fn(async () => undefined),
@@ -91,6 +95,11 @@ describe('localhost transparent export API', () => {
         { method: 'POST', headers: { Origin: origin } },
       )
       expect(finished.status).toBe(200)
+      expect(await finished.json()).toEqual({
+        id: 'job-1',
+        size: 3,
+        encodingMs: 18,
+      })
 
       const file = await fetch(
         `${origin}/__overlay_export__/jobs/job-1/file`,

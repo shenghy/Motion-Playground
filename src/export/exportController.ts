@@ -6,11 +6,16 @@ import {
 import type {
   OverlayFileSystemDirectoryHandle,
 } from './fileSystemAccess'
+import type {
+  ExportPerformance,
+  ExportPerformanceSnapshot,
+} from './exportPerformance'
 
 export interface ExportProgress {
   phase: 'rendering' | 'encoding' | 'saving'
   completedFrames: number
   totalFrames: number
+  performance?: ExportPerformanceSnapshot
 }
 
 export interface ExportResult {
@@ -39,6 +44,9 @@ export async function exportPngSequence({
   chooseDirectory,
   signal,
   onProgress,
+  beginCapture,
+  endCapture,
+  performance,
   now = () => new Date(),
 }: {
   duration: number
@@ -46,6 +54,9 @@ export async function exportPngSequence({
   chooseDirectory(): Promise<OverlayFileSystemDirectoryHandle>
   signal: AbortSignal
   onProgress(progress: ExportProgress): void
+  beginCapture?(): Promise<void>
+  endCapture?(): void
+  performance?: ExportPerformance
   now?: () => Date
 }): Promise<ExportResult> {
   const totalFrames = calculateFrameCount(duration)
@@ -64,30 +75,53 @@ export async function exportPngSequence({
     create: true,
   })
   let completedFrames = 0
+  let captureStarted = false
 
-  for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
-    if (signal.aborted) break
-
-    const blob = await captureFrame(
-      calculateFrameTime(frameIndex, EXPORT_FPS),
-    )
-    const fileName = `frame_${String(frameIndex + 1).padStart(6, '0')}.png`
-    const handle = await directory.getFileHandle(fileName, { create: true })
-    const writable = await handle.createWritable()
-    try {
-      await writable.write(blob)
-      await writable.close()
-    } catch (error) {
-      await writable.abort?.()
-      throw error
+  try {
+    if (beginCapture) {
+      if (performance) {
+        await performance.measure('preparing', beginCapture)
+      } else {
+        await beginCapture()
+      }
+      captureStarted = true
     }
 
-    completedFrames += 1
-    onProgress({
-      phase: 'rendering',
-      completedFrames,
-      totalFrames,
-    })
+    for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
+      if (signal.aborted) break
+
+      const blob = await captureFrame(
+        calculateFrameTime(frameIndex, EXPORT_FPS),
+      )
+      const fileName = `frame_${String(frameIndex + 1).padStart(6, '0')}.png`
+      const saveFrame = async () => {
+        const handle = await directory.getFileHandle(fileName, { create: true })
+        const writable = await handle.createWritable()
+        try {
+          await writable.write(blob)
+          await writable.close()
+        } catch (error) {
+          await writable.abort?.()
+          throw error
+        }
+      }
+      if (performance) {
+        await performance.measure('saving', saveFrame)
+      } else {
+        await saveFrame()
+      }
+
+      completedFrames += 1
+      performance?.completeFrame(completedFrames, totalFrames)
+      onProgress({
+        phase: 'rendering',
+        completedFrames,
+        totalFrames,
+        ...(performance ? { performance: performance.snapshot() } : {}),
+      })
+    }
+  } finally {
+    if (captureStarted) endCapture?.()
   }
 
   return {

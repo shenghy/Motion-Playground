@@ -7,6 +7,7 @@ import {
   EXPORT_WIDTH,
 } from './frameMath'
 import type { ExportProgress } from './exportController'
+import type { ExportPerformance } from './exportPerformance'
 
 const API_PREFIX = '/__overlay_export__'
 
@@ -18,6 +19,7 @@ export interface RenderMovResult {
   totalFrames: number
   jobId?: string
   size?: number
+  encodingMs?: number
 }
 
 async function responseError(response: Response) {
@@ -52,6 +54,9 @@ export async function renderTransparentMov({
   signal,
   onProgress,
   onJobCreated,
+  beginCapture,
+  endCapture,
+  performance,
   fetcher = fetch,
 }: {
   duration: number
@@ -59,13 +64,25 @@ export async function renderTransparentMov({
   signal: AbortSignal
   onProgress(progress: ExportProgress): void
   onJobCreated?: (jobId: string) => void
+  beginCapture?(): Promise<void>
+  endCapture?(): void
+  performance?: ExportPerformance
   fetcher?: Fetcher
 }): Promise<RenderMovResult> {
   const totalFrames = calculateFrameCount(duration)
   let jobId: string | undefined
   let completedFrames = 0
+  let captureStarted = false
 
   try {
+    if (beginCapture) {
+      if (performance) {
+        await performance.measure('preparing', beginCapture)
+      } else {
+        await beginCapture()
+      }
+      captureStarted = true
+    }
     const created = await requireOk(
       await fetcher(`${API_PREFIX}/jobs`, {
         method: 'POST',
@@ -84,7 +101,8 @@ export async function renderTransparentMov({
       throw new Error('本地导出服务没有返回任务编号')
     }
     jobId = createdBody.id
-    onJobCreated?.(jobId)
+    const activeJobId = jobId
+    onJobCreated?.(activeJobId)
 
     for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
       if (signal.aborted) break
@@ -93,9 +111,9 @@ export async function renderTransparentMov({
       )
       if (signal.aborted) break
 
-      await requireOk(
+      const transferFrame = async () => requireOk(
         await fetcher(
-          `${API_PREFIX}/jobs/${encodeURIComponent(jobId)}/frames/${frameIndex}`,
+          `${API_PREFIX}/jobs/${encodeURIComponent(activeJobId)}/frames/${frameIndex}`,
           {
             method: 'PUT',
             headers: { 'Content-Type': 'image/png' },
@@ -104,16 +122,23 @@ export async function renderTransparentMov({
           },
         ),
       )
+      if (performance) {
+        await performance.measure('frameTransfer', transferFrame)
+      } else {
+        await transferFrame()
+      }
       completedFrames += 1
+      performance?.completeFrame(completedFrames, totalFrames)
       onProgress({
         phase: 'rendering',
         completedFrames,
         totalFrames,
+        ...(performance ? { performance: performance.snapshot() } : {}),
       })
     }
 
     if (signal.aborted || completedFrames !== totalFrames) {
-      await discardTransparentMov(jobId, fetcher)
+      await discardTransparentMov(activeJobId, fetcher)
       return { status: 'cancelled', completedFrames, totalFrames }
     }
 
@@ -122,19 +147,30 @@ export async function renderTransparentMov({
       completedFrames,
       totalFrames,
     })
-    const finished = await requireOk(
+    const finishEncoding = async () => requireOk(
       await fetcher(
-        `${API_PREFIX}/jobs/${encodeURIComponent(jobId)}/finish`,
+        `${API_PREFIX}/jobs/${encodeURIComponent(activeJobId)}/finish`,
         { method: 'POST', signal },
       ),
     )
-    const body = (await finished.json()) as { size?: unknown }
+    const finished = await finishEncoding()
+    const body = (await finished.json()) as {
+      size?: unknown
+      encodingMs?: unknown
+    }
+    if (typeof body.encodingMs === 'number') {
+      performance?.addDuration('encoding', body.encodingMs)
+    }
     return {
       status: 'completed',
-      jobId,
+      jobId: activeJobId,
       completedFrames,
       totalFrames,
       size: typeof body.size === 'number' ? body.size : undefined,
+      encodingMs:
+        typeof body.encodingMs === 'number'
+          ? body.encodingMs
+          : undefined,
     }
   } catch (error) {
     if (jobId) {
@@ -148,6 +184,8 @@ export async function renderTransparentMov({
       return { status: 'cancelled', completedFrames, totalFrames }
     }
     throw error
+  } finally {
+    if (captureStarted) endCapture?.()
   }
 }
 
@@ -155,42 +193,52 @@ export async function saveTransparentMov({
   jobId,
   fileHandle,
   signal,
+  performance,
   fetcher = fetch,
 }: {
   jobId: string
   fileHandle: OverlayFileSystemFileHandle
   signal?: AbortSignal
+  performance?: ExportPerformance
   fetcher?: Fetcher
 }) {
-  const response = await requireOk(
-    await fetcher(
-      `${API_PREFIX}/jobs/${encodeURIComponent(jobId)}/file`,
-    ),
-  )
-  if (!response.body) throw new Error('本地导出服务没有返回 MOV 文件')
+  const save = async () => {
+    const response = await requireOk(
+      await fetcher(
+        `${API_PREFIX}/jobs/${encodeURIComponent(jobId)}/file`,
+      ),
+    )
+    if (!response.body) throw new Error('本地导出服务没有返回 MOV 文件')
 
-  const writable = await fileHandle.createWritable()
-  const reader = response.body.getReader()
-  try {
-    while (true) {
-      if (signal?.aborted) {
-        throw new DOMException('导出已取消', 'AbortError')
+    const writable = await fileHandle.createWritable()
+    const reader = response.body.getReader()
+    try {
+      while (true) {
+        if (signal?.aborted) {
+          throw new DOMException('导出已取消', 'AbortError')
+        }
+        const { done, value } = await reader.read()
+        if (done) break
+        await writable.write(value)
+        if (signal?.aborted) {
+          throw new DOMException('导出已取消', 'AbortError')
+        }
       }
-      const { done, value } = await reader.read()
-      if (done) break
-      await writable.write(value)
-      if (signal?.aborted) {
-        throw new DOMException('导出已取消', 'AbortError')
-      }
+      await writable.close()
+    } catch (error) {
+      await reader.cancel().catch(() => undefined)
+      await writable.abort?.()
+      throw error
+    } finally {
+      reader.releaseLock()
     }
-    await writable.close()
-  } catch (error) {
-    await reader.cancel().catch(() => undefined)
-    await writable.abort?.()
-    throw error
-  } finally {
-    reader.releaseLock()
+
+    await discardTransparentMov(jobId, fetcher)
   }
 
-  await discardTransparentMov(jobId, fetcher)
+  if (performance) {
+    await performance.measure('saving', save)
+  } else {
+    await save()
+  }
 }

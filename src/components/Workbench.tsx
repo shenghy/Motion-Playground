@@ -37,6 +37,11 @@ import {
   calculateFrameCount,
 } from '../export/frameMath'
 import {
+  createExportPerformance,
+  type ExportPerformance,
+  type ExportPerformanceSnapshot,
+} from '../export/exportPerformance'
+import {
   discardTransparentMov,
   renderTransparentMov,
   saveTransparentMov,
@@ -223,6 +228,7 @@ export function Workbench({
   const [exportProgress, setExportProgress] = useState({
     completedFrames: 0,
     totalFrames: 0,
+    performance: null as ExportPerformanceSnapshot | null,
   })
   const [exportMessage, setExportMessage] = useState('')
   const [playbackKeys, setPlaybackKeys] = useState(createMotionPlaybackKeys)
@@ -735,7 +741,11 @@ export function Workbench({
     setProjectError('')
     setStorageError('')
     setExportStatus('idle')
-    setExportProgress({ completedFrames: 0, totalFrames: 0 })
+    setExportProgress({
+      completedFrames: 0,
+      totalFrames: 0,
+      performance: null,
+    })
     setExportMessage('')
     clearingWorkspaceRef.current = false
     setIsClearingWorkspace(false)
@@ -924,11 +934,20 @@ export function Workbench({
     [],
   )
 
-  const captureExportFrame = useCallback(async (time: number) => {
+  const captureExportFrame = useCallback(async (
+    time: number,
+    exportPerformance: ExportPerformance,
+  ) => {
     const surface = exportSurfaceRef.current
     if (!surface) throw new Error('透明导出舞台尚未准备完成')
-    await surface.prepareFrame(time)
-    return surface.capturePng()
+    await exportPerformance.measure(
+      'framePrepare',
+      () => surface.prepareFrame(time),
+    )
+    return exportPerformance.measure(
+      'frameCapture',
+      () => surface.capturePng(),
+    )
   }, [])
 
   const updateExportProgress = useCallback((progress: ExportProgress) => {
@@ -936,6 +955,7 @@ export function Workbench({
     setExportProgress({
       completedFrames: progress.completedFrames,
       totalFrames: progress.totalFrames,
+      performance: progress.performance ?? null,
     })
   }, [])
 
@@ -962,15 +982,22 @@ export function Workbench({
     setExportProgress({
       completedFrames: 0,
       totalFrames: calculateFrameCount(videoDuration),
+      performance: null,
     })
 
     try {
+      const exportPerformance = createExportPerformance()
+      const surface = exportSurfaceRef.current
+      if (!surface) throw new Error('透明导出舞台尚未准备完成')
       const result = await exportPngSequence({
         duration: videoDuration,
-        captureFrame: captureExportFrame,
+        captureFrame: (time) => captureExportFrame(time, exportPerformance),
         chooseDirectory: () => fileWindow.showDirectoryPicker!(),
         signal: controller.signal,
         onProgress: updateExportProgress,
+        beginCapture: () => surface.beginCaptureSession(),
+        endCapture: () => surface.endCaptureSession(),
+        performance: exportPerformance,
       })
       setExportStatus(
         result.status === 'completed' ? 'completed' : 'cancelled',
@@ -1056,6 +1083,7 @@ export function Workbench({
 
       controller = new AbortController()
       exportAbortRef.current = controller
+      const exportPerformance = createExportPerformance()
       let jobId = pendingJob?.id
       if (!jobId) {
         setExportStatus('rendering')
@@ -1063,15 +1091,21 @@ export function Workbench({
         setExportProgress({
           completedFrames: 0,
           totalFrames: calculateFrameCount(snapshotDuration),
+          performance: null,
         })
+        const surface = exportSurfaceRef.current
+        if (!surface) throw new Error('透明导出舞台尚未准备完成')
         const result = await renderTransparentMov({
           duration: snapshotDuration,
-          captureFrame: captureExportFrame,
+          captureFrame: (time) => captureExportFrame(time, exportPerformance),
           signal: controller.signal,
           onProgress: updateExportProgress,
           onJobCreated: (createdJobId) => {
             serverExportJobRef.current = createdJobId
           },
+          beginCapture: () => surface.beginCaptureSession(),
+          endCapture: () => surface.endCaptureSession(),
+          performance: exportPerformance,
         })
         if (result.status === 'cancelled' || !result.jobId) {
           serverExportJobRef.current = null
@@ -1092,6 +1126,7 @@ export function Workbench({
         jobId,
         fileHandle,
         signal: controller.signal,
+        performance: exportPerformance,
       })
       pendingMovJobRef.current = null
       serverExportJobRef.current = null
@@ -1264,6 +1299,7 @@ export function Workbench({
               status={exportStatus}
               completedFrames={exportProgress.completedFrames}
               totalFrames={exportProgress.totalFrames}
+              performance={exportProgress.performance ?? undefined}
               message={exportMessage || undefined}
               onExportPng={() => void exportPng()}
               onExportMov={() => void exportMov()}

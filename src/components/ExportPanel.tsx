@@ -1,3 +1,5 @@
+import type { ExportPerformanceSnapshot } from '../export/exportPerformance'
+
 export type ExportStatus =
   | 'idle'
   | 'rendering'
@@ -13,6 +15,7 @@ interface ExportPanelProps {
   status: ExportStatus
   completedFrames: number
   totalFrames: number
+  performance?: ExportPerformanceSnapshot
   message?: string
   onExportPng: () => void
   onExportMov: () => void
@@ -35,6 +38,7 @@ export function ExportPanel({
   status,
   completedFrames,
   totalFrames,
+  performance,
   message,
   onExportPng,
   onExportMov,
@@ -76,6 +80,14 @@ export function ExportPanel({
           <small>
             {completedFrames.toLocaleString()} / {totalFrames.toLocaleString()} 帧
           </small>
+          {performance?.framesPerSecond !== null &&
+          performance?.framesPerSecond !== undefined &&
+          performance.estimatedRemainingMs !== null ? (
+            <small className="export-progress__performance">
+              {performance.framesPerSecond.toFixed(1)} 帧/秒 · 预计剩余{' '}
+              {Math.ceil(performance.estimatedRemainingMs / 1_000)} 秒
+            </small>
+          ) : null}
           <button type="button" onClick={onCancel}>
             取消导出
           </button>

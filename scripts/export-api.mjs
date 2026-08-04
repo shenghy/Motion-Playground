@@ -45,6 +45,8 @@ export function createExportApi({ manager, origin }) {
           width: 1920,
           height: 1080,
           fps: 30,
+          rawRgba: true,
+          transport: 'websocket',
         })
         return true
       }

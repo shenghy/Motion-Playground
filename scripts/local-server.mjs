@@ -124,6 +124,7 @@ export async function createLocalStaticServer({
   port,
   projectId,
   exportApi,
+  exportWebSocket,
 }) {
   const absoluteRoot = await realpath(resolve(rootDirectory))
   const indexPath = resolve(absoluteRoot, 'index.html')
@@ -190,6 +191,7 @@ export async function createLocalStaticServer({
     })
     stream.pipe(response)
   })
+  exportWebSocket?.attach(server)
 
   await new Promise((resolveListen, rejectListen) => {
     server.once('error', rejectListen)
@@ -203,6 +205,7 @@ export async function createLocalStaticServer({
     server,
     url: `http://${host}:${port}/`,
     close: async () => {
+      await exportWebSocket?.close()
       await exportApi?.close()
       return new Promise((resolveClose, rejectClose) => {
         server.close((error) => {

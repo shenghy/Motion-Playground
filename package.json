@@ -18,7 +18,8 @@
     "html-to-image": "^1.11.13",
     "motion": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "ws": "^8.21.2"
   },
   "devDependencies": {
     "@eslint/js": "latest",

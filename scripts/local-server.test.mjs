@@ -8,7 +8,7 @@ import {
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   createLocalStaticServer,
   findAvailablePort,
@@ -103,6 +103,30 @@ describe('local static server', () => {
       })
     } finally {
       await local.close()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('attaches and closes the raw export websocket bridge', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'overlay-server-'))
+    await writeFile(join(root, 'index.html'), '<main>Overlay Studio</main>')
+    const exportWebSocket = {
+      attach: vi.fn(),
+      close: vi.fn(async () => undefined),
+    }
+    const port = await findAvailablePort()
+    const local = await createLocalStaticServer({
+      rootDirectory: root,
+      port,
+      projectId: 'test-project',
+      exportWebSocket,
+    })
+
+    try {
+      expect(exportWebSocket.attach).toHaveBeenCalledWith(local.server)
+    } finally {
+      await local.close()
+      expect(exportWebSocket.close).toHaveBeenCalledTimes(1)
       await rm(root, { recursive: true, force: true })
     }
   })

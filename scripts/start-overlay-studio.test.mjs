@@ -269,6 +269,8 @@ describe('Overlay Studio launcher', () => {
         width: 1920,
         height: 1080,
         fps: 30,
+        rawRgba: true,
+        transport: 'websocket',
       })
     } finally {
       await local?.close()

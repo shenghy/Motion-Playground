@@ -14,6 +14,7 @@ import {
   findAvailablePort,
 } from './local-server.mjs'
 import { createExportApi } from './export-api.mjs'
+import { createExportWebSocket } from './export-websocket.mjs'
 import { createExportManager } from './export-manager.mjs'
 
 const DEFAULT_HOST = '127.0.0.1'
@@ -376,9 +377,14 @@ export async function startOverlayStudio({
       projectId,
     })
     const exportManager = createExportManager({ ffmpegPath })
+    const exportOrigin = `http://${host}:${target.port}`
     const exportApi = createExportApi({
       manager: exportManager,
-      origin: `http://${host}:${target.port}`,
+      origin: exportOrigin,
+    })
+    const exportWebSocket = createExportWebSocket({
+      manager: exportManager,
+      origin: exportOrigin,
     })
     try {
       local = await createLocalStaticServer({
@@ -387,6 +393,7 @@ export async function startOverlayStudio({
         port: target.port,
         projectId,
         exportApi,
+        exportWebSocket,
       })
     } catch (error) {
       await exportManager.close()

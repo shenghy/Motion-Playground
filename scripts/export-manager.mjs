@@ -188,6 +188,19 @@ export function createExportManager({
     return activeJob
   }
 
+  function getJobInfo(id) {
+    const job = requireJob(id)
+    return {
+      id: job.id,
+      width: job.width,
+      height: job.height,
+      totalFrames: job.totalFrames,
+      nextFrame: job.nextFrame,
+      transport: job.transport,
+      status: job.status,
+    }
+  }
+
   async function appendFrame(id, frameIndex, buffer) {
     const job = requireJob(id)
     if (job.status !== 'rendering') throw new Error('导出任务不再接收帧')
@@ -284,6 +297,7 @@ export function createExportManager({
 
   return {
     createJob,
+    getJobInfo,
     appendFrame,
     appendRawFrame,
     finishJob,

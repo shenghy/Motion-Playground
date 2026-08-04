@@ -58,6 +58,8 @@ describe('localhost transparent export API', () => {
         width: 1920,
         height: 1080,
         fps: 30,
+        rawRgba: true,
+        transport: 'websocket',
       })
 
       const created = await fetch(`${origin}/__overlay_export__/jobs`, {

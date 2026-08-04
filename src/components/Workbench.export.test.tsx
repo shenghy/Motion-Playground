@@ -198,4 +198,53 @@ describe('Workbench transparent export coordination', () => {
 
     await screen.findByText('已取消，共生成 0 帧')
   })
+
+  it('starts raw export for a snapshot containing all six motions', async () => {
+    WorkbenchSocket.instances = []
+    vi.stubGlobal('WebSocket', WorkbenchSocket)
+    Object.assign(window, {
+      showSaveFilePicker: vi.fn(async () => ({
+        name: 'all-motions.mov',
+        async createWritable() {
+          throw new Error('not reached while the first frame waits for acknowledgement')
+        },
+      })),
+      showDirectoryPicker: vi.fn(),
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        if (url.endsWith('/capabilities')) {
+          return new Response(JSON.stringify({ mov: true, rawRgba: true, transport: 'websocket' }), {
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        if (url.endsWith('/jobs') && init?.method === 'POST') {
+          return new Response(JSON.stringify({ id: 'all-motion-job' }), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        return new Response(null, { status: 204 })
+      }),
+    )
+
+    render(<Workbench idFactory={() => crypto.randomUUID()} />)
+    loadOneSecondVideo()
+    for (const name of [
+      '在播放头添加对比卡片',
+      '在播放头添加人物信息',
+      '在播放头添加柱状对比',
+      '在播放头添加环形占比',
+      '在播放头添加步骤流程',
+    ]) {
+      fireEvent.click(screen.getByRole('button', { name }))
+    }
+
+    const movButton = await screen.findByRole('button', { name: '导出透明 MOV' })
+    await waitFor(() => expect(movButton).toBeEnabled())
+    fireEvent.click(movButton)
+    await waitFor(() => expect(WorkbenchSocket.instances).toHaveLength(1))
+  })
 })

@@ -1092,14 +1092,6 @@ export function Workbench({
       const exportPerformance = createExportPerformance()
       let jobId = pendingJob?.id
       if (!jobId) {
-        const unsupported = snapshotCards.find(
-          (card) => card.motionId !== 'metric-focus',
-        )
-        if (unsupported) {
-          throw new Error(
-            `Canvas 快速导出原型尚未覆盖动效：${MOTION_NAMES[unsupported.motionId]}`,
-          )
-        }
         setExportStatus('rendering')
         setExportMessage('')
         setExportProgress({

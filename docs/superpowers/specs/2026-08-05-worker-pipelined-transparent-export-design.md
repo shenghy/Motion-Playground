@@ -33,13 +33,10 @@ No lower resolution, reduced frame rate, lossy intermediate, reduced ProRes prof
 
 ### Main thread coordinator
 
-`Workbench` continues to own the file picker, immutable card snapshot, pending-job fingerprint, UI progress, cancellation control, and final file saving. For MOV export it starts a dedicated module Worker and sends one initialization message containing:
+`Workbench` continues to own the file picker, immutable card snapshot, pending-job fingerprint, UI progress, cancellation control, and final file saving. For MOV export it starts a dedicated module Worker and uses a two-phase handshake. First it sends a preparation message containing the immutable cards, duration, dimensions, fps, font assets, and window size. The Worker loads fonts, creates the OffscreenCanvas session, and reports `ready`. Only then does the main thread create the server job and send the second start message containing:
 
-- immutable cards and duration;
-- export dimensions, fps, and total frame count;
 - same-origin job and WebSocket URLs;
-- resolved font asset URLs;
-- pipeline window size, fixed at three frames.
+- the server job ID.
 
 The coordinator receives progress, completion, performance, and failure messages. It never receives RGBA frame buffers. Save retry continues to reuse the completed server job and does not restart the Worker.
 

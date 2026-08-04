@@ -1,10 +1,12 @@
 import {
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
 } from 'react'
-import { toBlob } from 'html-to-image'
+import { flushSync } from 'react-dom'
+import { getFontEmbedCSS, toBlob } from 'html-to-image'
 import { getMotionDefinition } from '../motion/registry'
 import type {
   MotionDefinition,
@@ -18,8 +20,10 @@ import {
 } from './frameMath'
 
 export interface ExportSurfaceHandle {
+  beginCaptureSession(): Promise<void>
   prepareFrame(time: number): Promise<void>
   capturePng(): Promise<Blob>
+  endCaptureSession(): void
 }
 
 interface ExportSurfaceProps {
@@ -37,6 +41,7 @@ export const ExportSurface = forwardRef<
   ExportSurfaceProps
 >(function ExportSurface({ cards }, ref) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const fontEmbedCssRef = useRef<string | null>(null)
   const [frameTime, setFrameTime] = useState<number | null>(null)
   const activeCards =
     frameTime === null
@@ -45,12 +50,23 @@ export const ExportSurface = forwardRef<
           .filter((card) => getCardPlaybackState(card, frameTime).active)
           .sort((left, right) => left.zIndex - right.zIndex)
 
+  useEffect(() => {
+    fontEmbedCssRef.current = null
+  }, [cards])
+
   useImperativeHandle(ref, () => ({
-    async prepareFrame(time) {
-      setFrameTime(Number.isFinite(time) ? Math.max(0, time) : 0)
-      await nextPaint()
-      await nextPaint()
+    async beginCaptureSession() {
+      if (!rootRef.current) {
+        throw new Error('透明导出舞台尚未准备完成')
+      }
+      if (fontEmbedCssRef.current !== null) return
       await document.fonts?.ready
+      fontEmbedCssRef.current = await getFontEmbedCSS(rootRef.current)
+    },
+    async prepareFrame(time) {
+      flushSync(() => {
+        setFrameTime(Number.isFinite(time) ? Math.max(0, time) : 0)
+      })
 
       rootRef.current
         ?.querySelectorAll<HTMLElement>('[data-export-card="true"]')
@@ -61,6 +77,7 @@ export const ExportSurface = forwardRef<
             animation.currentTime = localTime * 1000
           })
         })
+      await nextPaint()
     },
     async capturePng() {
       if (!rootRef.current) {
@@ -72,11 +89,15 @@ export const ExportSurface = forwardRef<
         pixelRatio: 1,
         backgroundColor: 'transparent',
         cacheBust: false,
+        fontEmbedCSS: fontEmbedCssRef.current ?? undefined,
       })
       if (!blob) {
         throw new Error('生成透明 PNG 帧失败')
       }
       return blob
+    },
+    endCaptureSession() {
+      fontEmbedCssRef.current = null
     },
   }), [])
 

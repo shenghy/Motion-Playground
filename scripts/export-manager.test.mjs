@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { createExportManager } from './export-manager.mjs'
+import { rawFrameBytes } from './raw-frame-protocol.mjs'
 
 function pngHeader(width = 1920, height = 1080) {
   const buffer = Buffer.alloc(33)
@@ -38,6 +39,59 @@ function createFakeProcess(onFinish = () => undefined) {
 }
 
 describe('transparent MOV export manager', () => {
+  it('streams ordered raw RGBA frames with FFmpeg backpressure', async () => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), 'overlay-export-'))
+    const child = createFakeProcess()
+    const writeToInput = child.stdin.write.bind(child.stdin)
+    child.stdin.write = vi.fn((chunk) => {
+      writeToInput(chunk)
+      queueMicrotask(() => child.stdin.emit('drain'))
+      return false
+    })
+    const spawnProcess = vi.fn(() => child)
+    const manager = createExportManager({
+      ffmpegPath: 'bundled-ffmpeg',
+      spawnProcess,
+      temporaryRoot,
+    })
+    const rgba = Buffer.alloc(rawFrameBytes(1920, 1080), 23)
+    const input = []
+    child.stdin.on('data', (chunk) => input.push(chunk))
+
+    try {
+      const job = await manager.createJob({
+        width: 1920,
+        height: 1080,
+        fps: 30,
+        totalFrames: 1,
+        transport: 'raw-rgba',
+      })
+      await expect(
+        manager.appendRawFrame(job.id, 0, rgba.subarray(1)),
+      ).rejects.toThrow('RGBA 帧字节数')
+      await manager.appendRawFrame(job.id, 0, rgba)
+      expect(child.stdin.write).toHaveReturnedWith(false)
+      await writeFile(job.outputPath, 'mov')
+      await manager.finishJob(job.id)
+
+      const received = Buffer.concat(input)
+      expect(received.length).toBe(rgba.length)
+      expect(received.subarray(0, 16)).toEqual(rgba.subarray(0, 16))
+      expect(received.subarray(-16)).toEqual(rgba.subarray(-16))
+      const [, args] = spawnProcess.mock.calls[0]
+      expect(args).toEqual(expect.arrayContaining([
+        '-f', 'rawvideo',
+        '-pixel_format', 'rgba',
+        '-video_size', '1920x1080',
+        '-framerate', '30',
+      ]))
+      expect(args).not.toContain('image2pipe')
+    } finally {
+      await manager.close()
+      await rm(temporaryRoot, { recursive: true, force: true })
+    }
+  })
+
   it('streams ordered PNG frames to ProRes 4444 with alpha', async () => {
     const temporaryRoot = await mkdtemp(join(tmpdir(), 'overlay-export-'))
     let clock = 100

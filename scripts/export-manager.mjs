@@ -5,6 +5,7 @@ import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { once } from 'node:events'
+import { rawFrameBytes } from './raw-frame-protocol.mjs'
 
 const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
@@ -46,7 +47,42 @@ function validateJobOptions({ width, height, fps, totalFrames }) {
   }
 }
 
-function ffmpegArguments(fps, outputPath) {
+function validateTransport(transport) {
+  if (transport !== 'png' && transport !== 'raw-rgba') {
+    throw new Error('透明导出传输格式无效')
+  }
+}
+
+export function rawFfmpegArguments(fps, outputPath, width = 1920, height = 1080) {
+  return [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-f',
+    'rawvideo',
+    '-pixel_format',
+    'rgba',
+    '-video_size',
+    `${width}x${height}`,
+    '-framerate',
+    String(fps),
+    '-i',
+    'pipe:0',
+    '-an',
+    '-c:v',
+    'prores_ks',
+    '-profile:v',
+    '4',
+    '-pix_fmt',
+    'yuva444p10le',
+    '-alpha_bits',
+    '16',
+    '-y',
+    outputPath,
+  ]
+}
+
+function pngFfmpegArguments(fps, outputPath) {
   return [
     '-hide_banner',
     '-loglevel',
@@ -98,6 +134,8 @@ export function createExportManager({
 
   async function createJob(options) {
     validateJobOptions(options)
+    const transport = options.transport ?? 'png'
+    validateTransport(transport)
     if (!ffmpegPath) throw new Error('本地 FFmpeg 编码器不可用')
     if (activeJob) throw new Error('已有导出任务正在进行')
 
@@ -106,7 +144,14 @@ export function createExportManager({
     const outputPath = join(directory, 'overlay-transparent.mov')
     const child = spawnProcess(
       ffmpegPath,
-      ffmpegArguments(options.fps, outputPath),
+      transport === 'raw-rgba'
+        ? rawFfmpegArguments(
+            options.fps,
+            outputPath,
+            options.width,
+            options.height,
+          )
+        : pngFfmpegArguments(options.fps, outputPath),
       { stdio: ['pipe', 'ignore', 'pipe'], windowsHide: true },
     )
     const job = {
@@ -118,6 +163,7 @@ export function createExportManager({
       totalFrames: options.totalFrames,
       width: options.width,
       height: options.height,
+      transport,
       status: 'rendering',
       stderr: '',
       closeResult: null,
@@ -145,6 +191,7 @@ export function createExportManager({
   async function appendFrame(id, frameIndex, buffer) {
     const job = requireJob(id)
     if (job.status !== 'rendering') throw new Error('导出任务不再接收帧')
+    if (job.transport !== 'png') throw new Error('当前导出任务不接收 PNG 帧')
     if (frameIndex !== job.nextFrame) throw new Error('透明导出帧序号不连续')
     if (!isPng(buffer) || buffer.length > MAX_FRAME_BYTES) {
       throw new Error('透明导出 PNG 帧无效')
@@ -156,6 +203,26 @@ export function createExportManager({
       dimensions.height !== job.height
     ) {
       throw new Error('透明导出 PNG 帧尺寸必须为 1920×1080')
+    }
+    if (!job.child.stdin.write(buffer)) {
+      await once(job.child.stdin, 'drain')
+    }
+    job.nextFrame += 1
+    refreshExpiry(job)
+  }
+
+  async function appendRawFrame(id, frameIndex, buffer) {
+    const job = requireJob(id)
+    if (job.status !== 'rendering') throw new Error('导出任务不再接收帧')
+    if (job.transport !== 'raw-rgba') {
+      throw new Error('当前导出任务不接收 RGBA 帧')
+    }
+    if (frameIndex !== job.nextFrame) throw new Error('透明导出帧序号不连续')
+    if (!Buffer.isBuffer(buffer) || buffer.length !== rawFrameBytes(
+      job.width,
+      job.height,
+    )) {
+      throw new Error(`RGBA 帧字节数必须为 ${rawFrameBytes(job.width, job.height)}`)
     }
     if (!job.child.stdin.write(buffer)) {
       await once(job.child.stdin, 'drain')
@@ -218,6 +285,7 @@ export function createExportManager({
   return {
     createJob,
     appendFrame,
+    appendRawFrame,
     finishJob,
     cancelJob,
     openResult,

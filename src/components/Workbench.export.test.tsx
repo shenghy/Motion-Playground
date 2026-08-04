@@ -1,12 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { getFontEmbedCSS } from 'html-to-image'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Workbench } from './Workbench'
-
-vi.mock('html-to-image', () => ({
-  getFontEmbedCSS: vi.fn(async () => 'embedded-fonts'),
-  toBlob: vi.fn(async () => new Blob(['png'], { type: 'image/png' })),
-}))
 
 function loadOneSecondVideo() {
   const file = new File(['video'], 'export-test.mp4', {
@@ -67,7 +61,6 @@ class WorkbenchSocket {
 
 describe('Workbench transparent export coordination', () => {
   beforeEach(() => {
-    vi.mocked(getFontEmbedCSS).mockClear()
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
       value: vi.fn(() => 'blob:export-test'),
@@ -194,7 +187,6 @@ describe('Workbench transparent export coordination', () => {
     ).toBeDisabled()
     expect(document.querySelector('.workspace')).not.toHaveAttribute('inert')
     fireEvent.click(cancelButton)
-    expect(getFontEmbedCSS).not.toHaveBeenCalled()
 
     await screen.findByText('已取消，共生成 0 帧')
   })

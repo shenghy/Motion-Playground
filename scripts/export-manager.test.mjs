@@ -64,7 +64,7 @@ describe('transparent MOV export manager', () => {
         height: 1080,
         fps: 30,
         totalFrames: 1,
-        transport: 'raw-rgba',
+        transport: 'raw-rgba-ordered',
       })
       await expect(
         manager.appendRawFrame(job.id, 0, rgba.subarray(1)),

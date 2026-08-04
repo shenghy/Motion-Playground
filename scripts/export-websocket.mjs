@@ -1,5 +1,8 @@
 import { WebSocket, WebSocketServer } from 'ws'
-import { decodeRawFrame } from './raw-frame-protocol.mjs'
+import {
+  decodeOrderedRawFrame,
+  decodeRawFrame,
+} from './raw-frame-protocol.mjs'
 
 const RAW_SOCKET_PATH = /^\/__overlay_export__\/jobs\/([^/]+)\/raw$/
 
@@ -55,11 +58,17 @@ export function createExportWebSocket({ manager, origin }) {
       processing = processing.then(async () => {
         if (completed) throw new Error('透明导出任务已经完成')
         if (isBinary) {
-          const { frameIndex, pixels } = decodeRawFrame(
-            data,
-            jobInfo.width,
-            jobInfo.height,
-          )
+          const decoded = jobInfo.transport === 'raw-rgba-ordered'
+            ? {
+                frameIndex: expectedFrame,
+                pixels: decodeOrderedRawFrame(
+                  data,
+                  jobInfo.width,
+                  jobInfo.height,
+                ),
+              }
+            : decodeRawFrame(data, jobInfo.width, jobInfo.height)
+          const { frameIndex, pixels } = decoded
           if (frameIndex !== expectedFrame) {
             throw new Error('透明导出帧序号不连续')
           }
@@ -114,7 +123,10 @@ export function createExportWebSocket({ manager, origin }) {
         try {
           jobId = decodeURIComponent(match[1])
           jobInfo = manager.getJobInfo(jobId)
-          if (jobInfo.transport !== 'raw-rgba') {
+          if (
+            jobInfo.transport !== 'raw-rgba'
+            && jobInfo.transport !== 'raw-rgba-ordered'
+          ) {
             throw new Error('当前任务不是 RGBA 导出任务')
           }
         } catch (error) {

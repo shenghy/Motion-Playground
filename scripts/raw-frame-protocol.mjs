@@ -36,3 +36,14 @@ export function decodeRawFrame(message, width, height) {
     pixels: buffer.subarray(RAW_FRAME_HEADER_BYTES),
   }
 }
+
+export function decodeOrderedRawFrame(message, width, height) {
+  const buffer = Buffer.isBuffer(message)
+    ? message
+    : Buffer.from(message.buffer, message.byteOffset, message.byteLength)
+  const expected = rawFrameBytes(width, height)
+  if (buffer.length !== expected) {
+    throw new Error(`RGBA 甯у瓧鑺傛暟蹇呴』涓?${expected}`)
+  }
+  return buffer
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  decodeOrderedRawFrame,
   decodeRawFrame,
   encodeRawFrame,
   rawFrameBytes,
@@ -23,5 +24,13 @@ describe('raw rgba frame protocol', () => {
       'RGBA 帧字节数',
     )
     expect(() => encodeRawFrame(-1, Buffer.alloc(8))).toThrow('帧序号')
+  })
+
+  it('validates ordered pixels without allocating a frame header', () => {
+    const pixels = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8])
+    expect(decodeOrderedRawFrame(pixels, 1, 2)).toBe(pixels)
+    expect(() => decodeOrderedRawFrame(Buffer.alloc(9), 1, 2)).toThrow(
+      'RGBA 甯у瓧鑺傛暟',
+    )
   })
 })

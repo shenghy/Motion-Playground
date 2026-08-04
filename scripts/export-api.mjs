@@ -47,6 +47,9 @@ export function createExportApi({ manager, origin }) {
           fps: 30,
           rawRgba: true,
           transport: 'websocket',
+          orderedRawProtocol: 'v2',
+          workerPipeline: true,
+          pipelineWindow: 3,
         })
         return true
       }

@@ -87,6 +87,47 @@ describe('raw export websocket bridge', () => {
     expect(manager.cancelJob).not.toHaveBeenCalled()
   })
 
+  it('assigns continuous indexes to ordered headerless frames', async () => {
+    const releases = []
+    const manager = managerFixture({
+      getJobInfo: vi.fn(() => ({
+        id: 'job-1',
+        width: 1,
+        height: 2,
+        totalFrames: 2,
+        nextFrame: 0,
+        transport: 'raw-rgba-ordered',
+        status: 'rendering',
+      })),
+      appendRawFrame: vi.fn(() => new Promise((resolve) => releases.push(resolve))),
+    })
+    const { url, origin } = await startBridge(manager)
+    const socket = new WebSocket(`${url}/__overlay_export__/jobs/job-1/raw`, {
+      origin,
+    })
+    await once(socket, 'open')
+    const first = Buffer.alloc(8, 1)
+    const second = Buffer.alloc(8, 2)
+    socket.send(first)
+    socket.send(second)
+
+    await vi.waitFor(() => expect(manager.appendRawFrame).toHaveBeenCalledTimes(1))
+    expect(manager.appendRawFrame).toHaveBeenLastCalledWith('job-1', 0, first)
+    releases.shift()()
+    await expect(nextJson(socket)).resolves.toEqual({
+      type: 'frame-accepted',
+      frameIndex: 0,
+    })
+    await vi.waitFor(() => expect(manager.appendRawFrame).toHaveBeenCalledTimes(2))
+    expect(manager.appendRawFrame).toHaveBeenLastCalledWith('job-1', 1, second)
+    releases.shift()()
+    await expect(nextJson(socket)).resolves.toEqual({
+      type: 'frame-accepted',
+      frameIndex: 1,
+    })
+    socket.close()
+  })
+
   it('rejects a cross-origin upgrade', async () => {
     const { url } = await startBridge(managerFixture())
     const socket = new WebSocket(`${url}/__overlay_export__/jobs/job-1/raw`, {

@@ -48,7 +48,11 @@ function validateJobOptions({ width, height, fps, totalFrames }) {
 }
 
 function validateTransport(transport) {
-  if (transport !== 'png' && transport !== 'raw-rgba') {
+  if (
+    transport !== 'png'
+    && transport !== 'raw-rgba'
+    && transport !== 'raw-rgba-ordered'
+  ) {
     throw new Error('透明导出传输格式无效')
   }
 }
@@ -144,7 +148,7 @@ export function createExportManager({
     const outputPath = join(directory, 'overlay-transparent.mov')
     const child = spawnProcess(
       ffmpegPath,
-      transport === 'raw-rgba'
+      transport === 'raw-rgba' || transport === 'raw-rgba-ordered'
         ? rawFfmpegArguments(
             options.fps,
             outputPath,
@@ -227,7 +231,10 @@ export function createExportManager({
   async function appendRawFrame(id, frameIndex, buffer) {
     const job = requireJob(id)
     if (job.status !== 'rendering') throw new Error('导出任务不再接收帧')
-    if (job.transport !== 'raw-rgba') {
+    if (
+      job.transport !== 'raw-rgba'
+      && job.transport !== 'raw-rgba-ordered'
+    ) {
       throw new Error('当前导出任务不接收 RGBA 帧')
     }
     if (frameIndex !== job.nextFrame) throw new Error('透明导出帧序号不连续')

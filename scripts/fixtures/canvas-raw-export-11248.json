@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "canvas": { "width": 1920, "height": 1080 },
+  "cards": [
+    { "id": "long-metric", "motionId": "metric-focus", "start": 0, "end": 68, "position": { "x": 0, "y": 0 }, "zIndex": 0, "params": { "eyebrow": "FULL EXPORT", "value": 11248, "prefix": "", "suffix": " frames", "description": "RAW RGBA", "trend": "7 MINUTE LIMIT", "decimals": 0, "duration": 1.4 } },
+    { "id": "long-compare", "motionId": "compare-split", "start": 58, "end": 128, "position": { "x": 1, "y": -1 }, "zIndex": 1, "params": { "title": "Export speed", "leftLabel": "Old", "leftValue": 4, "rightLabel": "New", "rightValue": 30, "suffix": "fps", "conclusion": "Canvas raw frames", "emphasis": "right", "split": 52, "duration": 1.5 } },
+    { "id": "long-profile", "motionId": "profile-reveal", "start": 128, "end": 198, "position": { "x": 0, "y": 0 }, "zIndex": 0, "params": { "category": "EXPORT / PROFILE", "descriptor": "Deterministic renderer", "overline": "PIPELINE", "title": "Fast alpha", "fact1": "Canvas2D", "fact1Note": "Persistent surface", "fact2": "WebSocket", "fact2Note": "Backpressured RGBA", "fact3": "ProRes", "fact3Note": "4444 Alpha", "status": "RUNNING", "duration": 6.4 } },
+    { "id": "long-bars", "motionId": "bar-compare", "start": 188, "end": 258, "position": { "x": -1, "y": 1 }, "zIndex": 2, "params": { "eyebrow": "04 / DATA", "title": "Throughput", "item1Label": "Old", "item1Value": 4, "item2Label": "Min", "item2Value": 27, "item3Label": "Median", "item3Value": 30, "item4Label": "Peak", "item4Value": 34, "suffix": "fps", "focusIndex": "3", "resultLabel": "Median", "resultNote": "PASS", "duration": 5.8 } },
+    { "id": "long-ring", "motionId": "share-ring", "start": 258, "end": 328, "position": { "x": 1, "y": 0 }, "zIndex": 1, "params": { "eyebrow": "05 / SHARE", "title": "Pipeline", "item1Label": "Capture", "item1Value": 35, "item2Label": "Transfer", "item2Value": 45, "item3Label": "Encode", "item3Value": 15, "item4Label": "Save", "item4Value": 5, "focusIndex": "2", "centerLabel": "Transfer", "resultLabel": "Largest", "resultNote": "Stable", "duration": 6 } },
+    { "id": "long-flow", "motionId": "step-flow", "start": 318, "end": 374.9333333333, "position": { "x": -1, "y": -1 }, "zIndex": 3, "params": { "eyebrow": "06 / FLOW", "title": "Export complete", "step1": "Draw", "step2": "Read", "step3": "Transfer", "step4": "Encode", "step5": "Save", "focusStep": "1", "statusLabel": "Stage", "statusNote": "Complete", "stepDuration": 1.1 } }
+  ]
+}

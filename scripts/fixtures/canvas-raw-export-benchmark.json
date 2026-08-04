@@ -1,30 +1,12 @@
 {
   "version": 1,
-  "canvas": {
-    "width": 1920,
-    "height": 1080
-  },
+  "canvas": { "width": 1920, "height": 1080 },
   "cards": [
-    {
-      "id": "benchmark-metric-focus",
-      "motionId": "metric-focus",
-      "start": 0,
-      "end": 10,
-      "position": {
-        "x": 0,
-        "y": 0
-      },
-      "zIndex": 0,
-      "params": {
-        "eyebrow": "透明导出性能基准",
-        "value": 248,
-        "prefix": "+",
-        "suffix": "%",
-        "description": "Canvas RGBA 原始帧",
-        "trend": "目标 30 帧/秒",
-        "decimals": 0,
-        "duration": 1.4
-      }
-    }
+    { "id": "metric", "motionId": "metric-focus", "start": 0, "end": 2, "position": { "x": 0, "y": 0 }, "zIndex": 0, "params": { "eyebrow": "EXPORT SPEED", "value": 248, "prefix": "+", "suffix": "%", "description": "RAW RGBA", "trend": "30 FPS TARGET", "decimals": 0, "duration": 1.4 } },
+    { "id": "compare", "motionId": "compare-split", "start": 1, "end": 3, "position": { "x": 1.5, "y": -1 }, "zIndex": 1, "params": { "title": "Before / After", "leftLabel": "Before", "leftValue": 42, "rightLabel": "After", "rightValue": 86, "suffix": "%", "conclusion": "2.05x faster", "emphasis": "right", "split": 50, "duration": 1.5 } },
+    { "id": "flow", "motionId": "step-flow", "start": 2, "end": 4, "position": { "x": -1, "y": 0 }, "zIndex": 2, "params": { "eyebrow": "06 / FLOW", "title": "Export pipeline", "step1": "Draw", "step2": "Read RGBA", "step3": "Transfer", "step4": "Encode", "step5": "Save", "focusStep": "3", "statusLabel": "Current", "statusNote": "Streaming", "stepDuration": 0.7 } },
+    { "id": "profile", "motionId": "profile-reveal", "start": 4.5, "end": 7, "position": { "x": 0, "y": -1 }, "zIndex": 0, "params": { "category": "ENGINE / PROFILE", "descriptor": "Canvas export renderer", "overline": "PUBLIC BUILD", "title": "Raw frame", "fact1": "Persistent canvas", "fact1Note": "No DOM screenshots", "fact2": "Backpressure", "fact2Note": "One acknowledged frame", "fact3": "Alpha preserved", "fact3Note": "ProRes 4444", "status": "READY", "duration": 5.2 } },
+    { "id": "bars", "motionId": "bar-compare", "start": 6, "end": 8.5, "position": { "x": 1, "y": 0 }, "zIndex": 1, "params": { "eyebrow": "04 / DATA", "title": "Frame speed", "item1Label": "PNG", "item1Value": 4, "item2Label": "Canvas", "item2Value": 31, "item3Label": "Target", "item3Value": 30, "item4Label": "Peak", "item4Value": 34, "suffix": "fps", "focusIndex": "2", "resultLabel": "Median", "resultNote": "Canvas", "duration": 4.8 } },
+    { "id": "ring", "motionId": "share-ring", "start": 7.5, "end": 10, "position": { "x": -1.5, "y": 1 }, "zIndex": 3, "params": { "eyebrow": "05 / SHARE", "title": "Export phases", "item1Label": "Capture", "item1Value": 35, "item2Label": "Transfer", "item2Value": 45, "item3Label": "Encode", "item3Value": 15, "item4Label": "Save", "item4Value": 5, "focusIndex": "2", "centerLabel": "Transfer", "resultLabel": "Largest", "resultNote": "Backpressure", "duration": 5 } }
   ]
 }

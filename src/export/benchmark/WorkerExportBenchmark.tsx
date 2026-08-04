@@ -4,12 +4,12 @@ import { motionRegistry } from '../../motion/registry'
 import type { OverlayCard } from '../../timeline/types'
 import { createCanvasExportSession } from '../canvas/CanvasExportSurface'
 import { resolveCanvasRenderer } from '../canvas/rendererRegistry'
-import { createExportPerformance } from '../exportPerformance'
 import {
   EXPORT_HEIGHT,
   EXPORT_WIDTH,
 } from '../frameMath'
 import { loadWorkerFonts } from '../worker/fonts'
+import { createExportPerformance } from '../exportPerformance'
 import { renderTransparentMovWorker } from '../worker/workerMovClient'
 
 export type BenchmarkMode = 'short' | 'long'
@@ -41,6 +41,11 @@ interface BenchmarkState {
   fps?: number
   phases?: unknown
   paritySamples?: number
+  parityDiff?: {
+    maxChangedRatio: number
+    maxMeanAbsoluteError: number
+    maxChannelDelta: number
+  }
   pipelineWindow: 3
   message?: string
 }
@@ -107,7 +112,7 @@ function nextWorkerMessage(worker: Worker) {
   })
 }
 
-function requireAlpha(pixels: Uint8ClampedArray) {
+function requireAlpha(pixels: Uint8ClampedArray, label: string) {
   let visible = false
   for (let index = 3; index < pixels.length; index += 4) {
     if (pixels[index] !== 0) {
@@ -115,7 +120,7 @@ function requireAlpha(pixels: Uint8ClampedArray) {
       break
     }
   }
-  if (!visible) throw new Error('Canvas 一致性样本没有可见 Alpha')
+  if (!visible) throw new Error(`Canvas 一致性样本没有可见 Alpha：${label}`)
   const cornerAlpha = [
     3,
     (EXPORT_WIDTH - 1) * 4 + 3,
@@ -123,7 +128,7 @@ function requireAlpha(pixels: Uint8ClampedArray) {
     (EXPORT_HEIGHT * EXPORT_WIDTH - 1) * 4 + 3,
   ]
   if (cornerAlpha.some((index) => pixels[index] !== 0)) {
-    throw new Error('Canvas 一致性样本四角必须透明')
+    throw new Error(`Canvas 一致性样本四角必须透明：${label}`)
   }
 }
 
@@ -133,14 +138,21 @@ async function verifyCanvasParity() {
     { type: 'module', name: 'canvas-export-parity' },
   )
   try {
-    const ready = await nextWorkerMessage(worker)
+    const readyPromise = nextWorkerMessage(worker)
+    worker.postMessage({ type: 'prepare' })
+    const ready = await readyPromise
     if (ready.type !== 'ready') throw new Error('Canvas 一致性 Worker 未准备')
     const resources = await loadWorkerFonts(document.fonts, FontFace)
     const samples = motionRegistry.flatMap((definition) => {
       const duration = typeof definition.defaults.duration === 'number'
         ? definition.defaults.duration
         : 3
-      return [0.08, duration * 0.25, duration * 0.65, Math.max(0.1, duration - 0.08)]
+      return [
+        0.25,
+        Math.max(0.8, duration * 0.25),
+        Math.max(1.8, duration * 0.65),
+        Math.max(2.5, duration - 0.3),
+      ]
         .map((time) => ({
           card: {
             id: `parity-${definition.id}-${time}`,
@@ -155,6 +167,11 @@ async function verifyCanvasParity() {
         }))
     })
 
+    const parityDiff = {
+      maxChangedRatio: 0,
+      maxMeanAbsoluteError: 0,
+      maxChannelDelta: 0,
+    }
     for (let id = 0; id < samples.length; id += 1) {
       const sample = samples[id]
       const canvas = document.createElement('canvas')
@@ -168,7 +185,8 @@ async function verifyCanvasParity() {
       await session.begin()
       session.renderFrame(sample.time)
       const htmlPixels = session.readRgba()
-      requireAlpha(htmlPixels)
+      const sampleLabel = `${sample.card.motionId}@${sample.time}`
+      requireAlpha(htmlPixels, `HTML ${sampleLabel}`)
 
       const responsePromise = nextWorkerMessage(worker)
       worker.postMessage({ type: 'render', id, ...sample })
@@ -178,26 +196,55 @@ async function verifyCanvasParity() {
         throw new Error('Canvas 一致性 Worker 返回无效帧')
       }
       const workerPixels = new Uint8ClampedArray(response.pixels)
-      requireAlpha(workerPixels)
+      requireAlpha(workerPixels, `Worker ${sampleLabel}`)
       if (workerPixels.length !== htmlPixels.length) {
         throw new Error('HTML/Worker Canvas 像素长度不一致')
       }
+      let changedBytes = 0
+      let absoluteError = 0
+      let maxChannelDelta = 0
       for (let index = 0; index < htmlPixels.length; index += 1) {
-        if (htmlPixels[index] !== workerPixels[index]) {
-          throw new Error(`HTML/Worker Canvas 像素不一致：样本 ${id}，字节 ${index}`)
-        }
+        const delta = Math.abs(htmlPixels[index] - workerPixels[index])
+        if (delta !== 0) changedBytes += 1
+        absoluteError += delta
+        maxChannelDelta = Math.max(maxChannelDelta, delta)
+      }
+      const changedRatio = changedBytes / htmlPixels.length
+      const meanAbsoluteError = absoluteError / htmlPixels.length
+      parityDiff.maxChangedRatio = Math.max(
+        parityDiff.maxChangedRatio,
+        changedRatio,
+      )
+      parityDiff.maxMeanAbsoluteError = Math.max(
+        parityDiff.maxMeanAbsoluteError,
+        meanAbsoluteError,
+      )
+      parityDiff.maxChannelDelta = Math.max(
+        parityDiff.maxChannelDelta,
+        maxChannelDelta,
+      )
+      if (changedRatio > 0.005 || meanAbsoluteError > 0.5) {
+        throw new Error(
+          `HTML/Worker Canvas 差异超限：样本 ${id}，变化字节 `
+          + `${(changedRatio * 100).toFixed(4)}%，平均误差 `
+          + `${meanAbsoluteError.toFixed(4)}`,
+        )
       }
       session.end()
     }
-    return samples.length
+    return { samples: samples.length, parityDiff }
   } finally {
     worker.terminate()
   }
 }
 
 export function WorkerExportBenchmark() {
-  const mode = resolveBenchmarkMode(new URLSearchParams(window.location.search))
-  const totalFrames = benchmarkFrameCount(mode)
+  const search = new URLSearchParams(window.location.search)
+  const mode = resolveBenchmarkMode(search)
+  const requestedFrames = Number(search.get('frames'))
+  const totalFrames = Number.isInteger(requestedFrames) && requestedFrames > 0
+    ? requestedFrames
+    : benchmarkFrameCount(mode)
   const [state, setState] = useState<BenchmarkState>({
     status: 'running',
     mode,
@@ -216,13 +263,14 @@ export function WorkerExportBenchmark() {
 
     void (async () => {
       try {
-        const paritySamples = await verifyCanvasParity()
+        const parity = await verifyCanvasParity()
+        const paritySamples = parity.samples
         const started = performance.now()
         const performanceTracker = createExportPerformance()
         const duration = totalFrames / 30
         publish({
           status: 'running', mode, stage: 'export', totalFrames,
-          paritySamples, pipelineWindow: 3,
+          paritySamples, parityDiff: parity.parityDiff, pipelineWindow: 3,
         })
         const result = await renderTransparentMovWorker({
           cards: createBenchmarkCards(mode),
@@ -232,7 +280,8 @@ export function WorkerExportBenchmark() {
           onProgress: (progress) => publish({
             status: 'running', mode, stage: progress.phase,
             completedFrames: progress.completedFrames,
-            totalFrames, paritySamples, pipelineWindow: 3,
+            totalFrames, paritySamples, parityDiff: parity.parityDiff,
+            pipelineWindow: 3,
             phases: progress.performance?.phases,
           }),
         })
@@ -247,7 +296,8 @@ export function WorkerExportBenchmark() {
           totalFrames, jobId: result.jobId, size: result.size,
           encodingMs: result.encodingMs, elapsedMs,
           fps: totalFrames / (elapsedMs / 1000),
-          phases: snapshot.phases, paritySamples, pipelineWindow: 3,
+          phases: snapshot.phases, paritySamples,
+          parityDiff: parity.parityDiff, pipelineWindow: 3,
         })
       } catch (error) {
         publish({

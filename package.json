@@ -14,6 +14,7 @@
   "dependencies": {
     "@fontsource-variable/syne": "latest",
     "@fontsource/ibm-plex-mono": "latest",
+    "bufferutil": "^4.1.0",
     "ffmpeg-static": "^5.3.0",
     "motion": "latest",
     "react": "latest",

@@ -12,6 +12,8 @@ import {
 } from '../frameMath'
 import { runFramePipeline } from './framePipeline'
 import { loadWorkerFonts } from './fonts'
+import { createZeroRleEncoder } from './zeroRle'
+import { createZeroRleWorkerPool } from './zeroRlePool'
 import {
   validateWorkerExportCommand,
   type WorkerExportCommand,
@@ -32,7 +34,7 @@ export interface WorkerExportSocket {
     type: string,
     listener: (event: Event | MessageEvent) => void,
   ): void
-  send(data: ArrayBuffer | string): void
+  send(data: ArrayBuffer | Uint8Array<ArrayBuffer> | string): void
   close(code?: number, reason?: string): void
 }
 
@@ -42,6 +44,8 @@ interface RuntimeDependencies {
   prepareSession(cards: OverlayCard[]): Promise<CanvasExportSession>
   createSocket(url: string): WorkerExportSocket
   now?(): number
+  compressFrame?(pixels: Uint8ClampedArray): Promise<Uint8Array<ArrayBuffer>>
+  closeCompression?(): void
 }
 
 interface PreparedExport {
@@ -159,6 +163,8 @@ export function createRawMovExportWorkerRuntime({
   prepareSession,
   createSocket,
   now = () => performance.now(),
+  compressFrame,
+  closeCompression,
 }: RuntimeDependencies) {
   let prepared: PreparedExport | undefined
   let controller: AbortController | undefined
@@ -200,6 +206,7 @@ export function createRawMovExportWorkerRuntime({
     const signal = controller.signal
     const timings = phases()
     const { session, totalFrames, windowSize } = prepared
+    let rleEncoder: ReturnType<typeof createZeroRleEncoder> | undefined
     socket = createSocket(command.socketUrl)
     const messageQueue = createSocketMessageQueue(socket, signal)
 
@@ -221,11 +228,20 @@ export function createRawMovExportWorkerRuntime({
           session.renderFrame(calculateFrameTime(frameIndex))
           const pixels = session.readRgba()
           timings.frameCaptureMs += now() - started
-          return pixels
+          const compressionStarted = now()
+          const compressed = compressFrame
+            ? compressFrame(pixels)
+            : Promise.resolve((
+                rleEncoder ??= createZeroRleEncoder(pixels.byteLength / 4)
+              ).encode(pixels).slice())
+          return compressed.then((result) => {
+            timings.frameTransferMs += now() - compressionStarted
+            return result
+          })
         },
-        sendFrame: (_frameIndex, pixels) => {
+        sendFrame: (_frameIndex, compressed) => {
           const started = now()
-          socket?.send(pixels.buffer as ArrayBuffer)
+          socket?.send(compressed)
           timings.frameTransferMs += now() - started
         },
         nextAcknowledgement: async () => {
@@ -283,6 +299,7 @@ export function createRawMovExportWorkerRuntime({
     } finally {
       messageQueue.dispose()
       session.end()
+      closeCompression?.()
     }
   }
 
@@ -306,6 +323,7 @@ function createBrowserWorkerRuntime() {
     fonts: FontFaceSet
     postMessage(event: WorkerExportEvent): void
   }
+  const compression = createZeroRleWorkerPool(2)
   return createRawMovExportWorkerRuntime({
     origin: scope.location.origin,
     postEvent: (event) => scope.postMessage(event),
@@ -321,6 +339,8 @@ function createBrowserWorkerRuntime() {
       })
     },
     createSocket: (url) => new WebSocket(url),
+    compressFrame: (pixels) => compression.compress(pixels),
+    closeCompression: () => compression.close(),
   })
 }
 

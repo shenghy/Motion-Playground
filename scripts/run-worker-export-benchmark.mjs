@@ -30,10 +30,12 @@ export function buildChromeArguments({
   debuggingPort,
   appUrl,
   mode,
+  frameLimit,
 }) {
   const benchmarkUrl = new URL(appUrl)
   benchmarkUrl.searchParams.set('worker-export-benchmark', '1')
   benchmarkUrl.searchParams.set('mode', mode)
+  if (frameLimit) benchmarkUrl.searchParams.set('frames', String(frameLimit))
   return [
     '--headless=new',
     '--disable-gpu-sandbox',
@@ -86,11 +88,13 @@ async function connectCdp(url) {
     const operation = pending.get(message.id)
     if (!operation) return
     pending.delete(message.id)
+    clearTimeout(operation.timeout)
     if (message.error) operation.reject(new Error(message.error.message))
     else operation.resolve(message.result)
   })
   socket.on('close', () => {
     for (const operation of pending.values()) {
+      clearTimeout(operation.timeout)
       operation.reject(new Error('Chrome 调试连接已关闭'))
     }
     pending.clear()
@@ -99,7 +103,15 @@ async function connectCdp(url) {
     send(method, params = {}) {
       const id = nextId++
       return new Promise((resolveResult, rejectResult) => {
-        pending.set(id, { resolve: resolveResult, reject: rejectResult })
+        const timeout = setTimeout(() => {
+          pending.delete(id)
+          rejectResult(new Error(`Chrome CDP 命令超时：${method}`))
+        }, 10_000)
+        pending.set(id, {
+          resolve: resolveResult,
+          reject: rejectResult,
+          timeout,
+        })
         socket.send(JSON.stringify({ id, method, params }))
       })
     },
@@ -153,9 +165,11 @@ async function downloadResult(origin, jobId, mode) {
     `motion-playground-worker-${mode}-${Date.now()}.mov`,
   )
   const started = performance.now()
-  const response = await fetch(
-    `${origin}/__overlay_export__/jobs/${encodeURIComponent(jobId)}/file`,
+  const jobUrl = new URL(
+    `/__overlay_export__/jobs/${encodeURIComponent(jobId)}`,
+    origin,
   )
+  const response = await fetch(`${jobUrl.href}/file`)
   if (!response.ok || !response.body) {
     throw new Error(`下载基准 MOV 失败（HTTP ${response.status}）`)
   }
@@ -164,10 +178,7 @@ async function downloadResult(origin, jobId, mode) {
     createWriteStream(outputPath),
   )
   const savingMs = performance.now() - started
-  await fetch(
-    `${origin}/__overlay_export__/jobs/${encodeURIComponent(jobId)}`,
-    { method: 'DELETE' },
-  ).catch(() => undefined)
+  await fetch(jobUrl, { method: 'DELETE' }).catch(() => undefined)
   return { outputPath, savingMs }
 }
 
@@ -182,6 +193,7 @@ export async function runWorkerExportBenchmark(modeValue) {
     join(tmpdir(), 'motion-worker-benchmark-'),
   )
   const server = await startBenchmarkServer(appPort)
+  console.log(`[worker-benchmark] server ${server.url}`)
   const child = spawn(
     findChrome(),
     buildChromeArguments({
@@ -189,6 +201,7 @@ export async function runWorkerExportBenchmark(modeValue) {
       debuggingPort,
       appUrl: server.url,
       mode,
+      frameLimit: process.env.BENCHMARK_FRAMES,
     }),
     { stdio: 'ignore', windowsHide: true },
   )
@@ -196,9 +209,12 @@ export async function runWorkerExportBenchmark(modeValue) {
   let chromeExited = false
 
   try {
+    console.log(`[worker-benchmark] chrome pid ${child.pid}, cdp ${debuggingPort}`)
     const debuggerUrl = await waitForDebugger(debuggingPort)
+    console.log('[worker-benchmark] debugger target ready')
     cdp = await connectCdp(debuggerUrl)
     await cdp.send('Runtime.enable')
+    console.log('[worker-benchmark] runtime enabled')
     const timeoutMs = mode === 'long' ? 15 * 60_000 : 5 * 60_000
     const started = Date.now()
     let lastProgressAt = 0
@@ -235,7 +251,10 @@ export async function runWorkerExportBenchmark(modeValue) {
     return finalResult
   } finally {
     if (cdp) {
-      await cdp.send('Browser.close').catch(() => undefined)
+      await Promise.race([
+        cdp.send('Browser.close').catch(() => undefined),
+        new Promise((resolveTimeout) => setTimeout(resolveTimeout, 2_000)),
+      ])
       cdp.close()
     }
     await Promise.race([

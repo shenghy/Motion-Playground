@@ -88,12 +88,14 @@ describe('worker MOV client', () => {
       ...base,
       orderedRawProtocol: 'v2',
       workerPipeline: true,
+      orderedRleProtocol: 'v3',
     })).toBe(true)
     expect(supportsWorkerMovPipeline(base)).toBe(false)
     expect(supportsWorkerMovPipeline({
       ...base,
       orderedRawProtocol: 'v2',
       workerPipeline: false,
+      orderedRleProtocol: 'v3',
     })).toBe(false)
   })
 
@@ -130,7 +132,7 @@ describe('worker MOV client', () => {
       height: 1080,
       fps: 30,
       totalFrames: 1,
-      transport: 'raw-rgba-ordered',
+      transport: 'raw-rgba-rle-ordered',
     })
     expect(onJobCreated).toHaveBeenCalledExactlyOnceWith('worker-job')
     expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({

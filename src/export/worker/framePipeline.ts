@@ -1,11 +1,11 @@
-export interface FramePipelineOptions {
+export interface FramePipelineOptions<TFrame extends ArrayBufferView = Uint8ClampedArray> {
   totalFrames: number
   windowSize: number
   maxBufferedBytes: number
   bufferedAmount(): number
   waitForWritable(): Promise<void>
-  renderFrame(index: number): Uint8ClampedArray | Promise<Uint8ClampedArray>
-  sendFrame(index: number, pixels: Uint8ClampedArray): void
+  renderFrame(index: number): TFrame | Promise<TFrame>
+  sendFrame(index: number, pixels: TFrame): void
   nextAcknowledgement(): Promise<number>
   onAcknowledged(completedFrames: number): void
   signal: AbortSignal
@@ -36,7 +36,9 @@ async function waitWithAbort<T>(promise: Promise<T>, signal: AbortSignal) {
   }
 }
 
-export async function runFramePipeline(options: FramePipelineOptions) {
+export async function runFramePipeline<TFrame extends ArrayBufferView>(
+  options: FramePipelineOptions<TFrame>,
+) {
   const {
     totalFrames,
     windowSize,
@@ -57,28 +59,39 @@ export async function runFramePipeline(options: FramePipelineOptions) {
     throw new Error('流水线窗口必须是正整数')
   }
 
-  const inFlight = new Map<number, Uint8ClampedArray>()
+  const pendingFrames = new Map<number, Promise<TFrame>>()
+  const inFlight = new Map<number, TFrame>()
+  let nextToRender = 0
   let nextToSend = 0
   let nextToAcknowledge = 0
 
   while (nextToAcknowledge < totalFrames) {
     throwIfAborted(signal)
 
-    while (nextToSend < totalFrames && inFlight.size < windowSize) {
+    while (
+      nextToRender < totalFrames
+      && pendingFrames.size + inFlight.size < windowSize
+    ) {
       throwIfAborted(signal)
 
       if (bufferedAmount() > maxBufferedBytes) {
-        await waitWithAbort(waitForWritable(), signal)
-        continue
+        if (pendingFrames.size === 0 && inFlight.size === 0) {
+          await waitWithAbort(waitForWritable(), signal)
+          continue
+        }
+        break
       }
 
-      const frameIndex = nextToSend
-      const pixels = await waitWithAbort(
-        Promise.resolve(renderFrame(frameIndex)),
-        signal,
-      )
-      throwIfAborted(signal)
+      const frameIndex = nextToRender
+      pendingFrames.set(frameIndex, Promise.resolve(renderFrame(frameIndex)))
+      nextToRender += 1
+    }
 
+    while (pendingFrames.has(nextToSend) && inFlight.size < windowSize) {
+      const frameIndex = nextToSend
+      const pixels = await waitWithAbort(pendingFrames.get(frameIndex)!, signal)
+      throwIfAborted(signal)
+      pendingFrames.delete(frameIndex)
       inFlight.set(frameIndex, pixels)
       sendFrame(frameIndex, pixels)
       nextToSend += 1

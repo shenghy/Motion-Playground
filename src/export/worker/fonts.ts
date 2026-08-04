@@ -37,7 +37,6 @@ export async function loadWorkerFonts(
     }),
   )
   for (const face of faces) fontSet.add(face)
-  await fontSet.ready
 
   return {
     width: 1920,

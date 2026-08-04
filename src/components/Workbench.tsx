@@ -290,6 +290,7 @@ export function Workbench({
           transport?: unknown
           orderedRawProtocol?: unknown
           workerPipeline?: unknown
+          orderedRleProtocol?: unknown
         }
         const mov = capability.mov === true
           && capability.rawRgba === true
@@ -1195,7 +1196,12 @@ export function Workbench({
       exportOperationRef.current = false
       setExportOperationActive(false)
     }
-  }, [cards, updateExportProgress, videoDuration, workerMovAvailable])
+  }, [
+    cards,
+    updateExportProgress,
+    videoDuration,
+    workerMovAvailable,
+  ])
 
   useEffect(() => {
     const pendingJob = pendingMovJobRef.current

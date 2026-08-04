@@ -50,6 +50,7 @@ export function createExportApi({ manager, origin }) {
           orderedRawProtocol: 'v2',
           workerPipeline: true,
           pipelineWindow: 3,
+          orderedRleProtocol: 'v3',
         })
         return true
       }

@@ -68,4 +68,25 @@ describe('worker font loading', () => {
     ).rejects.toThrow('font unavailable')
     expect(fontSet.add).not.toHaveBeenCalled()
   })
+
+  it('finishes from loaded faces when Worker FontFaceSet.ready stays pending', async () => {
+    const FontFaceConstructor = vi.fn(function (this: {
+      load: () => Promise<unknown>
+    }) {
+      this.load = vi.fn(async () => ({}))
+    })
+    const fontSet = {
+      add: vi.fn(),
+      ready: new Promise(() => undefined),
+    }
+
+    const outcome = await Promise.race([
+      loadWorkerFonts(fontSet, FontFaceConstructor as never)
+        .then(() => 'loaded'),
+      new Promise<string>((resolve) => setTimeout(() => resolve('timeout'), 20)),
+    ])
+
+    expect(outcome).toBe('loaded')
+    expect(fontSet.add).toHaveBeenCalledTimes(3)
+  })
 })

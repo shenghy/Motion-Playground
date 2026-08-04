@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   decodeOrderedRawFrame,
+  decodeOrderedZeroRleFrame,
   decodeRawFrame,
   encodeRawFrame,
   rawFrameBytes,
@@ -33,4 +34,18 @@ describe('raw rgba frame protocol', () => {
       'RGBA 甯у瓧鑺傛暟',
     )
   })
+})
+
+it('decodes ordered zero-rle rgba without changing any pixel byte', () => {
+  const encoded = Buffer.from([
+    2, 0, 0, 0,
+    1, 0, 0, 0, 2, 0, 0, 0,
+    10, 20, 30, 40, 50, 60, 70, 80,
+    4, 0, 0, 0, 1, 0, 0, 0,
+    90, 100, 110, 120,
+  ])
+  expect(decodeOrderedZeroRleFrame(encoded, 5, 1)).toEqual(Buffer.from([
+    0, 0, 0, 0, 10, 20, 30, 40, 50, 60, 70, 80,
+    0, 0, 0, 0, 90, 100, 110, 120,
+  ]))
 })

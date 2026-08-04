@@ -42,6 +42,7 @@ interface WorkerPipelineCapabilities {
   transport?: unknown
   orderedRawProtocol?: unknown
   workerPipeline?: unknown
+  orderedRleProtocol?: unknown
 }
 
 export class WorkerMovPreparationError extends Error {
@@ -67,6 +68,7 @@ export function supportsWorkerMovPipeline(
     && capability.transport === 'websocket'
     && capability.orderedRawProtocol === 'v2'
     && capability.workerPipeline === true
+    && capability.orderedRleProtocol === 'v3'
 }
 
 const browserWorkerFactory = (): WorkerLike => new Worker(
@@ -223,7 +225,7 @@ export async function renderTransparentMovWorker({
         height: EXPORT_HEIGHT,
         fps: EXPORT_FPS,
         totalFrames,
-        transport: 'raw-rgba-ordered',
+        transport: 'raw-rgba-rle-ordered',
       }),
       signal,
     }))

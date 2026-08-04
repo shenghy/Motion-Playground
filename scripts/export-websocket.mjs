@@ -1,6 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws'
 import {
   decodeOrderedRawFrame,
+  decodeOrderedZeroRleFrame,
   decodeRawFrame,
 } from './raw-frame-protocol.mjs'
 
@@ -30,7 +31,7 @@ function closeReason(error) {
 export function createExportWebSocket({ manager, origin }) {
   const server = new WebSocketServer({
     noServer: true,
-    maxPayload: 8_294_404,
+    maxPayload: 16 * 1024 * 1024,
   })
   let httpServer = null
   let upgradeHandler = null
@@ -58,7 +59,16 @@ export function createExportWebSocket({ manager, origin }) {
       processing = processing.then(async () => {
         if (completed) throw new Error('透明导出任务已经完成')
         if (isBinary) {
-          const decoded = jobInfo.transport === 'raw-rgba-ordered'
+          const decoded = jobInfo.transport === 'raw-rgba-rle-ordered'
+            ? {
+                frameIndex: expectedFrame,
+                pixels: decodeOrderedZeroRleFrame(
+                  data,
+                  jobInfo.width,
+                  jobInfo.height,
+                ),
+              }
+            : jobInfo.transport === 'raw-rgba-ordered'
             ? {
                 frameIndex: expectedFrame,
                 pixels: decodeOrderedRawFrame(
@@ -126,6 +136,7 @@ export function createExportWebSocket({ manager, origin }) {
           if (
             jobInfo.transport !== 'raw-rgba'
             && jobInfo.transport !== 'raw-rgba-ordered'
+            && jobInfo.transport !== 'raw-rgba-rle-ordered'
           ) {
             throw new Error('当前任务不是 RGBA 导出任务')
           }

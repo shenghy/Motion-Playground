@@ -5,10 +5,10 @@ import { EXPORT_HEIGHT, EXPORT_WIDTH } from '../frameMath'
 import { loadWorkerFonts } from '../worker/fonts'
 
 interface ParityCommand {
-  type: 'render'
-  id: number
-  card: OverlayCard
-  time: number
+  type: 'prepare' | 'render'
+  id?: number
+  card?: OverlayCard
+  time?: number
 }
 
 const scope = globalThis as unknown as {
@@ -21,13 +21,24 @@ const scope = globalThis as unknown as {
 }
 
 const ready = loadWorkerFonts(scope.fonts, FontFace)
-scope.postMessage({ type: 'ready' })
 
 scope.addEventListener('message', (event) => {
   void (async () => {
     try {
       const resources = await ready
       const command = event.data
+      if (command.type === 'prepare') {
+        scope.postMessage({ type: 'ready' })
+        return
+      }
+      if (
+        command.type !== 'render'
+        || command.id === undefined
+        || !command.card
+        || command.time === undefined
+      ) {
+        throw new Error('Canvas 一致性命令无效')
+      }
       const canvas = new OffscreenCanvas(EXPORT_WIDTH, EXPORT_HEIGHT)
       const session = createCanvasExportSession({
         canvas,

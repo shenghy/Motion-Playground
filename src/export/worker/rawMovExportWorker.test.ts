@@ -4,11 +4,12 @@ import {
   createRawMovExportWorkerRuntime,
   type WorkerExportSocket,
 } from './rawMovExport.worker'
+import { encodeZeroRleFrame } from './zeroRle'
 
 class FakeSocket implements WorkerExportSocket {
   readyState = 0
   bufferedAmount = 0
-  sent: (ArrayBuffer | string)[] = []
+  sent: (ArrayBuffer | Uint8Array<ArrayBuffer> | string)[] = []
   private listeners = new Map<string, Set<(event: Event | MessageEvent) => void>>()
 
   addEventListener(type: string, listener: (event: Event | MessageEvent) => void) {
@@ -25,8 +26,10 @@ class FakeSocket implements WorkerExportSocket {
     for (const listener of this.listeners.get(type) ?? []) listener(event)
   }
 
-  send(data: ArrayBuffer | string) {
-    this.sent.push(data)
+  send(data: ArrayBuffer | Uint8Array<ArrayBuffer> | string) {
+    this.sent.push(ArrayBuffer.isView(data)
+      ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength).slice()
+      : data)
   }
 
   close() {
@@ -90,9 +93,11 @@ describe('raw MOV export worker runtime', () => {
       socketUrl: 'ws://localhost:4173/jobs/job-1/raw',
     })
     await vi.waitFor(() => {
-      expect(socket.sent.filter((item) => item instanceof ArrayBuffer)).toHaveLength(3)
+      expect(socket.sent.filter((item) => ArrayBuffer.isView(item))).toHaveLength(3)
     })
-    expect(socket.sent.slice(0, 3)).toEqual(pixels.slice(0, 3).map((item) => item.buffer))
+    expect(socket.sent.slice(0, 3).map((item) => [...item as Uint8Array])).toEqual(
+      pixels.slice(0, 3).map((item) => [...encodeZeroRleFrame(item)]),
+    )
 
     for (let frameIndex = 0; frameIndex < 4; frameIndex += 1) {
       socket.emit('message', new MessageEvent('message', {
@@ -100,7 +105,7 @@ describe('raw MOV export worker runtime', () => {
       }))
       if (frameIndex === 0) {
         await vi.waitFor(() => {
-          expect(socket.sent.filter((item) => item instanceof ArrayBuffer)).toHaveLength(4)
+          expect(socket.sent.filter((item) => ArrayBuffer.isView(item))).toHaveLength(4)
         })
       }
     }

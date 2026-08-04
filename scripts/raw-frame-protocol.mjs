@@ -47,3 +47,31 @@ export function decodeOrderedRawFrame(message, width, height) {
   }
   return buffer
 }
+
+export function decodeOrderedZeroRleFrame(message, width, height) {
+  const buffer = Buffer.isBuffer(message)
+    ? message
+    : Buffer.from(message.buffer, message.byteOffset, message.byteLength)
+  if (buffer.length < 4) throw new Error('RGBA RLE 帧缺少游程数量')
+  const pixelCount = width * height
+  const output = Buffer.alloc(rawFrameBytes(width, height))
+  const runCount = buffer.readUInt32LE(0)
+  let inputOffset = 4
+  let previousEnd = 0
+  for (let run = 0; run < runCount; run += 1) {
+    if (inputOffset + 8 > buffer.length) throw new Error('RGBA RLE 游程头无效')
+    const start = buffer.readUInt32LE(inputOffset)
+    const length = buffer.readUInt32LE(inputOffset + 4)
+    inputOffset += 8
+    const end = start + length
+    const bytes = length * 4
+    if (length === 0 || start < previousEnd || end > pixelCount || inputOffset + bytes > buffer.length) {
+      throw new Error('RGBA RLE 游程范围无效')
+    }
+    buffer.copy(output, start * 4, inputOffset, inputOffset + bytes)
+    inputOffset += bytes
+    previousEnd = end
+  }
+  if (inputOffset !== buffer.length) throw new Error('RGBA RLE 帧包含多余数据')
+  return output
+}

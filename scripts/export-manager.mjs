@@ -11,6 +11,12 @@ const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 ])
 const MAX_FRAME_BYTES = 32 * 1024 * 1024
+function encoderThreads() {
+  const configured = Number(process.env.OVERLAY_EXPORT_THREADS ?? 16)
+  return Number.isInteger(configured) && configured >= 1 && configured <= 32
+    ? configured
+    : 16
+}
 
 function isPng(buffer) {
   return (
@@ -52,6 +58,7 @@ function validateTransport(transport) {
     transport !== 'png'
     && transport !== 'raw-rgba'
     && transport !== 'raw-rgba-ordered'
+    && transport !== 'raw-rgba-rle-ordered'
   ) {
     throw new Error('透明导出传输格式无效')
   }
@@ -81,6 +88,8 @@ export function rawFfmpegArguments(fps, outputPath, width = 1920, height = 1080)
     'yuva444p10le',
     '-alpha_bits',
     '16',
+    '-threads',
+    String(encoderThreads()),
     '-y',
     outputPath,
   ]
@@ -108,6 +117,8 @@ function pngFfmpegArguments(fps, outputPath) {
     'yuva444p10le',
     '-alpha_bits',
     '16',
+    '-threads',
+    String(encoderThreads()),
     '-y',
     outputPath,
   ]
@@ -148,7 +159,9 @@ export function createExportManager({
     const outputPath = join(directory, 'overlay-transparent.mov')
     const child = spawnProcess(
       ffmpegPath,
-      transport === 'raw-rgba' || transport === 'raw-rgba-ordered'
+      transport === 'raw-rgba'
+      || transport === 'raw-rgba-ordered'
+      || transport === 'raw-rgba-rle-ordered'
         ? rawFfmpegArguments(
             options.fps,
             outputPath,
@@ -234,6 +247,7 @@ export function createExportManager({
     if (
       job.transport !== 'raw-rgba'
       && job.transport !== 'raw-rgba-ordered'
+      && job.transport !== 'raw-rgba-rle-ordered'
     ) {
       throw new Error('当前导出任务不接收 RGBA 帧')
     }

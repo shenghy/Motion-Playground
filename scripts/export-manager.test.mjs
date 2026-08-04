@@ -134,6 +134,7 @@ describe('transparent MOV export manager', () => {
         '-profile:v', '4',
         '-pix_fmt', 'yuva444p10le',
         '-alpha_bits', '16',
+        '-threads', '16',
       ]))
       expect(args.join(' ')).not.toContain('.mp4')
       expect(finished.encodingMs).toBe(45)

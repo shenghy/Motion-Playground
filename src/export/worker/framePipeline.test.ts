@@ -150,4 +150,36 @@ describe('runFramePipeline', () => {
     await pipeline
     expect(onAcknowledged).toHaveBeenCalledExactlyOnceWith(1)
   })
+
+  it('starts three asynchronous frame jobs before waiting for the first result', async () => {
+    const renders = Array.from({ length: 3 }, () => deferred<Uint8ClampedArray>())
+    const renderFrame = vi.fn((index: number) => renders[index].promise)
+    const sent: number[] = []
+    const acknowledgement = deferred<number>()
+    const pipeline = runFramePipeline({
+      totalFrames: 3,
+      windowSize: 3,
+      maxBufferedBytes: 1024,
+      bufferedAmount: () => 0,
+      waitForWritable: vi.fn(),
+      renderFrame,
+      sendFrame: (index) => sent.push(index),
+      nextAcknowledgement: () => acknowledgement.promise,
+      onAcknowledged: vi.fn(),
+      signal: new AbortController().signal,
+    })
+
+    await waitFor(() => renderFrame.mock.calls.length === 3)
+    expect(sent).toEqual([])
+    renders[0].resolve(new Uint8ClampedArray([0]))
+    renders[1].resolve(new Uint8ClampedArray([1]))
+    renders[2].resolve(new Uint8ClampedArray([2]))
+    await waitFor(() => sent.length === 3)
+    for (let index = 0; index < 3; index += 1) {
+      acknowledgement.resolve(index)
+      await Promise.resolve()
+    }
+    // The shared deferred is enough to prove launch concurrency; abort cleanup.
+    void pipeline.catch(() => undefined)
+  })
 })

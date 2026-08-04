@@ -3,26 +3,22 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
-  useState,
 } from 'react'
-import { flushSync } from 'react-dom'
-import { getFontEmbedCSS, toBlob } from 'html-to-image'
 import { getMotionDefinition } from '../motion/registry'
-import type {
-  MotionDefinition,
-  ParameterValues,
-} from '../motion/types'
+import type { ParameterValues } from '../motion/types'
 import type { OverlayCard } from '../timeline/types'
 import {
-  EXPORT_HEIGHT,
-  EXPORT_WIDTH,
-  getCardPlaybackState,
-} from './frameMath'
+  createCanvasExportSession,
+  type CanvasExportSession,
+} from './canvas/CanvasExportSurface'
+import type { CanvasMotionRenderer } from './canvas/types'
+import { EXPORT_HEIGHT, EXPORT_WIDTH } from './frameMath'
 
 export interface ExportSurfaceHandle {
   beginCaptureSession(): Promise<void>
   prepareFrame(time: number): Promise<void>
   capturePng(): Promise<Blob>
+  renderRgba(time: number): Uint8ClampedArray
   endCaptureSession(): void
 }
 
@@ -30,113 +26,59 @@ interface ExportSurfaceProps {
   cards: OverlayCard[]
 }
 
-function nextPaint() {
-  return new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve())
-  })
-}
-
 export const ExportSurface = forwardRef<
   ExportSurfaceHandle,
   ExportSurfaceProps
 >(function ExportSurface({ cards }, ref) {
-  const rootRef = useRef<HTMLDivElement>(null)
-  const fontEmbedCssRef = useRef<string | null>(null)
-  const [frameTime, setFrameTime] = useState<number | null>(null)
-  const activeCards =
-    frameTime === null
-      ? []
-      : cards
-          .filter((card) => getCardPlaybackState(card, frameTime).active)
-          .sort((left, right) => left.zIndex - right.zIndex)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const sessionRef = useRef<CanvasExportSession | null>(null)
 
-  useEffect(() => {
-    fontEmbedCssRef.current = null
+  useEffect(() => () => {
+    sessionRef.current?.end()
+    sessionRef.current = null
   }, [cards])
 
-  useImperativeHandle(ref, () => ({
-    async beginCaptureSession() {
-      if (!rootRef.current) {
-        throw new Error('透明导出舞台尚未准备完成')
-      }
-      if (fontEmbedCssRef.current !== null) return
-      await document.fonts?.ready
-      fontEmbedCssRef.current = await getFontEmbedCSS(rootRef.current)
-    },
-    async prepareFrame(time) {
-      flushSync(() => {
-        setFrameTime(Number.isFinite(time) ? Math.max(0, time) : 0)
-      })
+  const requireSession = () => {
+    if (sessionRef.current) return sessionRef.current
+    if (!canvasRef.current) throw new Error('透明导出舞台尚未准备完成')
+    sessionRef.current = createCanvasExportSession({
+      canvas: canvasRef.current,
+      cards,
+      resolveRenderer: (motionId) => getMotionDefinition(motionId)
+        .canvasRenderer as CanvasMotionRenderer<ParameterValues>,
+      fontReady: async () => {
+        await document.fonts?.ready
+      },
+    })
+    return sessionRef.current
+  }
 
-      rootRef.current
-        ?.querySelectorAll<HTMLElement>('[data-export-card="true"]')
-        .forEach((element) => {
-          const localTime = Number(element.dataset.playbackTime ?? 0)
-          element.getAnimations?.({ subtree: true }).forEach((animation) => {
-            animation.pause()
-            animation.currentTime = localTime * 1000
-          })
-        })
-      await nextPaint()
+  useImperativeHandle(ref, () => ({
+    beginCaptureSession: () => requireSession().begin(),
+    async prepareFrame(time) {
+      requireSession().renderFrame(time)
     },
-    async capturePng() {
-      if (!rootRef.current) {
-        throw new Error('透明导出舞台尚未准备完成')
-      }
-      const blob = await toBlob(rootRef.current, {
-        width: EXPORT_WIDTH,
-        height: EXPORT_HEIGHT,
-        pixelRatio: 1,
-        backgroundColor: 'transparent',
-        cacheBust: false,
-        fontEmbedCSS: fontEmbedCssRef.current ?? undefined,
-      })
-      if (!blob) {
-        throw new Error('生成透明 PNG 帧失败')
-      }
-      return blob
+    capturePng: () => requireSession().capturePng(),
+    renderRgba(time) {
+      const session = requireSession()
+      session.renderFrame(time)
+      return session.readRgba()
     },
     endCaptureSession() {
-      fontEmbedCssRef.current = null
+      sessionRef.current?.end()
+      sessionRef.current = null
     },
-  }), [])
+  }))
 
   return (
     <div className="export-surface-host" aria-hidden="true">
-      <div
-        ref={rootRef}
-        className="export-surface"
+      <canvas
+        ref={canvasRef}
+        width={EXPORT_WIDTH}
+        height={EXPORT_HEIGHT}
         data-testid="export-surface"
         data-background="transparent"
-      >
-        {activeCards.map((card) => {
-          const definition = getMotionDefinition(
-            card.motionId,
-          ) as unknown as MotionDefinition<ParameterValues>
-          const MotionComponent = definition.component
-          const { localTime } = getCardPlaybackState(card, frameTime ?? 0)
-
-          return (
-            <div
-              key={card.id}
-              className="export-card"
-              data-testid={`export-card-${card.id}`}
-              data-card-id={card.id}
-              data-export-card="true"
-              data-playback-time={localTime}
-              style={{
-                transform: `translate(${card.position.x}%, ${card.position.y}%)`,
-                zIndex: card.zIndex,
-              }}
-            >
-              <MotionComponent
-                params={card.params}
-                playbackTime={localTime}
-              />
-            </div>
-          )
-        })}
-      </div>
+      />
     </div>
   )
 })

@@ -151,7 +151,7 @@ describe('Workbench transparent export coordination', () => {
     ).toBeDisabled()
     expect(document.querySelector('.workspace')).not.toHaveAttribute('inert')
     fireEvent.click(cancelButton)
-    await waitFor(() => expect(getFontEmbedCSS).toHaveBeenCalledTimes(1))
+    expect(getFontEmbedCSS).not.toHaveBeenCalled()
 
     await screen.findByText('已取消，共生成 0 帧')
   })

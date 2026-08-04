@@ -1,115 +1,78 @@
 import { act, createRef } from 'react'
 import { render, screen } from '@testing-library/react'
-import { getFontEmbedCSS, toBlob } from 'html-to-image'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getMotionDefinition } from '../motion/registry'
 import type { OverlayCard } from '../timeline/types'
-import {
-  ExportSurface,
-  type ExportSurfaceHandle,
-} from './ExportSurface'
+import { ExportSurface, type ExportSurfaceHandle } from './ExportSurface'
 
-vi.mock('html-to-image', () => ({
-  getFontEmbedCSS: vi.fn(),
-  toBlob: vi.fn(),
-}))
-
-function card(
-  id: string,
-  start: number,
-  end: number,
-  zIndex: number,
-): OverlayCard {
+function card(): OverlayCard {
   return {
-    id,
+    id: 'metric',
     motionId: 'metric-focus',
-    start,
-    end,
-    zIndex,
-    position: { x: 12, y: 24 },
+    start: 0,
+    end: 4,
+    zIndex: 0,
+    position: { x: 0, y: 0 },
     params: { ...getMotionDefinition('metric-focus').defaults },
   }
 }
 
-describe('ExportSurface', () => {
-  beforeEach(() => {
-    vi.mocked(getFontEmbedCSS).mockReset()
-    vi.mocked(getFontEmbedCSS).mockResolvedValue('embedded-fonts')
-    vi.mocked(toBlob).mockReset()
-    vi.mocked(toBlob).mockResolvedValue(
-      new Blob(['png'], { type: 'image/png' }),
-    )
+describe('Canvas ExportSurface', () => {
+  const pixels = new Uint8ClampedArray(1920 * 1080 * 4)
+  const clearRect = vi.fn()
+  const getImageData = vi.fn(() => ({ data: pixels }))
+  const toBlob = vi.fn((callback: BlobCallback) => {
+    callback(new Blob(['png'], { type: 'image/png' }))
   })
 
-  it('renders only active transparent cards in layer order', async () => {
-    const ref = createRef<ExportSurfaceHandle>()
-    const { container } = render(
-      <ExportSurface
-        ref={ref}
-        cards={[
-          card('high', 0, 4, 5),
-          card('ended', 0, 1, 0),
-          card('low', 1, 5, 1),
-        ]}
-      />,
-    )
-
-    await act(() => ref.current!.prepareFrame(2))
-
-    expect(
-      screen.getAllByTestId(/^export-card-/).map((node) => node.dataset.cardId),
-    ).toEqual(['low', 'high'])
-    expect(screen.getByTestId('export-card-low')).toHaveStyle({
-      transform: 'translate(12%, 24%)',
-      zIndex: '1',
+  beforeEach(() => {
+    clearRect.mockClear()
+    getImageData.mockClear()
+    toBlob.mockClear()
+    const noop = vi.fn()
+    const ctx = new Proxy({
+      clearRect,
+      getImageData,
+      measureText: vi.fn((text: string) => ({ width: text.length * 20 })),
+      globalAlpha: 1,
+      globalCompositeOperation: 'source-over',
+      fillStyle: '#000000',
+      strokeStyle: '#000000',
+      lineWidth: 1,
+      font: '10px sans-serif',
+      textAlign: 'start',
+      textBaseline: 'alphabetic',
+      filter: 'none',
+    } as unknown as CanvasRenderingContext2D, {
+      get(target, property, receiver) {
+        if (property in target) return Reflect.get(target, property, receiver)
+        return noop
+      },
     })
-    expect(screen.queryByTestId('export-card-ended')).not.toBeInTheDocument()
-    expect(container.querySelector('video')).toBeNull()
-    expect(container.querySelector('.presenter-safe-area')).toBeNull()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(ctx)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob')
+      .mockImplementation(toBlob)
+  })
+
+  it('renders deterministic rgba and png frames on one transparent canvas', async () => {
+    const ref = createRef<ExportSurfaceHandle>()
+    const { container } = render(<ExportSurface ref={ref} cards={[card()]} />)
+
+    await act(() => ref.current!.beginCaptureSession())
+    await act(() => ref.current!.prepareFrame(1))
+    const rgba = ref.current!.renderRgba(2)
+    const png = await ref.current!.capturePng()
+
+    expect(clearRect).toHaveBeenCalledTimes(2)
+    expect(rgba).toBe(pixels)
+    expect(rgba.byteLength).toBe(8_294_400)
+    expect(png.type).toBe('image/png')
     expect(screen.getByTestId('export-surface')).toHaveAttribute(
       'data-background',
       'transparent',
     )
-  })
-
-  it('reuses embedded font CSS within one capture session', async () => {
-    const ref = createRef<ExportSurfaceHandle>()
-    render(<ExportSurface ref={ref} cards={[card('card-1', 0, 4, 0)]} />)
-
-    await act(() => ref.current!.beginCaptureSession())
-    await act(() => ref.current!.prepareFrame(1))
-    await ref.current!.capturePng()
-    await ref.current!.capturePng()
-
-    expect(getFontEmbedCSS).toHaveBeenCalledTimes(1)
-    expect(toBlob).toHaveBeenCalledTimes(2)
-    expect(toBlob).toHaveBeenLastCalledWith(
-      expect.any(HTMLElement),
-      expect.objectContaining({ fontEmbedCSS: 'embedded-fonts' }),
-    )
-
+    expect(container.querySelector('video')).toBeNull()
     ref.current!.endCaptureSession()
-    await act(() => ref.current!.beginCaptureSession())
-    expect(getFontEmbedCSS).toHaveBeenCalledTimes(2)
-  })
-
-  it('uses one paint boundary to prepare each deterministic frame', async () => {
-    const ref = createRef<ExportSurfaceHandle>()
-    const animationFrame = vi
-      .spyOn(window, 'requestAnimationFrame')
-      .mockImplementation((callback) => {
-        callback(16)
-        return 1
-      })
-    render(<ExportSurface ref={ref} cards={[card('card-1', 0, 4, 0)]} />)
-
-    await act(() => ref.current!.prepareFrame(2))
-
-    expect(animationFrame).toHaveBeenCalledTimes(1)
-    expect(screen.getByTestId('export-card-card-1')).toHaveAttribute(
-      'data-playback-time',
-      '2',
-    )
-    animationFrame.mockRestore()
   })
 })

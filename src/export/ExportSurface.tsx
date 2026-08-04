@@ -4,14 +4,12 @@ import {
   useImperativeHandle,
   useRef,
 } from 'react'
-import { getMotionDefinition } from '../motion/registry'
-import type { ParameterValues } from '../motion/types'
 import type { OverlayCard } from '../timeline/types'
 import {
   createCanvasExportSession,
   type CanvasExportSession,
 } from './canvas/CanvasExportSurface'
-import type { CanvasMotionRenderer } from './canvas/types'
+import { resolveCanvasRenderer } from './canvas/rendererRegistry'
 import { EXPORT_HEIGHT, EXPORT_WIDTH } from './frameMath'
 
 export interface ExportSurfaceHandle {
@@ -44,8 +42,7 @@ export const ExportSurface = forwardRef<
     sessionRef.current = createCanvasExportSession({
       canvas: canvasRef.current,
       cards,
-      resolveRenderer: (motionId) => getMotionDefinition(motionId)
-        .canvasRenderer as CanvasMotionRenderer<ParameterValues>,
+      resolveRenderer: resolveCanvasRenderer,
       fontReady: async () => {
         await document.fonts?.ready
       },

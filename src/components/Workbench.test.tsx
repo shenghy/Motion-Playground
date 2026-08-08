@@ -157,6 +157,14 @@ describe('Workbench', () => {
     return video
   }
 
+  function openTransferTab() {
+    fireEvent.click(screen.getByRole('tab', { name: '导入导出' }))
+  }
+
+  function openWorkspaceTab() {
+    fireEvent.click(screen.getByRole('tab', { name: '工作区' }))
+  }
+
   afterEach(() => {
     vi.restoreAllMocks()
   })
@@ -376,6 +384,7 @@ describe('Workbench', () => {
     await screen.findByText('待清空.mp4')
 
     const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
+    openWorkspaceTab()
     fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
     expect(storage.clear).not.toHaveBeenCalled()
     expect(screen.getByText('待清空.mp4')).toBeInTheDocument()
@@ -389,6 +398,7 @@ describe('Workbench', () => {
     )
     expect(document.querySelectorAll('.timeline-editor__card')).toHaveLength(0)
     expect(getState()).toEqual({ workspace: null, video: null })
+    fireEvent.click(screen.getByRole('tab', { name: '卡片属性' }))
     expect(screen.getByRole('switch', { name: '显示人物安全区' })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -413,6 +423,7 @@ describe('Workbench', () => {
       () => expect(storage.saveWorkspace).toHaveBeenCalled(),
       { timeout: 1500 },
     )
+    openWorkspaceTab()
     fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
 
     await new Promise((resolve) => setTimeout(resolve, 20))
@@ -479,6 +490,7 @@ describe('Workbench', () => {
     fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
     await waitFor(() => expect(storage.commitVideo).toHaveBeenCalledTimes(1))
 
+    openWorkspaceTab()
     fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
     await new Promise((resolve) => setTimeout(resolve, 20))
     expect(storage.clear).not.toHaveBeenCalled()
@@ -556,6 +568,7 @@ describe('Workbench', () => {
     fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
     await waitFor(() => expect(storage.commitVideo).toHaveBeenCalledTimes(1))
 
+    openWorkspaceTab()
     fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
     fireEvent.change(screen.getByLabelText('指标名称'), {
       target: { value: '等待清空时的修改' },
@@ -596,6 +609,7 @@ describe('Workbench', () => {
     fireEvent.canPlay(screen.getByTestId('video-validation-probe'))
     await waitFor(() => expect(storage.commitVideo).toHaveBeenCalledTimes(1))
 
+    openWorkspaceTab()
     fireEvent.click(screen.getByRole('button', { name: '清空工作区' }))
     expect(document.querySelector('.workbench')).toHaveAttribute(
       'aria-busy',
@@ -716,6 +730,7 @@ describe('Workbench', () => {
     fireEvent.change(screen.getByLabelText('导入本地视频'), {
       target: { files: [file] },
     })
+    openTransferTab()
     expect(screen.getByText('正在检查')).toBeInTheDocument()
     const validationProbe = screen.getByTestId('video-validation-probe')
     expect(validationProbe).toHaveAttribute('preload', 'auto')
@@ -1441,6 +1456,7 @@ describe('Workbench', () => {
     mockTimelineRect(track)
     dropMotion(track, 'metric-focus', 100)
 
+    openTransferTab()
     fireEvent.change(screen.getByLabelText('选择 JSON 项目文件'), {
       target: {
         files: [
@@ -1487,6 +1503,7 @@ describe('Workbench', () => {
     mockTimelineRect(track)
     dropMotion(track, 'metric-focus', 100)
 
+    openTransferTab()
     fireEvent.click(screen.getByRole('button', { name: '导出 JSON' }))
 
     const blob = createObjectURL.mock.calls.at(-1)?.[0] as Blob

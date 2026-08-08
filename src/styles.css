@@ -3449,6 +3449,95 @@ a:focus-visible {
   box-shadow: .16cqw .12cqw 0 rgba(241,238,229,.24);
 }
 
+.compare-split__header {
+  left: 6.35%;
+  top: 9%;
+  width: 52.5%;
+}
+
+.compare-split__header > span:last-child {
+  color: var(--motion-accent-blue);
+}
+
+.compare-split__panels {
+  inset: 21% auto auto 6.35%;
+  width: 52.5%;
+  height: 49%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2cqw;
+}
+
+.compare-split__panels .compare-panel--left,
+.compare-split__panels .compare-panel--right {
+  position: relative;
+  inset: auto;
+  width: auto;
+  height: auto;
+  padding: 1.4cqw 1.25cqw;
+}
+
+.compare-split__panels .compare-panel__content {
+  gap: .8cqw;
+}
+
+.compare-split__panels .compare-panel strong,
+.compare-split__panels .compare-panel--right strong {
+  font-size: 4.35cqw;
+}
+
+.compare-split__panels .compare-panel__label,
+.compare-split__panels .compare-panel--right .compare-panel__label {
+  font-size: .9cqw;
+}
+
+.compare-split__panels .compare-panel strong em,
+.compare-split__panels .compare-panel--right strong em {
+  display: inline;
+  margin: 0 0 0 .25cqw;
+  color: var(--motion-accent-blue);
+  font-size: 1.35cqw;
+}
+
+.compare-panel[data-pencil-state='emphasized'] .compare-panel__index,
+.compare-panel[data-pencil-state='emphasized'] .compare-panel__meter i {
+  color: var(--motion-accent-blue);
+  background: var(--motion-accent-blue);
+}
+
+.compare-split__pencil-arrow {
+  left: 31.2%;
+  top: 48%;
+  bottom: auto;
+  width: 2.4%;
+  background: var(--motion-accent-blue);
+  box-shadow: none;
+}
+
+.compare-split__pencil-arrow::after {
+  border-color: var(--motion-accent-blue);
+}
+
+.compare-split__result {
+  left: 6.35%;
+  bottom: calc(var(--subtitle-safe-bottom) + 2%);
+  width: 52.5%;
+  height: 10%;
+  border-top-color: var(--motion-accent-blue-muted);
+}
+
+.compare-split__result > span:first-child {
+  color: var(--motion-accent-blue);
+}
+
+.narrative__eyebrow[data-accent='deep-blue'] {
+  color: var(--motion-accent-blue);
+}
+
+.narrative__rule {
+  background: var(--motion-accent-blue);
+}
+
 .step-flow__step > i {
   height: .12cqw;
   opacity: .38;

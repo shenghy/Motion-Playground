@@ -23,7 +23,7 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
     x: 132,
     y: 188,
     font: `600 13px ${resources.monoFont}`,
-    color: '#6f757b',
+    color: CANVAS_COLORS.accentBlue,
     maxWidth: 650,
     alpha: state.line1.opacity,
   })
@@ -52,7 +52,7 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
     y1: 474,
     x2: 132 + 130 * state.ruleProgress,
     y2: 474,
-    color: 'rgba(241,238,229,.76)',
+    color: CANVAS_COLORS.accentBlue,
     width: 2,
     alpha: state.ruleProgress,
   })

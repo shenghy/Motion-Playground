@@ -108,7 +108,9 @@ export function Narrative({
         data-zone="left-primary"
         data-pencil-layout="upper-left-narrative"
       >
-        <span className="narrative__eyebrow">NARRATIVE / 01</span>
+        <span className="narrative__eyebrow" data-accent="deep-blue">
+          NARRATIVE / 01
+        </span>
         <div className="narrative__headline">
           <motion.h2 style={line1Style}>
             {params.line1 || '当前内容'}

@@ -43,6 +43,9 @@ describe('Narrative', () => {
       within(primary).getByText('让系统处理重复步骤，人只负责判断与创造。'),
     ).toBeInTheDocument()
     expect(screen.queryByTestId('narrative-secondary')).not.toBeInTheDocument()
+    expect(
+      primary.querySelector('[data-accent="deep-blue"]'),
+    ).toBeInTheDocument()
   })
 
   it('uses stable fallback copy for empty values', () => {

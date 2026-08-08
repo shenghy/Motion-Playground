@@ -1,5 +1,4 @@
 import { motion, useReducedMotion } from 'motion/react'
-import type { CSSProperties } from 'react'
 import { PencilTexture } from './PencilTexture'
 import type { CompareSplitParams, MotionComponentProps } from './types'
 import { useCountUp } from './useCountUp'
@@ -14,14 +13,10 @@ export function CompareSplit({
   const leftValue = useCountUp(params.leftValue, params.duration, 0, playbackTime)
   const rightValue = useCountUp(params.rightValue, params.duration, 0, playbackTime)
   const duration = reduceMotion ? 0 : params.duration * 0.45
-  const split = Math.min(68, Math.max(32, params.split))
-  const primaryWidth = 27 + ((split - 32) / 36) * 7
-
   return (
     <div
       className="motion-canvas compare-split"
       data-pencil-style="silver-on-black"
-      style={{ '--primary-width': `${primaryWidth}%` } as CSSProperties}
     >
       <PencilTexture variant="eraser" />
       <div className="canvas-grid" aria-hidden="true" />
@@ -84,7 +79,7 @@ export function CompareSplit({
           data-outer-frame="none"
           data-emphasized={params.emphasis === 'right'}
           data-pencil-state={params.emphasis === 'right' ? 'emphasized' : 'struck'}
-          data-zone="right-secondary"
+          data-zone="left-primary"
           initial={{ opacity: 0, x: 90, clipPath: 'inset(0 0 0 100%)' }}
           animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0 0%)' }}
           transition={{ duration, delay: reduceMotion ? 0 : 0.22, ease }}
@@ -131,6 +126,7 @@ export function CompareSplit({
         className="compare-split__result"
         data-testid="compare-result"
         data-outer-frame="none"
+        data-zone="left-primary"
         data-safe-motion="upward"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}

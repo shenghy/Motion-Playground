@@ -4,6 +4,7 @@ import { renderNarrativeToCanvas } from './narrativeRenderer'
 
 function createContext() {
   const filters: string[] = []
+  const textColors: string[] = []
   const context = {
     save: vi.fn(),
     restore: vi.fn(),
@@ -11,7 +12,7 @@ function createContext() {
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     stroke: vi.fn(),
-    fillText: vi.fn(),
+    fillText: vi.fn(() => textColors.push(String(context.fillStyle))),
     setLineDash: vi.fn(),
     measureText: vi.fn((text: string) => ({ width: text.length * 20 })),
     globalAlpha: 1,
@@ -30,6 +31,7 @@ function createContext() {
   return {
     ctx: context as unknown as CanvasRenderingContext2D,
     filters,
+    textColors,
   }
 }
 
@@ -42,7 +44,7 @@ const params: NarrativeParams = {
 
 describe('narrative canvas renderer', () => {
   it('draws every narrative text element only on the left half', () => {
-    const { ctx } = createContext()
+    const { ctx, textColors } = createContext()
 
     renderNarrativeToCanvas({
       ctx,
@@ -65,6 +67,7 @@ describe('narrative canvas renderer', () => {
       '让系统处理重复步骤，人只负责判断与创造。',
     ]))
     expect(calls.every(([, x]) => Number(x) < 960)).toBe(true)
+    expect(textColors[0]).toBe('#2f67b2')
   })
 
   it('applies the sampled headline blur during the entrance', () => {

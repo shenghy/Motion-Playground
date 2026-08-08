@@ -46,7 +46,11 @@ describe('CompareSplit', () => {
     expect(screen.getByTestId('compare-left')).toHaveAttribute('data-zone', 'left-primary')
     expect(screen.getByTestId('compare-right')).toHaveAttribute(
       'data-zone',
-      'right-secondary',
+      'left-primary',
+    )
+    expect(screen.getByTestId('compare-result')).toHaveAttribute(
+      'data-zone',
+      'left-primary',
     )
     expect(screen.getByTestId('compare-result')).toHaveAttribute(
       'data-safe-motion',

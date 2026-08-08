@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
+import { motionRegistry } from '../motion/registry'
 import { ComponentRail } from './ComponentRail'
 
 const items = [
@@ -21,6 +22,20 @@ const items = [
 ]
 
 describe('ComponentRail', () => {
+  it('renders 叙述 first and reports the dynamic component count', () => {
+    render(
+      <ComponentRail
+        items={motionRegistry}
+        activeId="narrative"
+        onSelect={vi.fn()}
+      />,
+    )
+
+    const choices = screen.getAllByRole('button', { name: /^选择组件/ })
+    expect(choices[0]).toHaveAccessibleName('选择组件叙述')
+    expect(screen.getByText('7 个组件')).toBeInTheDocument()
+  })
+
   it('keeps each accessible motion button draggable with a copy payload', () => {
     render(
       <ComponentRail

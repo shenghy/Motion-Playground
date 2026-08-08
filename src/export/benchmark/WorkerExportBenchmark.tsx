@@ -19,14 +19,10 @@ const FRAME_COUNTS: Record<BenchmarkMode, number> = {
   long: 11_248,
 }
 
-const SHORT_TIMINGS = [
-  { start: 0, end: 2 },
-  { start: 1, end: 3 },
-  { start: 4.5, end: 7 },
-  { start: 6, end: 8.5 },
-  { start: 7.5, end: 10 },
-  { start: 2, end: 4 },
-]
+function shortTiming(index: number) {
+  const start = (index * 1.5) % 8
+  return { start, end: Math.min(10, start + 2.5) }
+}
 
 interface BenchmarkState {
   status: 'running' | 'completed' | 'error'
@@ -65,18 +61,21 @@ export function benchmarkFrameCount(mode: BenchmarkMode) {
 }
 
 export function createBenchmarkCards(mode: BenchmarkMode): OverlayCard[] {
-  const cards = motionRegistry.map((definition, index) => ({
-    id: `benchmark-${definition.id}`,
-    motionId: definition.id,
-    start: SHORT_TIMINGS[index].start,
-    end: SHORT_TIMINGS[index].end,
-    position: {
-      x: index % 2 === 0 ? -1 : 1,
-      y: index % 3 === 0 ? -1 : 1,
-    },
-    zIndex: index,
-    params: { ...definition.defaults },
-  }))
+  const cards = motionRegistry.map((definition, index) => {
+    const timing = shortTiming(index)
+    return {
+      id: `benchmark-${definition.id}`,
+      motionId: definition.id,
+      start: timing.start,
+      end: timing.end,
+      position: {
+        x: index % 2 === 0 ? -1 : 1,
+        y: index % 3 === 0 ? -1 : 1,
+      },
+      zIndex: index,
+      params: { ...definition.defaults },
+    }
+  })
 
   if (mode === 'long') {
     const definition = motionRegistry[0]

@@ -34,6 +34,7 @@ interface TextOptions {
   maxWidth: number
   alpha?: number
   align?: CanvasTextAlign
+  filter?: string
 }
 
 interface PencilLineOptions {
@@ -144,6 +145,7 @@ export function drawText(
     ctx.fillStyle = options.color
     ctx.textAlign = options.align ?? 'start'
     ctx.textBaseline = 'top'
+    ctx.filter = options.filter ?? 'none'
     shrinkFontToWidth(ctx, options.font, options.text, options.maxWidth)
     ctx.fillText(options.text, options.x, options.y, options.maxWidth)
   } finally {

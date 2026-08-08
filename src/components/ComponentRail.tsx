@@ -68,7 +68,7 @@ export function ComponentRail({
         ))}
       </div>
       <div className="rail-footer">
-        <span>06 个组件</span>
+        <span>{items.length} 个组件</span>
         <span>第一阶段</span>
       </div>
     </nav>

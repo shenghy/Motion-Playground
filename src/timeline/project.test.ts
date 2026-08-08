@@ -12,6 +12,7 @@ import {
 import type { OverlayCard } from './types'
 
 const defaultsByMotion: Record<MotionId, ParameterValues> = {
+  'narrative': { label: '默认叙述', value: 0 },
   'metric-focus': { label: '默认标题', value: 10 },
   'compare-split': {},
   'profile-reveal': {},

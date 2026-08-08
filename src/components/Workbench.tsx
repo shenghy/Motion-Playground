@@ -144,14 +144,9 @@ const createOverlayWorkspaceState = (): OverlayWorkspaceState => ({
   playbackKeys: {},
 })
 
-const createMotionPlaybackKeys = (): Record<MotionId, number> => ({
-  'metric-focus': 0,
-  'compare-split': 0,
-  'profile-reveal': 0,
-  'bar-compare': 0,
-  'share-ring': 0,
-  'step-flow': 0,
-})
+const createMotionPlaybackKeys = () => Object.fromEntries(
+  motionRegistry.map(({ id }) => [id, 0]),
+) as Record<MotionId, number>
 
 function isEditableDeleteTarget(target: EventTarget | null) {
   return (

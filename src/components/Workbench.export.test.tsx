@@ -191,7 +191,7 @@ describe('Workbench transparent export coordination', () => {
     await screen.findByText('已取消，共生成 0 帧')
   })
 
-  it('starts raw export for a snapshot containing all six motions', async () => {
+  it('starts raw export for a snapshot containing all seven motions', async () => {
     WorkbenchSocket.instances = []
     vi.stubGlobal('WebSocket', WorkbenchSocket)
     Object.assign(window, {
@@ -225,6 +225,7 @@ describe('Workbench transparent export coordination', () => {
     render(<Workbench idFactory={() => crypto.randomUUID()} />)
     loadOneSecondVideo()
     for (const name of [
+      '在播放头添加叙述',
       '在播放头添加对比卡片',
       '在播放头添加人物信息',
       '在播放头添加柱状对比',

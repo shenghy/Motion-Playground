@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { CanvasMotionRenderer } from '../export/canvas/types'
 
 export const MOTION_IDS = [
+  'narrative',
   'metric-focus',
   'compare-split',
   'profile-reveal',
@@ -18,6 +19,13 @@ export function isMotionId(value: string): value is MotionId {
 
 export type ParameterValue = string | number
 export type ParameterValues = Record<string, ParameterValue>
+
+export interface NarrativeParams extends ParameterValues {
+  line1: string
+  line2: string
+  explanation: string
+  duration: number
+}
 
 export interface MetricFocusParams extends ParameterValues {
   eyebrow: string
@@ -109,6 +117,7 @@ export interface StepFlowParams extends ParameterValues {
 }
 
 export type MotionParams =
+  | NarrativeParams
   | MetricFocusParams
   | CompareSplitParams
   | ProfileRevealParams

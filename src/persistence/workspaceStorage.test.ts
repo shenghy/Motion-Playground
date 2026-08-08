@@ -14,6 +14,7 @@ import {
 const databaseNames: string[] = []
 
 const defaultsByMotion: Record<MotionId, ParameterValues> = {
+  'narrative': { label: '默认叙述', value: 0 },
   'metric-focus': { label: '默认指标', value: 10 },
   'compare-split': { label: '默认对比', value: 20 },
   'profile-reveal': { label: '默认人物', value: 30 },

@@ -1,12 +1,14 @@
 import { BarCompare } from './BarCompare'
 import { CompareSplit } from './CompareSplit'
 import { MetricFocus } from './MetricFocus'
+import { Narrative } from './Narrative'
 import { ProfileReveal } from './ProfileReveal'
 import { ShareRing } from './ShareRing'
 import { StepFlow } from './StepFlow'
 import { renderBarCompareToCanvas } from './canvas/barCompareRenderer'
 import { renderCompareSplitToCanvas } from './canvas/compareSplitRenderer'
 import { renderMetricFocusToCanvas } from './canvas/metricFocusRenderer'
+import { renderNarrativeToCanvas } from './canvas/narrativeRenderer'
 import { renderProfileRevealToCanvas } from './canvas/profileRevealRenderer'
 import { renderShareRingToCanvas } from './canvas/shareRingRenderer'
 import { renderStepFlowToCanvas } from './canvas/stepFlowRenderer'
@@ -16,12 +18,14 @@ import type {
   MetricFocusParams,
   MotionDefinition,
   MotionId,
+  NarrativeParams,
   ProfileRevealParams,
   ShareRingParams,
   StepFlowParams,
 } from './types'
 
 type RegisteredMotion =
+  | MotionDefinition<NarrativeParams>
   | MotionDefinition<MetricFocusParams>
   | MotionDefinition<CompareSplitParams>
   | MotionDefinition<ProfileRevealParams>
@@ -31,8 +35,29 @@ type RegisteredMotion =
 
 export const motionRegistry: RegisteredMotion[] = [
   {
-    id: 'metric-focus',
+    id: 'narrative',
     index: '01',
+    name: '叙述',
+    category: '文字 / 叙述',
+    description: '双行大字内容概述',
+    component: Narrative,
+    canvasRenderer: renderNarrativeToCanvas,
+    defaults: {
+      line1: '把复杂的工作',
+      line2: '交给自动化',
+      explanation: '让系统处理重复步骤，人只负责判断与创造。',
+      duration: 5.2,
+    },
+    controls: [
+      { type: 'text', key: 'line1', label: '第一排大字', maxLength: 12 },
+      { type: 'text', key: 'line2', label: '第二排大字', maxLength: 12 },
+      { type: 'text', key: 'explanation', label: '小字解释', maxLength: 32 },
+      { type: 'number', key: 'duration', label: '动画时长', min: 3.2, max: 8, step: 0.2, suffix: '秒' },
+    ],
+  },
+  {
+    id: 'metric-focus',
+    index: '02',
     name: '核心指标',
     category: '数据 / 指标',
     description: '核心数字动效',
@@ -61,7 +86,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'compare-split',
-    index: '02',
+    index: '03',
     name: '对比卡片',
     category: '双项 / 对比',
     description: '左右对比卡',
@@ -102,7 +127,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'profile-reveal',
-    index: '03',
+    index: '04',
     name: '人物信息',
     category: '叙事 / 人物',
     description: '逐句动态信息卡',
@@ -139,7 +164,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'bar-compare',
-    index: '04',
+    index: '05',
     name: '柱状对比',
     category: '数据 / 柱状',
     description: '柱状数据对比',
@@ -192,7 +217,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'share-ring',
-    index: '05',
+    index: '06',
     name: '环形占比',
     category: '数据 / 占比',
     description: '环形占比分析',
@@ -245,7 +270,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'step-flow',
-    index: '06',
+    index: '07',
     name: '步骤流程',
     category: '流程 / 步骤',
     description: '步骤流程讲解',

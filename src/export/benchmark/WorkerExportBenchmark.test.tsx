@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { motionRegistry } from '../../motion/registry'
 import {
   benchmarkFrameCount,
   createBenchmarkCards,
@@ -17,10 +18,13 @@ describe('worker export benchmark contract', () => {
     expect(resolveBenchmarkMode(new URLSearchParams('mode=other'))).toBe('short')
   })
 
-  it('covers all six motions and keeps visible content through the long final frame', () => {
+  it('covers all seven motions and keeps visible content through the long final frame', () => {
     const short = createBenchmarkCards('short')
     const long = createBenchmarkCards('long')
-    expect(new Set(short.map((card) => card.motionId)).size).toBe(6)
+    expect(new Set(short.map((card) => card.motionId))).toEqual(
+      new Set(motionRegistry.map((motion) => motion.id)),
+    )
+    expect(short).toHaveLength(7)
     expect(long.some((card) => card.end >= 11_248 / 30)).toBe(true)
   })
 })

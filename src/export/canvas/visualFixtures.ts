@@ -12,6 +12,7 @@ export interface CanvasVisualFixture {
 }
 
 const samples = {
+  'narrative': [0.24, 0.9, 2.2, 5.05],
   'metric-focus': [0.12, 0.6, 1.4, 7.8],
   'compare-split': [0.12, 0.5, 1.5, 3],
   'profile-reveal': [0.38, 2.3, 4.2, 6.2],

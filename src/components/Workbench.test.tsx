@@ -161,6 +161,18 @@ describe('Workbench', () => {
     vi.restoreAllMocks()
   })
 
+  it('places 叙述 first in the component library', () => {
+    render(<Workbench />)
+
+    const choices = screen.getAllByRole('button', { name: /^选择组件/ })
+    expect(choices[0]).toHaveAccessibleName('选择组件叙述')
+    expect(motionRegistry[0]).toMatchObject({
+      id: 'narrative',
+      index: '01',
+      name: '叙述',
+    })
+  })
+
   it('hydrates the saved video, cards, parameters, active motion, and safe-area setting', async () => {
     createObjectURL.mockReturnValueOnce('blob:restored-video')
     const metricDefaults = persistedParameters['metric-focus']
@@ -225,7 +237,9 @@ describe('Workbench', () => {
     })
     expect(
       container.querySelector('.rail-item[aria-pressed="true"] strong'),
-    ).toHaveTextContent(motionRegistry[1].name)
+    ).toHaveTextContent(
+      motionRegistry.find(({ id }) => id === 'compare-split')?.name ?? '',
+    )
     expect(container.querySelector('[role="switch"]')).toHaveAttribute(
       'aria-checked',
       'false',
@@ -621,6 +635,11 @@ describe('Workbench', () => {
     expect(screen.getByText('1.4秒')).toBeInTheDocument()
     expectPencilStyle()
 
+    fireEvent.click(screen.getByRole('button', { name: '选择组件叙述' }))
+    expect(screen.getByText('把复杂的工作')).toBeInTheDocument()
+    expect(screen.getByText('交给自动化')).toBeInTheDocument()
+    expectPencilStyle()
+
     fireEvent.click(screen.getByRole('button', { name: '选择组件对比卡片' }))
     expect(screen.getByText('提升 2.05 倍')).toBeInTheDocument()
     expectPencilStyle()
@@ -632,9 +651,9 @@ describe('Workbench', () => {
 
     expect(
       screen.getAllByRole('button', {
-        name: /^选择组件(?:核心指标|对比卡片|人物信息|柱状对比|环形占比|步骤流程)$/,
+        name: /^选择组件(?:叙述|核心指标|对比卡片|人物信息|柱状对比|环形占比|步骤流程)$/,
       }),
-    ).toHaveLength(6)
+    ).toHaveLength(7)
 
     fireEvent.click(screen.getByRole('button', { name: '选择组件柱状对比' }))
     expect(screen.getByText('季度增长')).toBeInTheDocument()

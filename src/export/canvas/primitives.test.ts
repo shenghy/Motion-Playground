@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  CANVAS_COLORS,
   drawGrid,
   drawHatchFill,
   drawPanel,
@@ -52,6 +53,11 @@ function recordingContext() {
 }
 
 describe('canvas drawing primitives', () => {
+  it('exposes the canonical deep-blue motion accent palette', () => {
+    expect(CANVAS_COLORS.accentBlue).toBe('#2f67b2')
+    expect(CANVAS_COLORS.accentBlueMuted).toBe('rgba(47,103,178,.42)')
+  })
+
   it.each([
     ['grid', (ctx: CanvasRenderingContext2D) => drawGrid(ctx, {
       width: 1920,

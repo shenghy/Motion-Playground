@@ -2866,6 +2866,10 @@ a:focus-visible {
   --pencil-silver: #f1eee5;
   --pencil-mid: #aaa79f;
   --pencil-faint: rgba(241, 238, 229, .24);
+  --motion-accent-blue: #2f67b2;
+  --motion-accent-blue-muted: rgba(47, 103, 178, .42);
+  --motion-accent-blue-faint: rgba(47, 103, 178, .16);
+  --motion-content-width: 60%;
 }
 
 .motion-content-text {

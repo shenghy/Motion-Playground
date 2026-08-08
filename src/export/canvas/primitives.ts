@@ -4,6 +4,8 @@ export const CANVAS_COLORS = {
   muted: '#8c9196',
   line: 'rgba(241,238,229,.42)',
   signal: '#b7ccc8',
+  accentBlue: '#2f67b2',
+  accentBlueMuted: 'rgba(47,103,178,.42)',
 } as const
 
 interface GridOptions {

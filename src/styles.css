@@ -3556,14 +3556,22 @@ a:focus-visible {
   overflow: visible;
 }
 
-.step-flow__path path {
+.step-flow__path-baseline,
+.step-flow__path-segment {
   fill: none;
-  stroke: var(--motion-accent-blue);
   stroke-width: 2.2;
   stroke-linecap: round;
   stroke-dasharray: .9 1.2;
-  opacity: .52;
   filter: drop-shadow(1px 1px 0 rgba(255,255,255,.16));
+}
+
+.step-flow__path-baseline {
+  stroke: #4d555e;
+  opacity: .62;
+}
+
+.step-flow__path-segment {
+  stroke: var(--motion-accent-blue-muted);
 }
 
 .step-flow__step {

@@ -33,15 +33,6 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
   )
   const hold = Math.min(2.4, Math.max(0.7, params.stepDuration))
   const cycle = steps.length * hold + 1.1
-  const connectorTransition = reduceMotion
-    ? { duration: 0 }
-    : {
-        duration: cycle,
-        times: [0, 0.12, 0.9, 1],
-        repeat: Infinity,
-        repeatDelay: 0.72,
-        ease,
-      }
 
   const stepTransition = (index: number) => {
     if (reduceMotion) return { duration: 0 }
@@ -112,15 +103,47 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
             preserveAspectRatio="none"
             aria-hidden="true"
           >
-            <motion.path
+            <path
+              className="step-flow__path-baseline"
+              data-testid="flow-path-baseline"
               d="M40 18 L40 582"
-              pathLength={1}
-              initial={reduceMotion ? false : { pathLength: 0 }}
-              animate={reduceMotion
-                ? { pathLength: 1 }
-                : { pathLength: [0, 1, 1, 0] }}
-              transition={connectorTransition}
             />
+            {steps.slice(0, -1).map((_, index) => {
+              const sequenceOrder = orderedIndexes.indexOf(index)
+              const segmentHeight = 564 / (steps.length - 1)
+              const revealAt = (0.42 + (sequenceOrder + 1) * hold) / cycle
+              const settleAt = Math.min(revealAt + 0.03, 0.97)
+
+              return (
+                <motion.line
+                  className="step-flow__path-segment"
+                  data-testid="flow-path-segment"
+                  data-sequence-order={sequenceOrder}
+                  key={`segment-${index}`}
+                  x1="40"
+                  x2="40"
+                  y1={18 + segmentHeight * index}
+                  y2={18 + segmentHeight * (index + 1)}
+                  pathLength={1}
+                  initial={reduceMotion ? false : { pathLength: 0, opacity: 0 }}
+                  animate={reduceMotion
+                    ? { pathLength: 0, opacity: 0 }
+                    : {
+                        pathLength: [0, 0, 1, 1, 0],
+                        opacity: [0, 0, 0.78, 0.78, 0],
+                      }}
+                  transition={reduceMotion
+                    ? { duration: 0 }
+                    : {
+                        duration: cycle,
+                        times: [0, revealAt, settleAt, 0.98, 1],
+                        repeat: Infinity,
+                        repeatDelay: 0.72,
+                        ease,
+                      }}
+                />
+              )
+            })}
           </svg>
 
           {steps.map((step, index) => {
@@ -159,6 +182,8 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
               >
                 <motion.b
                   data-active-accent="animated"
+                  data-testid="flow-step-number"
+                  data-color-sequence="future-gray,current-blue,complete-muted-blue"
                   initial={reduceMotion
                     ? false
                     : {
@@ -174,20 +199,20 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                       }
                     : {
                         color: [
-                          '#557aa8',
-                          '#557aa8',
-                          '#2f67b2',
-                          '#2f67b2',
                           '#72777b',
                           '#72777b',
+                          '#2f67b2',
+                          '#2f67b2',
+                          '#557aa8',
+                          '#557aa8',
                         ],
                         borderColor: [
-                          '#41658e',
-                          '#41658e',
-                          '#2f67b2',
-                          '#2f67b2',
                           '#666b70',
                           '#666b70',
+                          '#2f67b2',
+                          '#2f67b2',
+                          '#41658e',
+                          '#41658e',
                         ],
                         borderWidth: [2, 2, 4, 4, 2, 2],
                       }}

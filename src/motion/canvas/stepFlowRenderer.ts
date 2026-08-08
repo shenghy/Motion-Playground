@@ -39,7 +39,7 @@ export const renderStepFlowToCanvas: CanvasMotionRenderer<StepFlowParams> = ({ c
         ? CANVAS_COLORS.accentBlueMuted
         : '#666b70'
 
-    if (index < state.items.length - 1 && progressed) {
+    if (index < state.items.length - 1 && item.completed) {
       drawPencilLine(ctx, {
         x1: x,
         y1: y,

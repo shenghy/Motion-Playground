@@ -67,9 +67,24 @@ describe('StepFlow', () => {
       'viewBox',
       '0 0 80 600',
     )
-    expect(screen.getByTestId('flow-path').querySelector('path')).toHaveAttribute(
+    expect(screen.getByTestId('flow-path-baseline')).toHaveAttribute(
       'd',
       'M40 18 L40 582',
+    )
+    expect(screen.getAllByTestId('flow-path-segment')).toHaveLength(6)
+    expect(screen.getAllByTestId('flow-path-segment')[5]).toHaveAttribute(
+      'data-sequence-order',
+      '0',
+    )
+    expect(screen.getAllByTestId('flow-path-segment')[0]).toHaveAttribute(
+      'data-sequence-order',
+      '2',
+    )
+    expect(
+      screen.getAllByTestId('flow-step-number')[0],
+    ).toHaveAttribute(
+      'data-color-sequence',
+      'future-gray,current-blue,complete-muted-blue',
     )
     expect(screen.getByTestId('flow-primary')).toHaveStyle({
       '--step-count': '7',

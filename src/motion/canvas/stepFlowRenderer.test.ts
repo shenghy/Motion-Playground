@@ -45,6 +45,26 @@ const params: StepFlowParams = {
 }
 
 describe('step flow canvas renderer', () => {
+  it('does not draw a completed connector while the current step is still active', () => {
+    const ctx = createContext()
+
+    renderStepFlowToCanvas({
+      ctx,
+      params,
+      localTime: 0.7,
+      resources: {
+        width: 1920,
+        height: 1080,
+        displayFont: 'Syne Variable',
+        monoFont: 'IBM Plex Mono',
+        contentFont: 'Noto Sans SC Variable',
+      },
+    })
+
+    const activeStepY = 330 + 5 * ((820 - 330) / 6)
+    expect(ctx.moveTo).not.toHaveBeenCalledWith(166, activeStepY)
+  })
+
   it('draws seven vertical steps inside the left safe content area', () => {
     const ctx = createContext()
 

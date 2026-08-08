@@ -32,37 +32,21 @@ export function MetricFocus({
       <div className="canvas-coordinate coordinate--tl">横轴 0128 / 纵轴 0096</div>
       <div className="canvas-coordinate coordinate--br">画面 001</div>
 
-      <motion.div
-        className="metric-focus__scan"
-        aria-hidden="true"
-        initial={{ scaleX: 0, opacity: 0 }}
-        animate={{ scaleX: [0, 1, 1], opacity: [0, 1, 0.25] }}
-        transition={{ duration: reduceMotion ? 0 : params.duration, times: [0, 0.45, 1], ease }}
-      />
-
       <div
         className="metric-focus__frame"
         data-testid="metric-primary"
         data-outer-frame="none"
         data-zone="left-primary"
-        data-pencil-layout="open-frame"
+        data-metric-layout="axis-reading"
       >
-        <i className="corner corner--tl" />
-        <i className="corner corner--tr" />
-        <i className="corner corner--bl" />
-        <i className="corner corner--br" />
-
-        <motion.div
-          className="motion-eyebrow"
-          initial={{ opacity: 0, y: 28 }}
+        <motion.span
+          className="metric-focus__english"
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={transition(0.12)}
         >
-          <span>01</span>
-          <b className="motion-content-text">
-            {params.eyebrow || '未命名指标'}
-          </b>
-        </motion.div>
+          {params.eyebrow || '未命名指标'} / 02
+        </motion.span>
 
         <motion.div
           className="metric-focus__value"
@@ -79,50 +63,39 @@ export function MetricFocus({
         </motion.div>
 
         <motion.div
+          className="metric-focus__axis"
+          data-testid="metric-axis"
+          aria-hidden="true"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={transition(0.48)}
+        >
+          <i />
+        </motion.div>
+
+        <motion.div
+          className="metric-focus__ticks"
+          data-testid="metric-ticks"
+          aria-hidden="true"
+          initial={{ clipPath: 'inset(0 100% 0 0)' }}
+          animate={{ clipPath: 'inset(0 0% 0 0)' }}
+          transition={transition(0.55)}
+        >
+          {Array.from({ length: 11 }, (_, index) => <i key={index} />)}
+        </motion.div>
+
+        <motion.div
           className="metric-focus__meta"
-          initial={{ opacity: 0, y: 22 }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={transition(0.42)}
         >
           <span className="motion-content-text">
             {params.description || '暂无说明'}
           </span>
-        </motion.div>
-
-        <motion.i
-          className="metric-focus__pencil-line"
-          data-testid="metric-pencil-line"
-          aria-hidden="true"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={transition(0.48)}
-        />
-
-        <motion.div
-          className="metric-focus__ticks"
-          aria-hidden="true"
-          initial={{ clipPath: 'inset(0 100% 0 0)' }}
-          animate={{ clipPath: 'inset(0 0% 0 0)' }}
-          transition={transition(0.55)}
-        >
-          {Array.from({ length: 17 }, (_, index) => <i key={index} />)}
+          <strong>{params.trend || '趋势稳定'}</strong>
         </motion.div>
       </div>
-
-      <motion.aside
-        className="metric-focus__secondary"
-        data-testid="metric-secondary"
-        data-outer-frame="none"
-        data-zone="right-secondary"
-        initial={{ opacity: 0, x: 34 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={transition(0.5)}
-      >
-        <span>变化 / 实时</span>
-        <strong>{params.trend || '—'}</strong>
-        <i aria-hidden="true" />
-        <small>指标<br />已锁定</small>
-      </motion.aside>
     </div>
   )
 }

@@ -61,15 +61,17 @@ describe('metric focus canvas renderer', () => {
 
     const text = vi.mocked(ctx.fillText).mock.calls.map(([value]) => value)
     expect(text).toEqual(expect.arrayContaining([
-      '效率提升',
+      '效率提升 / 02',
       '+',
       '61.0',
       '%',
       '平均处理速度',
       '上升 18 点',
-      '指标',
-      '已锁定',
     ]))
+    expect(
+      vi.mocked(ctx.fillText).mock.calls.every(([, x]) => Number(x) < 1152),
+    ).toBe(true)
+    expect(ctx.strokeStyle).toBe('#2f67b2')
     expect(ctx.clearRect).not.toHaveBeenCalled()
     expect(ctx.stroke).toHaveBeenCalled()
   })

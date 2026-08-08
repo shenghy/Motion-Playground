@@ -1,7 +1,4 @@
-import {
-  delayedProgress,
-  interpolateKeyframes,
-} from '../../export/frameMath'
+import { delayedProgress } from '../../export/frameMath'
 import { samplePencilEase } from '../../export/canvas/timing'
 import { formatCountUp } from '../useCountUp'
 import type { MetricFocusParams } from '../types'
@@ -35,9 +32,6 @@ export function getMetricFocusState(
   const time = Number.isFinite(localTime) ? Math.max(0, localTime) : 0
   const duration = Math.max(0.2, params.duration)
   const entranceDuration = duration * 0.42
-  const scanProgress = Math.min(1, time / duration)
-  const easedScan = samplePencilEase(scanProgress)
-
   return {
     number: formatCountUp(
       params.value,
@@ -53,11 +47,6 @@ export function getMetricFocusState(
     },
     ticks: {
       reveal: samplePencilEase(delayedProgress(time, 0.55, entranceDuration)),
-    },
-    secondary: enter(time, 0.5, entranceDuration, { x: 34 }),
-    scan: {
-      scaleX: interpolateKeyframes(easedScan, [0, 1, 1], [0, 0.45, 1]),
-      opacity: interpolateKeyframes(easedScan, [0, 1, 0.25], [0, 0.45, 1]),
     },
   }
 }

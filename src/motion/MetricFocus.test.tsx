@@ -28,7 +28,7 @@ describe('MetricFocus', () => {
   it('locks the metric and its supporting context into the frame', () => {
     render(<MetricFocus params={params} />)
 
-    expect(screen.getByText('QUARTERLY GROWTH')).toBeInTheDocument()
+    expect(screen.getByText('QUARTERLY GROWTH / 02')).toBeInTheDocument()
     expect(screen.getByLabelText('核心指标 +248%')).toBeInTheDocument()
     expect(screen.getByText('同比增长')).toBeInTheDocument()
     expect(screen.getByText('↑ 32.4 PT')).toBeInTheDocument()
@@ -37,10 +37,11 @@ describe('MetricFocus', () => {
       'left-primary',
     )
     expect(screen.getByTestId('metric-primary')).toHaveAttribute(
-      'data-pencil-layout',
-      'open-frame',
+      'data-metric-layout',
+      'axis-reading',
     )
-    expect(screen.getByTestId('metric-pencil-line')).toBeInTheDocument()
+    expect(screen.getByTestId('metric-axis')).toBeInTheDocument()
+    expect(screen.getByTestId('metric-ticks')).toBeInTheDocument()
     expect(
       screen
         .getByTestId('metric-primary')
@@ -51,9 +52,6 @@ describe('MetricFocus', () => {
         '.motion-handwriting, [data-handwritten]',
       ),
     ).not.toBeInTheDocument()
-    expect(screen.getByTestId('metric-secondary')).toHaveAttribute(
-      'data-zone',
-      'right-secondary',
-    )
+    expect(screen.queryByTestId('metric-secondary')).not.toBeInTheDocument()
   })
 })

@@ -20,4 +20,16 @@ describe('workspace layout CSS contract', () => {
     expect(css).toContain(".parameter-tab[aria-selected='true']")
     expect(css).toContain('.parameter-tabpanel')
   })
+
+  it('keeps the seven-step flow in one compact column above the subtitle zone', () => {
+    expect(css).toMatch(
+      /\.step-flow__steps\s*\{[^}]*grid-template-rows:\s*repeat\(var\(--step-count\),\s*minmax\(0,\s*1fr\)\)/s,
+    )
+    expect(css).toMatch(
+      /\.step-flow__card\[data-pencil-layout='drawn-path'\]\s*\{[^}]*bottom:\s*calc\(var\(--subtitle-safe-bottom\)\s*\+\s*3%\)/s,
+    )
+    expect(css).toMatch(
+      /\.step-flow__step\s*\{[^}]*width:\s*92%[^}]*grid-template-columns:\s*1\.7cqw\s+minmax\(0,\s*1fr\)/s,
+    )
+  })
 })

@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
+import type { CSSProperties } from 'react'
 import { resolveFocusIndex } from './dataMath'
 import { PencilTexture } from './PencilTexture'
 import type { MotionComponentProps, StepFlowParams } from './types'
@@ -79,6 +80,7 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
         data-outer-frame="none"
         data-zone="left-primary"
         data-pencil-layout="drawn-path"
+        style={{ '--step-count': steps.length } as CSSProperties}
       >
         <motion.header
           className="data-card__heading"
@@ -106,12 +108,12 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
           <svg
             className="step-flow__path"
             data-testid="flow-path"
-            viewBox="0 0 80 420"
+            viewBox="0 0 80 600"
             preserveAspectRatio="none"
             aria-hidden="true"
           >
             <motion.path
-              d="M42 6 C26 72 56 128 38 198 C22 264 56 330 38 414"
+              d="M40 18 L40 582"
               pathLength={1}
               initial={reduceMotion ? false : { pathLength: 0 }}
               animate={reduceMotion
@@ -137,19 +139,19 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                 animate={reduceMotion
                   ? {
                       opacity: staticOpacity,
-                      scale: initialFocus ? 1.3 : 1,
+                      scale: initialFocus ? 1.1 : 1,
                       color: initialFocus ? '#f1f1ed' : '#676c71',
                     }
                   : {
-                      opacity: [0.34, 0.34, 1, 1, 0.42, 0.34],
-                      scale: [1, 1, 1.3, 1.3, 1, 1],
+                      opacity: [0.4, 0.4, 1, 1, 0.68, 0.68],
+                      scale: [1, 1, 1.1, 1.1, 1, 1],
                       color: [
                         '#5d6267',
                         '#5d6267',
                         '#f1f1ed',
                         '#f1f1ed',
-                        '#8a8f94',
-                        '#5d6267',
+                        '#557aa8',
+                        '#557aa8',
                       ],
                     }}
                 transition={stepTransition(index)}
@@ -172,16 +174,16 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                       }
                     : {
                         color: [
-                          '#72777b',
-                          '#72777b',
+                          '#557aa8',
+                          '#557aa8',
                           '#2f67b2',
                           '#2f67b2',
                           '#72777b',
                           '#72777b',
                         ],
                         borderColor: [
-                          '#666b70',
-                          '#666b70',
+                          '#41658e',
+                          '#41658e',
                           '#2f67b2',
                           '#2f67b2',
                           '#666b70',

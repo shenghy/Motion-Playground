@@ -57,6 +57,17 @@ describe('StepFlow', () => {
       'data-sequence-order',
       '0',
     )
+    expect(screen.getByTestId('flow-path')).toHaveAttribute(
+      'viewBox',
+      '0 0 80 600',
+    )
+    expect(screen.getByTestId('flow-path').querySelector('path')).toHaveAttribute(
+      'd',
+      'M40 18 L40 582',
+    )
+    expect(screen.getByTestId('flow-primary')).toHaveStyle({
+      '--step-count': '7',
+    })
   })
 
   it('renders five steps with a configured focus in safe zones', () => {

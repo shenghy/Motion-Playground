@@ -148,6 +148,47 @@ describe('updateCardPosition', () => {
 })
 
 describe('parseOverlayProject', () => {
+  it('fills steps six and seven when loading a legacy five-step flow card', () => {
+    const stepDefaults = {
+      step1: '明确目标',
+      step2: '准备内容',
+      step3: '构建版本',
+      step4: '内部检查',
+      step5: '修正问题',
+      step6: '最终确认',
+      step7: '正式发布',
+    }
+    const project = parseOverlayProject(
+      JSON.stringify({
+        version: 1,
+        canvas: { width: 1920, height: 1080 },
+        cards: [{
+          id: 'legacy-flow',
+          motionId: 'step-flow',
+          start: 1,
+          end: 4,
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          params: {
+            step1: '旧步骤一',
+            step2: '旧步骤二',
+            step3: '旧步骤三',
+            step4: '旧步骤四',
+            step5: '旧步骤五',
+          },
+        }],
+      }),
+      { ...defaultsByMotion, 'step-flow': stepDefaults },
+    )
+
+    expect(project.cards[0].params).toMatchObject({
+      step1: '旧步骤一',
+      step5: '旧步骤五',
+      step6: '最终确认',
+      step7: '正式发布',
+    })
+  })
+
   it('parses a valid project, clamps position, and merges motion defaults', () => {
     const project = parseOverlayProject(
       JSON.stringify({

@@ -176,6 +176,42 @@ describe('workspace storage', () => {
 })
 
 describe('parsePersistedWorkspace', () => {
+  it('fills new flow steps without replacing legacy workspace values', () => {
+    const stepDefaults = {
+      step1: '明确目标',
+      step2: '准备内容',
+      step3: '构建版本',
+      step4: '内部检查',
+      step5: '修正问题',
+      step6: '最终确认',
+      step7: '正式发布',
+    }
+    const candidate = createWorkspace({
+      parametersByMotion: {
+        ...structuredClone(defaultsByMotion),
+        'step-flow': {
+          step1: '旧步骤一',
+          step2: '旧步骤二',
+          step3: '旧步骤三',
+          step4: '旧步骤四',
+          step5: '旧步骤五',
+        },
+      },
+    })
+
+    const parsed = parsePersistedWorkspace(candidate, {
+      ...defaultsByMotion,
+      'step-flow': stepDefaults,
+    })
+
+    expect(parsed.parametersByMotion['step-flow']).toMatchObject({
+      step1: '旧步骤一',
+      step5: '旧步骤五',
+      step6: '最终确认',
+      step7: '正式发布',
+    })
+  })
+
   it('validates a snapshot and merges missing parameter defaults', () => {
     const candidate = createWorkspace({
       parametersByMotion: {

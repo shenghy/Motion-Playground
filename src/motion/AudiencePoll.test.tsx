@@ -89,4 +89,18 @@ describe('AudiencePoll', () => {
     expect(container.querySelector('.audience-poll__cta'))
       .toHaveStyle({ fontWeight: '500', letterSpacing: '0.035em' })
   })
+
+  it.each([
+    ['wide Latin', 'WWWWWWWWWWWWWWWWWWWW', ['WWWWWWWWWW', 'WWWWWWWWWW']],
+    ['over-limit ZWJ', '👨‍👩‍👧‍👦'.repeat(6), ['👨‍👩‍👧‍👦…']],
+  ])('renders canonical %s title lines', (_label, title, expectedLines) => {
+    const { container } = render(
+      <AudiencePoll params={{ ...params, title }} playbackTime={2} />,
+    )
+
+    expect(Array.from(
+      container.querySelectorAll('[data-poll-title-line]'),
+      (line) => line.textContent,
+    )).toEqual(expectedLines)
+  })
 })

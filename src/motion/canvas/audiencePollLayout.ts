@@ -32,9 +32,9 @@ export const audiencePollTypography = {
   contentFontWeight: 500,
   titleLetterSpacing: '0.025em',
   bodyLetterSpacing: '0.035em',
-  numberFontWeight: 600,
+  numberFontWeight: 400,
   numberLetterSpacing: '0.08em',
-  eyebrowFontWeight: 600,
+  eyebrowFontWeight: 400,
   eyebrowLetterSpacing: '0.16em',
   titleWrap: 'nowrap',
 } as const
@@ -133,112 +133,142 @@ export const audiencePollLayout = {
   },
 } as const
 
-const titleSegmenter = new Intl.Segmenter('zh-CN', { granularity: 'grapheme' })
+const TITLE_MAX_UTF16_LENGTH = 20
+let titleSegmenter: Intl.Segmenter | null | undefined
+
+function fallbackGraphemes(text: string) {
+  const segments: string[] = []
+  let current = ''
+  let joinNext = false
+  let regionalIndicators = 0
+
+  for (const character of Array.from(text)) {
+    const codePoint = character.codePointAt(0) ?? 0
+    const isRegionalIndicator = codePoint >= 0x1f1e6 && codePoint <= 0x1f1ff
+    const extendsCurrent = /\p{Mark}/u.test(character)
+      || codePoint === 0xfe0e
+      || codePoint === 0xfe0f
+      || (codePoint >= 0x1f3fb && codePoint <= 0x1f3ff)
+
+    if (!current) {
+      current = character
+      regionalIndicators = isRegionalIndicator ? 1 : 0
+    } else if (joinNext) {
+      current += character
+      joinNext = false
+      regionalIndicators = 0
+    } else if (character === '\u200d') {
+      current += character
+      joinNext = true
+    } else if (extendsCurrent) {
+      current += character
+    } else if (isRegionalIndicator && regionalIndicators === 1) {
+      current += character
+      segments.push(current)
+      current = ''
+      regionalIndicators = 0
+    } else {
+      segments.push(current)
+      current = character
+      regionalIndicators = isRegionalIndicator ? 1 : 0
+    }
+  }
+  if (current) segments.push(current)
+  return segments
+}
 
 function graphemes(text: string) {
-  return Array.from(titleSegmenter.segment(text), ({ segment }) => segment)
+  if (titleSegmenter === undefined) {
+    const Segmenter = (Intl as typeof Intl & {
+      Segmenter?: typeof Intl.Segmenter
+    }).Segmenter
+    if (typeof Segmenter === 'function') {
+      try {
+        titleSegmenter = new Segmenter('zh-CN', { granularity: 'grapheme' })
+      } catch {
+        titleSegmenter = null
+      }
+    } else {
+      titleSegmenter = null
+    }
+  }
+  if (titleSegmenter) {
+    return Array.from(titleSegmenter.segment(text), ({ segment }) => segment)
+  }
+  return fallbackGraphemes(text)
 }
 
 function titleDisplayUnits(segment: string) {
   if (/\s/u.test(segment)) return 0.25
+  if (/^[WM]+$/u.test(segment)) return 1
+  if (/^[A-Z]+$/u.test(segment)) return 0.65
+  if (/^[a-z]+$/u.test(segment)) return 0.55
+  if (/^\d+$/u.test(segment)) return 0.6
   if (Array.from(segment).every((character) => (
     (character.codePointAt(0) ?? 0) <= 0x7f
-  ))) return 0.55
+  ))) return 0.35
   return 1
 }
 
-export function splitAudiencePollTitle(text: string) {
-  const segments = graphemes(text.trim())
-  const singleLineCapacity = Math.floor(
-    audiencePollLayout.content.width / audiencePollLayout.title.fontSize,
-  )
-  const units = segments.reduce(
-    (total, segment) => total + titleDisplayUnits(segment),
+function canonicalSegments(text: string) {
+  const source = graphemes(text.trim())
+  const visible: string[] = []
+  let utf16Length = 0
+  for (const segment of source) {
+    if (utf16Length + segment.length > TITLE_MAX_UTF16_LENGTH) break
+    visible.push(segment)
+    utf16Length += segment.length
+  }
+  if (visible.length < source.length) visible.push('…')
+  return visible
+}
+
+function lineUnits(segments: string[]) {
+  return segments.reduce(
+    (total, segment) => total + titleDisplayUnits(segment) + 0.025,
     0,
   )
-  if (units <= singleLineCapacity) return [segments.join('')]
+}
 
-  const midpoint = Math.ceil(segments.length / 2)
+function splitsInsideLatinWord(segments: string[], index: number) {
+  return /[A-Za-z0-9]/u.test(segments[index - 1] ?? '')
+    && /[A-Za-z0-9]/u.test(segments[index] ?? '')
+}
+
+export function splitAudiencePollTitle(text: string) {
+  const segments = canonicalSegments(text)
+  const lineBudget = audiencePollLayout.content.width
+    / audiencePollLayout.title.fontSize
+  if (lineUnits(segments) <= lineBudget) return [segments.join('')]
+
+  let best: { index: number, score: number } | null = null
+  for (let index = 1; index < segments.length; index += 1) {
+    const first = segments.slice(0, index)
+    const second = segments.slice(index)
+    const firstUnits = lineUnits(first)
+    const secondUnits = lineUnits(second)
+    if (firstUnits > lineBudget || secondUnits > lineBudget) continue
+
+    const wordPenalty = splitsInsideLatinWord(segments, index) ? lineBudget : 0
+    const whitespaceBonus = /\s/u.test(segments[index - 1] ?? '')
+      || /\s/u.test(segments[index] ?? '') ? -1 : 0
+    const score = Math.abs(firstUnits - secondUnits) + wordPenalty + whitespaceBonus
+    if (!best || score < best.score) best = { index, score }
+  }
+
+  const splitIndex = best?.index ?? Math.ceil(segments.length / 2)
   return [
-    segments.slice(0, midpoint).join(''),
-    segments.slice(midpoint).join(''),
+    segments.slice(0, splitIndex).join('').trimEnd(),
+    segments.slice(splitIndex).join('').trimStart(),
   ]
-}
-
-function fitWithEllipsis(
-  ctx: CanvasRenderingContext2D,
-  segments: string[],
-  maxWidth: number,
-) {
-  const ellipsis = '…'
-  const fitted = [...segments]
-  while (
-    fitted.length > 0
-    && ctx.measureText(`${fitted.join('')}${ellipsis}`).width > maxWidth
-  ) {
-    fitted.pop()
-  }
-  return `${fitted.join('').trimEnd()}${ellipsis}`
-}
-
-function greedilyWrapGraphemes(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-) {
-  const lines: string[][] = []
-  let current: string[] = []
-
-  for (const segment of graphemes(text.trim())) {
-    const candidate = [...current, segment]
-    if (current.length === 0 || ctx.measureText(candidate.join('')).width <= maxWidth) {
-      current = candidate
-      continue
-    }
-
-    let lastSpace = -1
-    for (let index = current.length - 1; index >= 0; index -= 1) {
-      if (/\s/u.test(current[index])) {
-        lastSpace = index
-        break
-      }
-    }
-    if (lastSpace > 0) {
-      lines.push(current.slice(0, lastSpace))
-      current = [...current.slice(lastSpace + 1), segment]
-    } else {
-      lines.push(current)
-      current = /\s/u.test(segment) ? [] : [segment]
-    }
-  }
-  if (current.length > 0) lines.push(current)
-  return lines
 }
 
 export function wrapAudiencePollTitle(
   ctx: CanvasRenderingContext2D,
   text: string,
   font: string,
-  maxWidth = audiencePollLayout.content.width,
-  maxLines = audiencePollLayout.title.maxLines,
 ) {
   ctx.font = font
   ctx.letterSpacing = audiencePollTypography.titleLetterSpacing
-  const balanced = splitAudiencePollTitle(text)
-  if (
-    graphemes(text.trim()).length <= 20
-    && balanced.length <= maxLines
-    && balanced.every((line) => ctx.measureText(line).width <= maxWidth)
-  ) {
-    return balanced
-  }
-
-  const lines = greedilyWrapGraphemes(ctx, text, maxWidth)
-  if (lines.length <= maxLines) return lines.map((line) => line.join('').trimEnd())
-
-  const visible = lines.slice(0, maxLines).map((line) => [...line])
-  visible[maxLines - 1] = graphemes(
-    fitWithEllipsis(ctx, visible[maxLines - 1], maxWidth),
-  )
-  return visible.map((line) => line.join('').trimEnd())
+  return splitAudiencePollTitle(text)
 }

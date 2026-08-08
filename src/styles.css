@@ -3783,7 +3783,7 @@ a:focus-visible {
 
 .audience-poll__eyebrow {
   color: var(--motion-accent-blue);
-  font: 600 .78cqw/1 var(--mono);
+  font: 400 .78cqw/1 var(--mono);
   letter-spacing: .16em;
   text-transform: uppercase;
 }
@@ -3825,7 +3825,7 @@ a:focus-visible {
 
 .audience-poll__option b {
   color: #7e858b;
-  font: 600 .9cqw/1 var(--mono);
+  font: 400 .9cqw/1 var(--mono);
   letter-spacing: .08em;
 }
 

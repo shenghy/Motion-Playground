@@ -128,7 +128,7 @@ describe('audience poll canvas renderer', () => {
     expect(ctx.lineTo).toHaveBeenCalledWith(732, 119)
     expect(ctx.lineTo).toHaveBeenCalledWith(122, 898)
     expect(textDraws.find(({ text }) => text === params.eyebrow)).toMatchObject({
-      x: 152, y: 152, maxWidth: 550, font: '600 15px IBM Plex Mono',
+      x: 152, y: 152, maxWidth: 550, font: '400 15px IBM Plex Mono',
     })
     expect(textDraws.find(({ text }) => text === params.option1)).toMatchObject({
       x: 223,
@@ -216,7 +216,7 @@ describe('audience poll canvas renderer', () => {
     const numberDraws = textDraws.filter(({ text }) => /^0[1-4]$/.test(text))
     const labelDraws = textDraws.filter(({ text }) => optionLabels.includes(text))
     expect(numberDraws).toHaveLength(4)
-    expect(numberDraws.every(({ font }) => font === '600 17px IBM Plex Mono')).toBe(true)
+    expect(numberDraws.every(({ font }) => font === '400 17px IBM Plex Mono')).toBe(true)
     expect(numberDraws.every(({ letterSpacing }) => letterSpacing === '0.08em')).toBe(true)
     expect(labelDraws).toHaveLength(4)
     expect(labelDraws.every(({ font }) => font === '500 21px Noto Sans SC Variable')).toBe(true)
@@ -224,5 +224,24 @@ describe('audience poll canvas renderer', () => {
     expect(Number(optionRects.at(-1)?.[1]) + 61).toBeLessThan(829)
     expect(ctx.lineTo).toHaveBeenCalledWith(702, 290)
     expect(ctx.lineTo).toHaveBeenCalledWith(702, 292)
+  })
+
+  it.each([
+    ['wide Latin', 'WWWWWWWWWWWWWWWWWWWW', ['WWWWWWWWWW', 'WWWWWWWWWW']],
+    ['over-limit ZWJ', '👨‍👩‍👧‍👦'.repeat(6), ['👨‍👩‍👧‍👦…']],
+  ])('uses the canonical %s title lines without Canvas-only reflow', (
+    _label,
+    title,
+    expectedLines,
+  ) => {
+    const { ctx, textDraws } = createContext(realisticTextWidth)
+    renderAudiencePollToCanvas({ ctx, params: { ...params, title }, localTime: 3.4, resources: {
+      width: 1920, height: 1080, displayFont: 'Syne Variable',
+      monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
+    } })
+
+    expect(textDraws
+      .filter(({ font }) => font === '500 33px Noto Sans SC Variable')
+      .map(({ text }) => text)).toEqual(expectedLines)
   })
 })

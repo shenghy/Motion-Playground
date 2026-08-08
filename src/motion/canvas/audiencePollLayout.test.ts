@@ -10,6 +10,11 @@ import {
 } from './audiencePollLayout'
 
 const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
+const mainSource = readFileSync(resolve(process.cwd(), 'src/main.tsx'), 'utf8')
+const workerFontsSource = readFileSync(
+  resolve(process.cwd(), 'src/export/worker/fonts.ts'),
+  'utf8',
+)
 
 function getRule(selector: string) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -204,6 +209,17 @@ describe('audience poll preview/export layout contract', () => {
     expect(fontWeight(ctaRule)).toBe(audiencePollTypography.contentFontWeight)
     expect(em(ctaRule)).toBe(audiencePollTypography.bodyLetterSpacing)
     expect(property(titleRule, 'border-bottom')).toMatch(/^3px\s+double\b/)
+    expect(audiencePollTypography.numberFontWeight).toBe(400)
+    expect(audiencePollTypography.eyebrowFontWeight).toBe(400)
+  })
+
+  it('uses a mono weight loaded by both the main thread and export Worker', () => {
+    const weight = audiencePollTypography.numberFontWeight
+    expect(weight).toBe(audiencePollTypography.eyebrowFontWeight)
+    expect(mainSource).toContain(`@fontsource/ibm-plex-mono/${weight}.css`)
+    expect(workerFontsSource).toMatch(
+      new RegExp(`IBM Plex Mono Worker[^\\n]+weight: '${weight}'`),
+    )
   })
 
   it.each([
@@ -257,11 +273,32 @@ describe('audience poll preview/export layout contract', () => {
 
     const lines = wrapAudiencePollTitle(ctx, text, '500 33px Noto Sans SC Variable')
 
-    expect(lines).toHaveLength(2)
-    expect(lines[0]).toBe(family.repeat(2))
-    expect(lines[1]).toBe(`${family}…`)
+    expect(lines).toEqual([`${family}…`])
     expect(graphemes(lines.join('')).every((grapheme) => (
       grapheme === family || grapheme === '…'
     ))).toBe(true)
+  })
+
+  it('imports and lays out normal and ZWJ titles without Intl.Segmenter', async () => {
+    const segmenterDescriptor = Object.getOwnPropertyDescriptor(Intl, 'Segmenter')
+    vi.resetModules()
+    Object.defineProperty(Intl, 'Segmenter', {
+      configurable: true,
+      value: undefined,
+    })
+
+    try {
+      const fallbackModule = await import('./audiencePollLayout')
+      expect(fallbackModule.splitAudiencePollTitle(
+        '这是一个需要稳定换行展示的中文投票问题吗',
+      )).toEqual(['这是一个需要稳定换行', '展示的中文投票问题吗'])
+      expect(fallbackModule.splitAudiencePollTitle('👨‍👩‍👧‍👦'.repeat(6)))
+        .toEqual(['👨‍👩‍👧‍👦…'])
+    } finally {
+      if (segmenterDescriptor) {
+        Object.defineProperty(Intl, 'Segmenter', segmenterDescriptor)
+      }
+      vi.resetModules()
+    }
   })
 })

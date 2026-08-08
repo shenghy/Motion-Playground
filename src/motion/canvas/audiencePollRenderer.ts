@@ -9,7 +9,7 @@ import type { AudiencePollParams } from '../types'
 import {
   audiencePollLayout,
   audiencePollTypography,
-  wrapAudiencePollTitle,
+  splitAudiencePollTitle,
 } from './audiencePollLayout'
 import { getAudiencePollState } from './audiencePollState'
 
@@ -64,11 +64,7 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
   })
 
   const titleFont = `${audiencePollTypography.contentFontWeight} ${title.fontSize}px ${resources.contentFont}`
-  const titleLines = wrapAudiencePollTitle(
-    ctx,
-    params.title || '请选择你的答案',
-    titleFont,
-  )
+  const titleLines = splitAudiencePollTitle(params.title || '请选择你的答案')
   withLetterSpacing(ctx, audiencePollTypography.titleLetterSpacing, () => {
     titleLines.forEach((line, index) => drawText(ctx, {
       text: line,

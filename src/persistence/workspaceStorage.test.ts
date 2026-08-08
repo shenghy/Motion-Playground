@@ -268,13 +268,25 @@ describe('parsePersistedWorkspace', () => {
 
     const parsed = parsePersistedWorkspace(candidate, defaultsByMotion)
 
-    expect(parsed.project.cards.map(({ motionId }) => motionId)).toEqual(
-      legacyMotionIds,
+    expect(parsed.project.cards).toEqual(
+      legacyMotionIds.map((motionId, index) => ({
+        id: `legacy-${motionId}`,
+        motionId,
+        start: index,
+        end: index + 1,
+        position: { x: index, y: index },
+        zIndex: index,
+        params: legacyParameters[motionId],
+      })),
     )
-    expect(parsed.parametersByMotion['metric-focus']).toMatchObject({
-      label: 'legacy-metric-focus',
-      value: 10,
-    })
+    expect(
+      Object.fromEntries(
+        legacyMotionIds.map((motionId) => [
+          motionId,
+          parsed.parametersByMotion[motionId],
+        ]),
+      ),
+    ).toEqual(legacyParameters)
     expect(parsed.parametersByMotion['audience-poll']).toEqual({
       eyebrow: '08 / LIVE POLL',
       title: '你更看好哪种开发方式？',

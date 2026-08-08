@@ -312,9 +312,15 @@ describe('Workbench', () => {
       () => expect(storage.saveWorkspace).toHaveBeenCalled(),
       { timeout: 1500 },
     )
-    expect(getState().workspace?.parametersByMotion['compare-split']).toMatchObject({
-      title: 'Legacy comparison title',
-    })
+    expect(getState().workspace?.project.cards).toEqual(workspace.project.cards)
+    expect(
+      Object.fromEntries(
+        legacyMotionIds.map((motionId) => [
+          motionId,
+          getState().workspace?.parametersByMotion[motionId],
+        ]),
+      ),
+    ).toEqual(legacyParameters)
     expect(getState().workspace?.parametersByMotion['audience-poll']).toEqual(
       persistedParameters['audience-poll'],
     )

@@ -32,7 +32,7 @@ describe('workspace layout CSS contract', () => {
       /\.step-flow__card\[data-pencil-layout='drawn-path'\]\s*\{[^}]*bottom:\s*calc\(var\(--subtitle-safe-bottom\)\s*\+\s*3%\)/s,
     )
     expect(css).toMatch(
-      /\.step-flow__step\s*\{[^}]*width:\s*92%[^}]*grid-template-columns:\s*1\.7cqw\s+minmax\(0,\s*1fr\)/s,
+      /\.step-flow__step\s*\{[^}]*width:\s*100%[^}]*grid-template-columns:\s*1\.7cqw\s+minmax\(0,\s*1fr\)/s,
     )
   })
 

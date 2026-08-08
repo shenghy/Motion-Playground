@@ -2947,7 +2947,7 @@ a:focus-visible {
 }
 
 .step-flow__step {
-  width: 92%;
+  width: 100%;
   min-width: 0;
   position: relative;
   display: grid;
@@ -3586,7 +3586,7 @@ a:focus-visible {
 
 .step-flow__step {
   z-index: 1;
-  width: 92%;
+  width: 100%;
   grid-template-columns: 1.7cqw minmax(0, 1fr);
   gap: .62cqw;
   padding: .08cqw .1cqw;

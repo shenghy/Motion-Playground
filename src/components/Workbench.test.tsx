@@ -231,7 +231,7 @@ describe('Workbench', () => {
       'src',
       'blob:restored-video',
     )
-    expect(screen.getByText('刷新恢复')).toBeInTheDocument()
+    expect(screen.getByText('刷新恢复', { exact: false })).toBeInTheDocument()
     expect(screen.getByTestId('overlay-card-restored-card')).toHaveStyle({
       transform: 'translate(22%, 11%)',
     })

@@ -53,5 +53,6 @@ describe('MetricFocus', () => {
       ),
     ).not.toBeInTheDocument()
     expect(screen.queryByTestId('metric-secondary')).not.toBeInTheDocument()
+    expect(screen.queryByText('画面 001')).not.toBeInTheDocument()
   })
 })

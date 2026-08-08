@@ -30,7 +30,6 @@ export function MetricFocus({
       <PencilTexture variant="grain" />
       <div className="canvas-grid" aria-hidden="true" />
       <div className="canvas-coordinate coordinate--tl">横轴 0128 / 纵轴 0096</div>
-      <div className="canvas-coordinate coordinate--br">画面 001</div>
 
       <div
         className="metric-focus__frame"

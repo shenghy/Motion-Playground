@@ -536,12 +536,17 @@ a:focus-visible {
   display: grid;
   grid-template-rows: 82px 1fr 42px;
   border-right: 1px solid var(--line-strong);
+  background: #24282d;
 }
 
 .rail-heading,
 .panel-heading {
   padding: 18px;
   border-bottom: 1px solid var(--line);
+}
+
+.rail-heading {
+  background: #24282d;
 }
 
 .rail-heading h2,
@@ -558,6 +563,7 @@ a:focus-visible {
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  background: #1c2024;
 }
 
 .rail-list::-webkit-scrollbar {
@@ -911,6 +917,10 @@ a:focus-visible {
   color: var(--quiet);
   font-size: 8px;
   letter-spacing: .1em;
+}
+
+.rail-footer {
+  background: #202429;
 }
 
 .preview-stage {
@@ -3514,7 +3524,7 @@ a:focus-visible {
   left: 6.35%;
   top: 11%;
   bottom: calc(var(--subtitle-safe-bottom) + 3%);
-  width: 52.5%;
+  width: 33%;
   padding: 1.8cqw 1.65cqw 1.35cqw;
   overflow: hidden;
   border: 0;

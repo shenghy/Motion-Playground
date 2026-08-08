@@ -109,4 +109,39 @@ describe('step flow canvas renderer', () => {
     expect(ctx.arc).not.toHaveBeenCalled()
     expect(ctx.lineTo).toHaveBeenCalledWith(166, 820)
   })
+
+  it('keeps every drawn boundary left of the presenter safe line', () => {
+    const ctx = createContext()
+
+    renderStepFlowToCanvas({
+      ctx,
+      params,
+      localTime: 1.65,
+      resources: {
+        width: 1920,
+        height: 1080,
+        displayFont: 'Syne Variable',
+        monoFont: 'IBM Plex Mono',
+        contentFont: 'Noto Sans SC Variable',
+      },
+    })
+
+    const safeLineX = 768
+    const lineEndpoints = [
+      ...vi.mocked(ctx.moveTo).mock.calls,
+      ...vi.mocked(ctx.lineTo).mock.calls,
+    ]
+    const rectangleRightEdges = [
+      ...vi.mocked(ctx.fillRect).mock.calls,
+      ...vi.mocked(ctx.strokeRect).mock.calls,
+    ].map(([x, , width]) => Number(x) + Number(width))
+    const textRightEdges = vi.mocked(ctx.fillText).mock.calls
+      .map(([, x, , maxWidth]) => Number(x) + Number(maxWidth))
+
+    expect(lineEndpoints.every(([x]) => Number(x) < safeLineX)).toBe(true)
+    expect(rectangleRightEdges.every((right) => right < safeLineX)).toBe(true)
+    expect(textRightEdges.every((right) => right < safeLineX)).toBe(true)
+    expect(ctx.fillRect).toHaveBeenCalledWith(122, 110, 630, 760)
+    expect(ctx.lineTo).toHaveBeenCalledWith(720, 265)
+  })
 })

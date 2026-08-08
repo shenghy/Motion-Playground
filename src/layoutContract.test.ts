@@ -23,6 +23,9 @@ describe('workspace layout CSS contract', () => {
 
   it('keeps the seven-step flow in one compact column above the subtitle zone', () => {
     expect(css).toMatch(
+      /\.step-flow__card\[data-pencil-layout='drawn-path'\]\s*\{[^}]*width:\s*33%/s,
+    )
+    expect(css).toMatch(
       /\.step-flow__steps\s*\{[^}]*grid-template-rows:\s*repeat\(var\(--step-count\),\s*minmax\(0,\s*1fr\)\)/s,
     )
     expect(css).toMatch(
@@ -31,5 +34,12 @@ describe('workspace layout CSS contract', () => {
     expect(css).toMatch(
       /\.step-flow__step\s*\{[^}]*width:\s*92%[^}]*grid-template-columns:\s*1\.7cqw\s+minmax\(0,\s*1fr\)/s,
     )
+  })
+
+  it('uses the right-panel gray hierarchy across the component rail', () => {
+    expect(css).toMatch(/\.component-rail\s*\{[^}]*background:\s*#24282d/s)
+    expect(css).toMatch(/\.rail-heading\s*\{[^}]*background:\s*#24282d/s)
+    expect(css).toMatch(/\.rail-list\s*\{[^}]*background:\s*#1c2024/s)
+    expect(css).toMatch(/\.rail-footer\s*\{[^}]*background:\s*#202429/s)
   })
 })

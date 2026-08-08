@@ -4,8 +4,16 @@ import { resolveFocusIndex } from '../dataMath'
 import type { StepFlowParams } from '../types'
 
 export function getStepFlowState(params: StepFlowParams, localTime: number) {
-  const source = [params.step1, params.step2, params.step3, params.step4, params.step5]
-    .map((step) => step.trim()).filter(Boolean).slice(0, 5)
+  const source = [
+    params.step1,
+    params.step2,
+    params.step3,
+    params.step4,
+    params.step5,
+    params.step6,
+    params.step7,
+  ]
+    .map((step) => step.trim()).filter(Boolean).slice(0, 7)
   const steps = source.length >= 3 ? source : ['明确目标', '执行方案', '验证结果']
   const focusIndex = resolveFocusIndex(steps.map(() => 1), params.focusStep)
   const orderedIndexes = Array.from(

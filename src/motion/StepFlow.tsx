@@ -13,10 +13,12 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
     params.step3,
     params.step4,
     params.step5,
+    params.step6,
+    params.step7,
   ]
     .map((step) => step.trim())
     .filter(Boolean)
-    .slice(0, 5)
+    .slice(0, 7)
   const steps = sourceSteps.length >= 3
     ? sourceSteps
     : ['明确目标', '执行方案', '验证结果']

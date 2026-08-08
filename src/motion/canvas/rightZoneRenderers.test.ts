@@ -76,7 +76,7 @@ const shareParams: ShareRingParams = {
 
 const flowParams: StepFlowParams = {
   eyebrow: 'PROCESS', title: '发布流程', step1: '目标', step2: '内容',
-  step3: '构建', step4: '验证', step5: '发布', focusStep: '3',
+  step3: '构建', step4: '验证', step5: '修正', step6: '确认', step7: '发布', focusStep: '3',
   statusLabel: 'CURRENT', statusNote: 'BUILD', stepDuration: 1.1,
 }
 

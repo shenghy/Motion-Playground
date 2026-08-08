@@ -110,7 +110,9 @@ export interface StepFlowParams extends ParameterValues {
   step3: string
   step4: string
   step5: string
-  focusStep: '1' | '2' | '3' | '4' | '5'
+  step6: string
+  step7: string
+  focusStep: '1' | '2' | '3' | '4' | '5' | '6' | '7'
   statusLabel: string
   statusNote: string
   stepDuration: number

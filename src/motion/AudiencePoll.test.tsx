@@ -41,6 +41,12 @@ describe('AudiencePoll', () => {
     expect(getAudiencePollState).toHaveBeenCalledWith(params, 3.4)
   })
 
+  it('does not publish a stale current option in live mode', () => {
+    const { container } = render(<AudiencePoll params={params} />)
+
+    expect(container.querySelectorAll('[data-current]')).toHaveLength(0)
+  })
+
   it('renders the sampler-filtered numbered options in one left primary zone', () => {
     render(<AudiencePoll params={params} playbackTime={2} />)
 

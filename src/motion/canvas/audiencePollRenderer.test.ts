@@ -3,14 +3,20 @@ import type { AudiencePollParams } from '../types'
 import { renderAudiencePollToCanvas } from './audiencePollRenderer'
 
 function createContext() {
-  return {
+  const strokeAlphas: number[] = []
+  const context = {
     save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(),
-    lineTo: vi.fn(), stroke: vi.fn(), fillRect: vi.fn(), strokeRect: vi.fn(),
+    lineTo: vi.fn(), stroke: vi.fn(() => strokeAlphas.push(context.globalAlpha)),
+    fillRect: vi.fn(), strokeRect: vi.fn(),
     fillText: vi.fn(), setLineDash: vi.fn(),
     measureText: vi.fn((text: string) => ({ width: text.length * 18 })),
     globalAlpha: 1, fillStyle: '#000', strokeStyle: '#000', lineWidth: 1,
     font: '10px sans-serif', textAlign: 'start', textBaseline: 'alphabetic', filter: 'none',
-  } as unknown as CanvasRenderingContext2D
+  }
+  return {
+    ctx: context as unknown as CanvasRenderingContext2D,
+    strokeAlphas,
+  }
 }
 
 const params: AudiencePollParams = {
@@ -21,7 +27,7 @@ const params: AudiencePollParams = {
 
 describe('audience poll canvas renderer', () => {
   it('draws the same filtered labels, title, and call to action without fake results', () => {
-    const ctx = createContext()
+    const { ctx } = createContext()
     renderAudiencePollToCanvas({ ctx, params, localTime: 3.4, resources: {
       width: 1920, height: 1080, displayFont: 'Syne Variable',
       monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
@@ -37,7 +43,7 @@ describe('audience poll canvas renderer', () => {
   })
 
   it('keeps panels, rules, option boxes, and text strictly left of x 768', () => {
-    const ctx = createContext()
+    const { ctx } = createContext()
     renderAudiencePollToCanvas({ ctx, params, localTime: 3.4, resources: {
       width: 1920, height: 1080, displayFont: 'Syne Variable',
       monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
@@ -54,5 +60,26 @@ describe('audience poll canvas renderer', () => {
     expect(rectRights.every((right) => right < safeX)).toBe(true)
     expect(textRights.every((right) => right < safeX)).toBe(true)
     expect(ctx.fillRect).toHaveBeenCalledWith(122, 118, 630, 736)
+  })
+
+  it('matches the open React panel with exit-driven top and left rules only', () => {
+    const stable = createContext()
+    renderAudiencePollToCanvas({ ctx: stable.ctx, params, localTime: 3.4, resources: {
+      width: 1920, height: 1080, displayFont: 'Syne Variable',
+      monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
+    } })
+
+    expect(stable.ctx.strokeRect).not.toHaveBeenCalledWith(122, 118, 630, 736)
+    expect(stable.ctx.moveTo).toHaveBeenCalledWith(122, 118)
+    expect(stable.ctx.lineTo).toHaveBeenCalledWith(752, 118)
+    expect(stable.ctx.moveTo).toHaveBeenCalledWith(122, 118)
+    expect(stable.ctx.lineTo).toHaveBeenCalledWith(122, 854)
+
+    const exited = createContext()
+    renderAudiencePollToCanvas({ ctx: exited.ctx, params, localTime: 6.2, resources: {
+      width: 1920, height: 1080, displayFont: 'Syne Variable',
+      monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
+    } })
+    expect(exited.strokeAlphas.slice(0, 2)).toEqual([0, 0])
   })
 })

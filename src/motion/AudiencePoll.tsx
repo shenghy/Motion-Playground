@@ -88,7 +88,7 @@ export function AudiencePoll({
           {content.options.map((option, index) => (
             <motion.li
               className="audience-poll__option"
-              data-current={option.current}
+              data-current={sampled ? option.current : undefined}
               key={`${option.label}-${index}`}
               style={reduceMotion ? visible : sampled ? {
                 opacity: option.opacity, y: option.y,

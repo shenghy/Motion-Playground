@@ -18,7 +18,17 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
 
   drawPanel(ctx, {
     x: 122, y: 118, width: 630, height: 736,
-    fill: 'rgba(5,6,7,.66)', stroke: 'rgba(241,238,229,.38)',
+    fill: 'rgba(5,6,7,.66)', stroke: null,
+    alpha: state.panelOpacity,
+  })
+  drawPencilLine(ctx, {
+    x1: 122, y1: 118, x2: 752, y2: 118,
+    color: 'rgba(241,238,229,.38)', width: 1,
+    alpha: state.panelOpacity,
+  })
+  drawPencilLine(ctx, {
+    x1: 122, y1: 118, x2: 122, y2: 854,
+    color: 'rgba(241,238,229,.38)', width: 2,
     alpha: state.panelOpacity,
   })
   drawText(ctx, {

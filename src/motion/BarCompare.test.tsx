@@ -48,8 +48,13 @@ describe('BarCompare', () => {
     expect(
       screen
         .getByTestId('bar-primary')
-        .querySelector('[data-handwritten="true"]'),
+        .querySelector('.motion-content-text'),
     ).toBeInTheDocument()
+    expect(
+      screen.getByTestId('bar-primary').querySelector(
+        '.motion-handwriting, [data-handwritten]',
+      ),
+    ).not.toBeInTheDocument()
     expect(screen.getByTestId('bar-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

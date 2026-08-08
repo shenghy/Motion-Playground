@@ -12,6 +12,7 @@
     "test:launcher": "vitest --run scripts"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.3.0",
     "@fontsource-variable/syne": "latest",
     "@fontsource/ibm-plex-mono": "latest",
     "bufferutil": "^4.1.0",

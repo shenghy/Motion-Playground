@@ -104,6 +104,7 @@ export function Narrative({
       <section
         className="narrative__content"
         data-testid="narrative-primary"
+        data-outer-frame="none"
         data-zone="left-primary"
         data-pencil-layout="upper-left-narrative"
       >

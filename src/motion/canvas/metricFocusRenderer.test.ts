@@ -55,7 +55,7 @@ describe('metric focus canvas renderer', () => {
         height: 1080,
         displayFont: 'Syne Variable',
         monoFont: 'IBM Plex Mono',
-        handwritingFont: 'Ma Shan Zheng Local',
+        contentFont: 'Noto Sans SC Variable',
       },
     })
 

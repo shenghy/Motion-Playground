@@ -21,7 +21,7 @@ interface PanelOptions {
   height: number
   alpha?: number
   fill?: string
-  stroke?: string
+  stroke?: string | null
   lineWidth?: number
 }
 
@@ -110,10 +110,12 @@ export function drawPanel(
   try {
     ctx.globalAlpha = safeAlpha(options.alpha ?? 1)
     ctx.fillStyle = options.fill ?? 'rgba(5,6,7,.72)'
-    ctx.strokeStyle = options.stroke ?? CANVAS_COLORS.line
-    ctx.lineWidth = options.lineWidth ?? 1
     ctx.fillRect(options.x, options.y, options.width, options.height)
-    ctx.strokeRect(options.x, options.y, options.width, options.height)
+    if (options.stroke !== null) {
+      ctx.strokeStyle = options.stroke ?? CANVAS_COLORS.line
+      ctx.lineWidth = options.lineWidth ?? 1
+      ctx.strokeRect(options.x, options.y, options.width, options.height)
+    }
   } finally {
     ctx.restore()
   }

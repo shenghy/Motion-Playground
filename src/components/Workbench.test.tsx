@@ -695,8 +695,9 @@ describe('Workbench', () => {
       screen.getByRole('img', { name: '口播人物参考背景' }),
     ).toHaveAttribute('src', '/reference-standing.png')
     expect(screen.getByTestId('presenter-safe-area')).toBeInTheDocument()
-    expect(screen.getByTestId('subtitle-safe-area')).toHaveTextContent(
-      '字幕安全区 / 150像素',
+    expect(screen.getByTestId('subtitle-safe-area')).toHaveAttribute(
+      'data-visibility',
+      'hidden',
     )
 
     const toggle = screen.getByRole('switch', { name: '显示人物安全区' })

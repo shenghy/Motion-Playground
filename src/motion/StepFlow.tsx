@@ -74,6 +74,7 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
       <section
         className="step-flow__card"
         data-testid="flow-primary"
+        data-outer-frame="none"
         data-zone="left-primary"
         data-pencil-layout="drawn-path"
       >
@@ -94,7 +95,7 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
               }}
         >
           <span>{params.eyebrow || '06 / 流程图'}</span>
-          <h2 className="motion-handwriting" data-handwritten="true">
+          <h2 className="motion-content-text">
             {params.title || '未命名流程'}
           </h2>
         </motion.header>
@@ -153,7 +154,7 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                 key={`${step}-${index}`}
               >
                 <b>{String(index + 1).padStart(2, '0')}</b>
-                <span className="motion-handwriting" data-handwritten="true">
+                <span className="motion-content-text">
                   {step}
                 </span>
                 <i aria-hidden="true" />
@@ -166,6 +167,7 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
       <aside
         className="step-flow__status data-result"
         data-testid="flow-secondary"
+        data-outer-frame="none"
         data-zone="right-secondary"
       >
         <span>{params.statusLabel || '当前步骤'}</span>

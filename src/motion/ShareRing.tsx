@@ -67,6 +67,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
       <section
         className="share-ring__card"
         data-testid="share-primary"
+        data-outer-frame="none"
         data-zone="left-primary"
         data-pencil-layout="drawn-ring"
       >
@@ -79,7 +80,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
           transition={loopTransition(0.16)}
         >
           <span>{params.eyebrow || '05 / 占比分析'}</span>
-          <h2 className="motion-handwriting" data-handwritten="true">
+          <h2 className="motion-content-text">
             {params.title || '未命名占比'}
           </h2>
         </motion.header>
@@ -161,7 +162,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
             transition={loopTransition(1.55)}
           >
             <strong data-testid="share-center-value">{focusPercentage}%</strong>
-            <span className="motion-handwriting" data-handwritten="true">
+            <span className="motion-content-text">
               {params.centerLabel || focusItem.label}
             </span>
           </motion.div>
@@ -178,7 +179,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
               transition={loopTransition(1.72 + index * 0.12)}
               key={`${item.label}-legend`}
             >
-              <span className="motion-handwriting" data-handwritten="true">
+              <span className="motion-content-text">
                 {item.label}
               </span>
               <strong>{Math.round(item.percentage)}%</strong>
@@ -190,6 +191,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
       <motion.aside
         className="share-ring__result data-result"
         data-testid="share-secondary"
+        data-outer-frame="none"
         data-zone="right-secondary"
         initial={reduceMotion ? false : { opacity: 0, x: 22 }}
         animate={reduceMotion

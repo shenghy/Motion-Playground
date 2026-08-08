@@ -47,8 +47,13 @@ describe('ShareRing', () => {
     expect(
       screen
         .getByTestId('share-primary')
-        .querySelector('[data-handwritten="true"]'),
+        .querySelector('.motion-content-text'),
     ).toBeInTheDocument()
+    expect(
+      screen.getByTestId('share-primary').querySelector(
+        '.motion-handwriting, [data-handwritten]',
+      ),
+    ).not.toBeInTheDocument()
     expect(screen.getByTestId('share-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

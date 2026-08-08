@@ -44,8 +44,13 @@ describe('MetricFocus', () => {
     expect(
       screen
         .getByTestId('metric-primary')
-        .querySelector('[data-handwritten="true"]'),
+        .querySelector('.motion-content-text'),
     ).toBeInTheDocument()
+    expect(
+      screen.getByTestId('metric-primary').querySelector(
+        '.motion-handwriting, [data-handwritten]',
+      ),
+    ).not.toBeInTheDocument()
     expect(screen.getByTestId('metric-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

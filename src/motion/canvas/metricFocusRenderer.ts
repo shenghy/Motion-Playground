@@ -60,25 +60,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
   drawPanel(ctx, {
     ...frame,
     fill: 'rgba(5,6,6,.6)',
-    stroke: 'rgba(241,238,229,.42)',
-  })
-  drawPencilLine(ctx, {
-    x1: frame.x,
-    y1: frame.y,
-    x2: frame.x,
-    y2: frame.y + frame.height,
-    color: CANVAS_COLORS.paper,
-    width: 2,
-  })
-  drawPencilLine(ctx, {
-    x1: frame.x - 2,
-    y1: frame.y - 3,
-    x2: frame.x + frame.width * 0.72,
-    y2: frame.y - 5,
-    color: CANVAS_COLORS.paper,
-    dash: [17, 3],
-    alpha: 0.5,
-    width: 3,
+    stroke: null,
   })
 
   const contentX = frame.x + 46
@@ -105,7 +87,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     text: params.eyebrow || '未命名指标',
     x: contentX + 68,
     y: 282,
-    font: `400 28px ${resources.handwritingFont}`,
+    font: `500 28px ${resources.contentFont}`,
     color: '#c6c8c5',
     maxWidth: 390,
   })
@@ -147,7 +129,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     text: params.description || '暂无说明',
     x: contentX,
     y: 570 + state.meta.y,
-    font: `400 28px ${resources.handwritingFont}`,
+    font: `500 28px ${resources.contentFont}`,
     color: '#8c9091',
     maxWidth: 490,
     alpha: state.meta.opacity,
@@ -181,7 +163,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     width: 192,
     height: 313,
     fill: 'rgba(5,6,6,.5)',
-    stroke: 'rgba(241,238,229,.25)',
+    stroke: null,
     alpha: state.secondary.opacity,
   })
   drawText(ctx, {

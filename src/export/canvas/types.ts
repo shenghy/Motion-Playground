@@ -3,7 +3,7 @@ export interface CanvasRenderResources {
   height: 1080
   displayFont: string
   monoFont: string
-  handwritingFont: string
+  contentFont: string
 }
 
 export interface CanvasMotionRenderInput<T> {

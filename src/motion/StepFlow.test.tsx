@@ -49,8 +49,13 @@ describe('StepFlow', () => {
     expect(
       screen
         .getByTestId('flow-primary')
-        .querySelector('[data-handwritten="true"]'),
+        .querySelector('.motion-content-text'),
     ).toBeInTheDocument()
+    expect(
+      screen.getByTestId('flow-primary').querySelector(
+        '.motion-handwriting, [data-handwritten]',
+      ),
+    ).not.toBeInTheDocument()
     expect(screen.getByTestId('flow-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

@@ -41,8 +41,13 @@ describe('ProfileReveal', () => {
     expect(
       screen
         .getByTestId('profile-primary')
-        .querySelector('[data-handwritten="true"]'),
+        .querySelector('.motion-content-text'),
     ).toBeInTheDocument()
+    expect(
+      screen.getByTestId('profile-primary').querySelector(
+        '.motion-handwriting, [data-handwritten]',
+      ),
+    ).not.toBeInTheDocument()
     expect(screen.getByTestId('profile-secondary')).toHaveAttribute(
       'data-zone',
       'right-secondary',

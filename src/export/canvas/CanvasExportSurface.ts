@@ -42,9 +42,9 @@ interface CanvasExportSessionOptions {
 export const DEFAULT_CANVAS_RESOURCES: CanvasRenderResources = {
   width: EXPORT_WIDTH,
   height: EXPORT_HEIGHT,
-  displayFont: 'Syne Variable, Microsoft YaHei, sans-serif',
-  monoFont: 'IBM Plex Mono, Microsoft YaHei, monospace',
-  handwritingFont: 'Ma Shan Zheng Local, KaiTi, STKaiti, sans-serif',
+  displayFont: 'Syne Variable, Noto Sans SC Variable, sans-serif',
+  monoFont: 'IBM Plex Mono, Noto Sans SC Variable, monospace',
+  contentFont: 'Noto Sans SC Variable, sans-serif',
 }
 
 export function createCanvasExportSession({

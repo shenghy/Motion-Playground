@@ -43,6 +43,7 @@ export function MetricFocus({
       <div
         className="metric-focus__frame"
         data-testid="metric-primary"
+        data-outer-frame="none"
         data-zone="left-primary"
         data-pencil-layout="open-frame"
       >
@@ -58,7 +59,7 @@ export function MetricFocus({
           transition={transition(0.12)}
         >
           <span>01</span>
-          <b className="motion-handwriting" data-handwritten="true">
+          <b className="motion-content-text">
             {params.eyebrow || '未命名指标'}
           </b>
         </motion.div>
@@ -83,7 +84,7 @@ export function MetricFocus({
           animate={{ opacity: 1, y: 0 }}
           transition={transition(0.42)}
         >
-          <span className="motion-handwriting" data-handwritten="true">
+          <span className="motion-content-text">
             {params.description || '暂无说明'}
           </span>
         </motion.div>
@@ -111,6 +112,7 @@ export function MetricFocus({
       <motion.aside
         className="metric-focus__secondary"
         data-testid="metric-secondary"
+        data-outer-frame="none"
         data-zone="right-secondary"
         initial={{ opacity: 0, x: 34 }}
         animate={{ opacity: 1, x: 0 }}

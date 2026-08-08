@@ -442,10 +442,9 @@ export function PreviewStage({
               <div
                 className="subtitle-safe-area"
                 data-testid="subtitle-safe-area"
+                data-visibility="hidden"
                 aria-hidden="true"
-              >
-                <span>字幕安全区 / 150像素</span>
-              </div>
+              />
             </>
           )}
         </div>

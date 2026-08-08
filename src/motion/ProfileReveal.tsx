@@ -58,6 +58,7 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
       <motion.section
         className="profile-reveal__card"
         data-testid="profile-primary"
+        data-outer-frame="none"
         data-zone="left-primary"
         data-pencil-layout="field-note"
         {...reveal(0.08, 0)}
@@ -72,7 +73,7 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
 
         <motion.div className="profile-reveal__title" {...reveal(0.86)}>
           <span>{params.overline || '人物故事'}</span>
-          <h2 className="motion-handwriting" data-handwritten="true">
+          <h2 className="motion-content-text">
             {params.title || '未命名人物'}
           </h2>
         </motion.div>
@@ -99,7 +100,7 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
                 ✓
               </motion.b>
               <div>
-                <strong className="motion-handwriting" data-handwritten="true">
+                <strong className="motion-content-text">
                   {fact.text || `信息 ${index + 1}`}
                 </strong>
                 <span>{fact.note || '详情待补充'}</span>
@@ -118,6 +119,7 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
       <motion.aside
         className="profile-reveal__rail"
         data-testid="profile-secondary"
+        data-outer-frame="none"
         data-zone="right-secondary"
         data-safe-motion="upward"
         {...reveal(3.28, -24)}

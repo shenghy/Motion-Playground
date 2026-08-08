@@ -31,7 +31,11 @@ export function VideoPlaybackControls({
   const safeCurrentTime = Math.min(Math.max(currentTime, 0), safeDuration)
 
   return (
-    <section className="video-playback-controls" aria-label="视频播放控制">
+    <section
+      className="video-playback-controls"
+      aria-label="视频播放控制"
+      data-placement="video-bottom"
+    >
       <button
         className="video-playback-controls__button"
         type="button"

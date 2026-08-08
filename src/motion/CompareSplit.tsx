@@ -32,7 +32,7 @@ export function CompareSplit({
         transition={{ duration, delay: reduceMotion ? 0 : 0.12, ease }}
       >
         <span>02 / 对比研究</span>
-        <h2 className="motion-handwriting" data-handwritten="true">
+        <h2 className="motion-content-text">
           {params.title || '未命名对比'}
         </h2>
         <span>双项对比</span>
@@ -42,6 +42,7 @@ export function CompareSplit({
         <motion.section
           className="compare-panel compare-panel--left"
           data-testid="compare-left"
+          data-outer-frame="none"
           data-emphasized={params.emphasis === 'left'}
           data-pencil-state={params.emphasis === 'left' ? 'emphasized' : 'struck'}
           data-zone="left-primary"
@@ -52,8 +53,7 @@ export function CompareSplit({
           <span className="compare-panel__index">方案甲 / 01</span>
           <div className="compare-panel__content">
             <span
-              className="compare-panel__label motion-handwriting"
-              data-handwritten="true"
+              className="compare-panel__label motion-content-text"
             >
               {params.leftLabel || '左侧'}
             </span>
@@ -81,6 +81,7 @@ export function CompareSplit({
         <motion.section
           className="compare-panel compare-panel--right"
           data-testid="compare-right"
+          data-outer-frame="none"
           data-emphasized={params.emphasis === 'right'}
           data-pencil-state={params.emphasis === 'right' ? 'emphasized' : 'struck'}
           data-zone="right-secondary"
@@ -91,8 +92,7 @@ export function CompareSplit({
           <span className="compare-panel__index">方案乙 / 02</span>
           <div className="compare-panel__content">
             <span
-              className="compare-panel__label motion-handwriting"
-              data-handwritten="true"
+              className="compare-panel__label motion-content-text"
             >
               {params.rightLabel || '右侧'}
             </span>
@@ -130,13 +130,14 @@ export function CompareSplit({
       <motion.footer
         className="compare-split__result"
         data-testid="compare-result"
+        data-outer-frame="none"
         data-safe-motion="upward"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
       >
         <span>结论 / 已锁定</span>
-        <strong className="motion-handwriting" data-handwritten="true">
+        <strong className="motion-content-text">
           {params.conclusion || '暂无结论'}
         </strong>
         <span>可信度 98.4</span>

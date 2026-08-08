@@ -36,8 +36,13 @@ describe('CompareSplit', () => {
     expect(
       screen
         .getByTestId('compare-left')
-        .querySelector('[data-handwritten="true"]'),
+        .querySelector('.motion-content-text'),
     ).toBeInTheDocument()
+    expect(
+      screen.getByTestId('compare-left').querySelector(
+        '.motion-handwriting, [data-handwritten]',
+      ),
+    ).not.toBeInTheDocument()
     expect(screen.getByTestId('compare-left')).toHaveAttribute('data-zone', 'left-primary')
     expect(screen.getByTestId('compare-right')).toHaveAttribute(
       'data-zone',

@@ -37,20 +37,28 @@ describe('worker font loading', () => {
       expect.any(Object),
     )
     expect(FontFaceConstructor).toHaveBeenCalledWith(
-      'Ma Shan Zheng Worker',
+      'Noto Sans SC Worker',
       expect.stringContaining('url('),
-      expect.any(Object),
+      expect.objectContaining({ weight: '100 900' }),
     )
-    expect(loadedFaces).toHaveLength(3)
-    expect(fontSet.add).toHaveBeenCalledTimes(3)
+    const notoCalls = FontFaceConstructor.mock.calls.filter(
+      ([family]) => family === 'Noto Sans SC Worker',
+    )
+    expect(notoCalls.length).toBeGreaterThan(1)
+    expect(notoCalls.every(([, , descriptors]) =>
+      Boolean(descriptors?.unicodeRange))).toBe(true)
+    expect(loadedFaces).toHaveLength(2 + notoCalls.length)
+    expect(fontSet.add).toHaveBeenCalledTimes(2 + notoCalls.length)
     expect(resources).toEqual({
       width: 1920,
       height: 1080,
-      displayFont: 'Syne Worker, Microsoft YaHei, sans-serif',
-      monoFont: 'IBM Plex Mono Worker, Microsoft YaHei, monospace',
-      handwritingFont:
-        'Ma Shan Zheng Worker, KaiTi, STKaiti, Microsoft YaHei, sans-serif',
+      displayFont: 'Syne Worker, Noto Sans SC Worker, sans-serif',
+      monoFont: 'IBM Plex Mono Worker, Noto Sans SC Worker, monospace',
+      contentFont: 'Noto Sans SC Worker, sans-serif',
     })
+    expect(JSON.stringify(resources)).not.toMatch(
+      /Ma Shan Zheng|KaiTi|STKaiti|Microsoft YaHei/,
+    )
   })
 
   it('does not register a face whose load fails', async () => {
@@ -87,6 +95,8 @@ describe('worker font loading', () => {
     ])
 
     expect(outcome).toBe('loaded')
-    expect(fontSet.add).toHaveBeenCalledTimes(3)
+    expect(fontSet.add).toHaveBeenCalledTimes(
+      FontFaceConstructor.mock.calls.length,
+    )
   })
 })

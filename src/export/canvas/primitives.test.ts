@@ -110,4 +110,17 @@ describe('canvas drawing primitives', () => {
     })
     expect(context.fillText).toHaveBeenCalledWith('1234567890', 40, 50, 60)
   })
+
+  it('fills a frameless panel without drawing an export border', () => {
+    const { context } = recordingContext()
+    drawPanel(context, {
+      x: 80,
+      y: 120,
+      width: 596,
+      height: 720,
+      stroke: null,
+    })
+    expect(context.fillRect).toHaveBeenCalledOnce()
+    expect(context.strokeRect).not.toHaveBeenCalled()
+  })
 })

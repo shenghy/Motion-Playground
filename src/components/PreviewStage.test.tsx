@@ -84,6 +84,10 @@ describe('PreviewStage overlays', () => {
       />,
     )
     const video = screen.getByTestId('presenter-video') as HTMLVideoElement
+    expect(screen.getByRole('region', { name: '视频播放控制' })).toHaveAttribute(
+      'data-placement',
+      'video-bottom',
+    )
     Object.defineProperty(video, 'duration', {
       configurable: true,
       value: 120,
@@ -197,7 +201,10 @@ describe('PreviewStage overlays', () => {
     expect(screen.getByLabelText('核心指标 +248%')).toBeInTheDocument()
     expect(screen.queryByTestId('overlay-card')).not.toBeInTheDocument()
     expect(screen.getByTestId('presenter-safe-area')).toBeInTheDocument()
-    expect(screen.getByTestId('subtitle-safe-area')).toBeInTheDocument()
+    expect(screen.getByTestId('subtitle-safe-area')).toHaveAttribute(
+      'data-visibility',
+      'hidden',
+    )
   })
 
   it('selects an unselected overlay card by click', () => {

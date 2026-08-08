@@ -164,30 +164,6 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
         </div>
       </section>
 
-      <aside
-        className="step-flow__status data-result"
-        data-testid="flow-secondary"
-        data-outer-frame="none"
-        data-zone="right-secondary"
-      >
-        <span>{params.statusLabel || '当前步骤'}</span>
-        <div className="step-flow__status-numbers" aria-hidden="true">
-          {steps.map((_, index) => (
-            <motion.strong
-              initial={reduceMotion ? false : { opacity: 0 }}
-              animate={reduceMotion
-                ? { opacity: index === focusIndex ? 1 : 0 }
-                : { opacity: [0, 0, 1, 1, 0, 0] }}
-              transition={stepTransition(index)}
-              key={index}
-            >
-              {String(index + 1).padStart(2, '0')}
-            </motion.strong>
-          ))}
-        </div>
-        <i aria-hidden="true" />
-        <small>{params.statusNote || steps[focusIndex]}</small>
-      </aside>
     </div>
   )
 }

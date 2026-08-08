@@ -35,7 +35,6 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
       ]
   const values = safeItems.map((item) => item.value)
   const focusIndex = resolveFocusIndex(values, params.focusIndex)
-  const focusItem = safeItems[focusIndex]
   const maximum = Math.max(...values, 1)
 
   const loopTransition = (delay: number) => reduceMotion
@@ -131,22 +130,6 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
         </div>
       </section>
 
-      <motion.aside
-        className="bar-compare__result data-result"
-        data-testid="bar-secondary"
-        data-outer-frame="none"
-        data-zone="right-secondary"
-        initial={reduceMotion ? false : { opacity: 0, x: 22 }}
-        animate={reduceMotion
-          ? { opacity: 1, x: 0 }
-          : { opacity: [0, 0, 1, 1, 0], x: [22, 22, 0, 0, 8] }}
-        transition={loopTransition(2.05)}
-      >
-        <span>{params.resultLabel || '最高值'}</span>
-        <strong>{focusItem.value}{params.suffix}</strong>
-        <i aria-hidden="true" />
-        <small>{params.resultNote || focusItem.label}</small>
-      </motion.aside>
     </div>
   )
 }

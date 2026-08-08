@@ -28,7 +28,7 @@ describe('ProfileReveal', () => {
     expect(screen.getByText('没有庞大团队')).toBeInTheDocument()
     expect(screen.getByText('没有巨额预算')).toBeInTheDocument()
     expect(screen.getByText('只靠持续交付')).toBeInTheDocument()
-    expect(screen.getByText('PROFILE / VERIFIED')).toBeInTheDocument()
+    expect(screen.queryByText('PROFILE / VERIFIED')).not.toBeInTheDocument()
     expect(screen.getByTestId('profile-primary')).toHaveAttribute(
       'data-zone',
       'left-primary',
@@ -48,13 +48,6 @@ describe('ProfileReveal', () => {
         '.motion-handwriting, [data-handwritten]',
       ),
     ).not.toBeInTheDocument()
-    expect(screen.getByTestId('profile-secondary')).toHaveAttribute(
-      'data-zone',
-      'right-secondary',
-    )
-    expect(screen.getByTestId('profile-secondary')).toHaveAttribute(
-      'data-safe-motion',
-      'upward',
-    )
+    expect(screen.queryByTestId('profile-secondary')).not.toBeInTheDocument()
   })
 })

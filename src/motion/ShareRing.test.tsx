@@ -54,10 +54,7 @@ describe('ShareRing', () => {
         '.motion-handwriting, [data-handwritten]',
       ),
     ).not.toBeInTheDocument()
-    expect(screen.getByTestId('share-secondary')).toHaveAttribute(
-      'data-zone',
-      'right-secondary',
-    )
+    expect(screen.queryByTestId('share-secondary')).not.toBeInTheDocument()
   })
 
   it('evenly divides an all-zero set', () => {

@@ -188,22 +188,6 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
         </div>
       </section>
 
-      <motion.aside
-        className="share-ring__result data-result"
-        data-testid="share-secondary"
-        data-outer-frame="none"
-        data-zone="right-secondary"
-        initial={reduceMotion ? false : { opacity: 0, x: 22 }}
-        animate={reduceMotion
-          ? { opacity: 1, x: 0 }
-          : { opacity: [0, 0, 1, 1, 0], x: [22, 22, 0, 0, 8] }}
-        transition={loopTransition(2.35)}
-      >
-        <span>{params.resultLabel || '主要占比'}</span>
-        <strong>{focusPercentage}<em>%</em></strong>
-        <i aria-hidden="true" />
-        <small>{params.resultNote || focusItem.label}</small>
-      </motion.aside>
     </div>
   )
 }

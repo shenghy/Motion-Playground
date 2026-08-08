@@ -3557,6 +3557,36 @@ a:focus-visible {
   letter-spacing: .12em;
 }
 
+.data-card__heading > span,
+.profile-reveal__identity strong,
+.profile-reveal__title > span {
+  color: var(--motion-accent-blue);
+}
+
+.profile-reveal__identity > i,
+.profile-reveal__fact > b.profile-reveal__check {
+  border-color: var(--motion-accent-blue);
+  color: var(--motion-accent-blue);
+}
+
+.profile-reveal__identity > i {
+  background: var(--motion-accent-blue);
+}
+
+.bar-compare__item[data-focused='true'] .bar-compare__column {
+  border-color: var(--motion-accent-blue);
+  background: var(--motion-accent-blue);
+}
+
+.share-ring__segment[data-focused='true'] {
+  stroke: var(--motion-accent-blue);
+}
+
+.step-flow__step[data-pencil-weight='double'] b {
+  border-color: var(--motion-accent-blue);
+  color: var(--motion-accent-blue);
+}
+
 .metric-focus__frame[data-outer-frame='none'] .corner,
 .metric-focus__frame[data-outer-frame='none']::before,
 .bar-compare__card[data-outer-frame='none']::before,

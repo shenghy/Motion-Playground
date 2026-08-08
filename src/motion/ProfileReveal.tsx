@@ -116,21 +116,6 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
         </motion.footer>
       </motion.section>
 
-      <motion.aside
-        className="profile-reveal__rail"
-        data-testid="profile-secondary"
-        data-outer-frame="none"
-        data-zone="right-secondary"
-        data-safe-motion="upward"
-        {...reveal(3.28, -24)}
-      >
-        <span className="profile-reveal__rail-index">03</span>
-        <div className="profile-reveal__rail-track" aria-hidden="true">
-          {Array.from({ length: 7 }, (_, index) => <i key={index} />)}
-        </div>
-        <strong>{params.status || '档案 / 已确认'}</strong>
-        <small>序列<br />已锁定</small>
-      </motion.aside>
     </div>
   )
 }

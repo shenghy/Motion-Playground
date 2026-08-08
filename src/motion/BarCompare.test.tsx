@@ -27,7 +27,7 @@ describe('BarCompare', () => {
     expect(screen.getByText('季度增长')).toBeInTheDocument()
     expect(screen.getByText('Q1')).toBeInTheDocument()
     expect(screen.getByText('Q4')).toBeInTheDocument()
-    expect(screen.getByText('86%')).toBeInTheDocument()
+    expect(screen.getAllByTestId('bar-column')[3]).toHaveTextContent('86%')
     expect(screen.getAllByTestId('bar-column')).toHaveLength(4)
     expect(screen.getAllByTestId('bar-column')[3]).toHaveAttribute(
       'data-focused',
@@ -55,9 +55,6 @@ describe('BarCompare', () => {
         '.motion-handwriting, [data-handwritten]',
       ),
     ).not.toBeInTheDocument()
-    expect(screen.getByTestId('bar-secondary')).toHaveAttribute(
-      'data-zone',
-      'right-secondary',
-    )
+    expect(screen.queryByTestId('bar-secondary')).not.toBeInTheDocument()
   })
 })

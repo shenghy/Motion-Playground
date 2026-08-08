@@ -32,7 +32,7 @@ describe('StepFlow', () => {
       'data-sequence-order',
       '0',
     )
-    expect(screen.getByText('BUILD / ACTIVE')).toBeInTheDocument()
+    expect(screen.queryByText('BUILD / ACTIVE')).not.toBeInTheDocument()
     expect(screen.getByTestId('flow-primary')).toHaveAttribute(
       'data-zone',
       'left-primary',
@@ -56,10 +56,7 @@ describe('StepFlow', () => {
         '.motion-handwriting, [data-handwritten]',
       ),
     ).not.toBeInTheDocument()
-    expect(screen.getByTestId('flow-secondary')).toHaveAttribute(
-      'data-zone',
-      'right-secondary',
-    )
+    expect(screen.queryByTestId('flow-secondary')).not.toBeInTheDocument()
   })
 
   it('supports a compact three-step flow', () => {

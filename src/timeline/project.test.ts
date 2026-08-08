@@ -19,6 +19,7 @@ const defaultsByMotion: Record<MotionId, ParameterValues> = {
   'bar-compare': {},
   'share-ring': {},
   'step-flow': {},
+  'audience-poll': {},
 }
 
 function makeCard(overrides: Partial<OverlayCard> = {}): OverlayCard {

@@ -9,6 +9,7 @@ export const MOTION_IDS = [
   'bar-compare',
   'share-ring',
   'step-flow',
+  'audience-poll',
 ] as const
 
 export type MotionId = (typeof MOTION_IDS)[number]
@@ -118,6 +119,17 @@ export interface StepFlowParams extends ParameterValues {
   stepDuration: number
 }
 
+export interface AudiencePollParams extends ParameterValues {
+  eyebrow: string
+  title: string
+  option1: string
+  option2: string
+  option3: string
+  option4: string
+  callToAction: string
+  duration: number
+}
+
 export type MotionParams =
   | NarrativeParams
   | MetricFocusParams
@@ -126,6 +138,7 @@ export type MotionParams =
   | BarCompareParams
   | ShareRingParams
   | StepFlowParams
+  | AudiencePollParams
 
 export type Control =
   | {

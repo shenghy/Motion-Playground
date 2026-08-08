@@ -836,6 +836,31 @@ a:focus-visible {
 }
 .rail-item__preview--step-flow i:nth-child(3) { top: 44px; }
 
+.rail-item__preview--audience-poll {
+  padding: 8px;
+}
+
+.rail-item__preview--audience-poll::before {
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  border-top: 2px solid currentColor;
+  opacity: .76;
+}
+
+.rail-item__preview--audience-poll i {
+  left: 8px;
+  right: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-left: 7px solid #2f67b2;
+  opacity: .46;
+}
+
+.rail-item__preview--audience-poll i:first-child { top: 18px; opacity: 1; }
+.rail-item__preview--audience-poll i:nth-child(2) { top: 31px; }
+.rail-item__preview--audience-poll i:nth-child(3) { top: 44px; }
+
 .rail-item__copy {
   min-width: 0;
   display: grid;
@@ -3727,6 +3752,89 @@ a:focus-visible {
   height: .12cqw;
   background: repeating-linear-gradient(90deg, var(--pencil-silver) 0 .48cqw, transparent .52cqw .68cqw);
   opacity: .4;
+}
+
+.audience-poll__card {
+  position: absolute;
+  left: 6.35%;
+  top: 11%;
+  bottom: calc(var(--subtitle-safe-bottom) + 3%);
+  width: 33%;
+  display: flex;
+  flex-direction: column;
+  padding: 1.75cqw 1.55cqw 1.3cqw;
+  overflow: hidden;
+  border-top: 1px solid rgba(241,238,229,.42);
+  border-left: 2px solid var(--pencil-silver);
+  background: linear-gradient(104deg, rgba(5,6,6,.68), rgba(5,6,6,.08) 85%, transparent);
+}
+
+.audience-poll__eyebrow {
+  color: var(--motion-accent-blue);
+  font: 600 .78cqw/1 var(--mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.audience-poll__card > h2.motion-content-text {
+  margin: 1.05cqw 0 1.15cqw;
+  padding-bottom: 1.05cqw;
+  border-bottom: 3px double rgba(47,103,178,.5);
+  color: var(--pencil-silver);
+  font-size: 1.72cqw;
+  line-height: 1.25;
+  letter-spacing: .025em !important;
+}
+
+.audience-poll__options {
+  display: grid;
+  gap: .62cqw;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audience-poll__option {
+  min-height: 3.2cqw;
+  display: grid;
+  grid-template-columns: 2.25cqw minmax(0, 1fr);
+  align-items: center;
+  gap: .75cqw;
+  padding: .5cqw .7cqw;
+  border: 1px solid rgba(241,238,229,.28);
+  background: rgba(5,6,7,.28);
+}
+
+.audience-poll__option b {
+  color: #7e858b;
+  font: 600 .9cqw/1 var(--mono);
+  letter-spacing: .08em;
+}
+
+.audience-poll__option .motion-content-text {
+  color: var(--pencil-silver);
+  font-size: 1.08cqw;
+  line-height: 1.2;
+}
+
+.audience-poll__option[data-current='true'] {
+  border-width: .14cqw;
+  border-color: var(--motion-accent-blue);
+  background: rgba(47,103,178,.13);
+}
+
+.audience-poll__option[data-current='true'] b {
+  color: var(--motion-accent-blue);
+}
+
+.audience-poll__cta.motion-content-text {
+  margin: auto 0 0;
+  padding-top: 1cqw;
+  border-top: 1px solid rgba(241,238,229,.28);
+  color: #b7bdc2;
+  font-size: .82cqw;
+  line-height: 1.55;
+  transform-origin: left center;
 }
 
 /* Motion content stays structured, but primary and result cards have no outer frame. */

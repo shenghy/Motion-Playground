@@ -5,6 +5,7 @@ import { renderNarrativeToCanvas } from '../../motion/canvas/narrativeRenderer'
 import { renderProfileRevealToCanvas } from '../../motion/canvas/profileRevealRenderer'
 import { renderShareRingToCanvas } from '../../motion/canvas/shareRingRenderer'
 import { renderStepFlowToCanvas } from '../../motion/canvas/stepFlowRenderer'
+import { renderAudiencePollToCanvas } from '../../motion/canvas/audiencePollRenderer'
 import type { MotionId, ParameterValues } from '../../motion/types'
 import type { CanvasMotionRenderer } from './types'
 
@@ -16,6 +17,7 @@ export const canvasRendererRegistry = {
   'bar-compare': renderBarCompareToCanvas as CanvasMotionRenderer<ParameterValues>,
   'share-ring': renderShareRingToCanvas as CanvasMotionRenderer<ParameterValues>,
   'step-flow': renderStepFlowToCanvas as CanvasMotionRenderer<ParameterValues>,
+  'audience-poll': renderAudiencePollToCanvas as CanvasMotionRenderer<ParameterValues>,
 } satisfies Record<MotionId, CanvasMotionRenderer<ParameterValues>>
 
 export function resolveCanvasRenderer(motionId: MotionId) {

@@ -14,4 +14,8 @@ describe('worker-safe canvas renderer registry', () => {
       expect(resolveCanvasRenderer(motionId)).toBeTypeOf('function')
     }
   })
+
+  it('resolves the audience poll renderer', () => {
+    expect(resolveCanvasRenderer('audience-poll')).toBeTypeOf('function')
+  })
 })

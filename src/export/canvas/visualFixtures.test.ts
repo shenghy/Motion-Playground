@@ -22,4 +22,11 @@ describe('canvas visual fixtures', () => {
       expect(fixture.expectedBounds.bottom).toBeLessThan(1080)
     }
   })
+
+  it('samples the audience poll entrance, sequence, stable, and exit moments', () => {
+    expect(canvasVisualFixtures
+      .filter((fixture) => fixture.motionId === 'audience-poll')
+      .map((fixture) => fixture.localTime))
+      .toEqual([0.3, 1.4, 3.4, 6])
+  })
 })

@@ -5,6 +5,7 @@ import { Narrative } from './Narrative'
 import { ProfileReveal } from './ProfileReveal'
 import { ShareRing } from './ShareRing'
 import { StepFlow } from './StepFlow'
+import { AudiencePoll } from './AudiencePoll'
 import { renderBarCompareToCanvas } from './canvas/barCompareRenderer'
 import { renderCompareSplitToCanvas } from './canvas/compareSplitRenderer'
 import { renderMetricFocusToCanvas } from './canvas/metricFocusRenderer'
@@ -12,7 +13,9 @@ import { renderNarrativeToCanvas } from './canvas/narrativeRenderer'
 import { renderProfileRevealToCanvas } from './canvas/profileRevealRenderer'
 import { renderShareRingToCanvas } from './canvas/shareRingRenderer'
 import { renderStepFlowToCanvas } from './canvas/stepFlowRenderer'
+import { renderAudiencePollToCanvas } from './canvas/audiencePollRenderer'
 import type {
+  AudiencePollParams,
   BarCompareParams,
   CompareSplitParams,
   MetricFocusParams,
@@ -32,6 +35,7 @@ type RegisteredMotion =
   | MotionDefinition<BarCompareParams>
   | MotionDefinition<ShareRingParams>
   | MotionDefinition<StepFlowParams>
+  | MotionDefinition<AudiencePollParams>
 
 export const motionRegistry: RegisteredMotion[] = [
   {
@@ -318,6 +322,35 @@ export const motionRegistry: RegisteredMotion[] = [
       { type: 'text', key: 'statusLabel', label: '状态标签', maxLength: 12 },
       { type: 'text', key: 'statusNote', label: '状态说明', maxLength: 18 },
       { type: 'number', key: 'stepDuration', label: '单步停留', min: 0.7, max: 2.4, step: 0.1, suffix: '秒' },
+    ],
+  },
+  {
+    id: 'audience-poll',
+    index: '08',
+    name: '投票卡片',
+    category: '互动 / 投票',
+    description: '编号投票互动卡片',
+    component: AudiencePoll,
+    canvasRenderer: renderAudiencePollToCanvas,
+    defaults: {
+      eyebrow: '08 / LIVE POLL',
+      title: '你更看好哪种开发方式？',
+      option1: 'AI 辅助开发',
+      option2: '传统手写代码',
+      option3: '两者结合',
+      option4: '',
+      callToAction: '把编号打在弹幕或评论区，告诉我你的选择',
+      duration: 6.2,
+    },
+    controls: [
+      { type: 'text', key: 'eyebrow', label: '分类眉题', maxLength: 24 },
+      { type: 'text', key: 'title', label: '投票问题', maxLength: 20 },
+      { type: 'text', key: 'option1', label: '选项一', maxLength: 16 },
+      { type: 'text', key: 'option2', label: '选项二', maxLength: 16 },
+      { type: 'text', key: 'option3', label: '选项三', maxLength: 16 },
+      { type: 'text', key: 'option4', label: '选项四', maxLength: 16 },
+      { type: 'text', key: 'callToAction', label: '互动引导', maxLength: 32 },
+      { type: 'number', key: 'duration', label: '循环时长', min: 4.8, max: 10, step: 0.2, suffix: '秒' },
     ],
   },
 ]

@@ -21,6 +21,7 @@ const defaultsByMotion: Record<MotionId, ParameterValues> = {
   'bar-compare': { label: '默认柱状', value: 40 },
   'share-ring': { label: '默认占比', value: 50 },
   'step-flow': { label: '默认步骤', value: 60 },
+  'audience-poll': { label: '默认投票', value: 70 },
 }
 
 const project: OverlayProject = {

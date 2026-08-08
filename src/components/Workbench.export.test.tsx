@@ -112,6 +112,7 @@ describe('Workbench transparent export coordination', () => {
 
     render(<Workbench idFactory={() => 'export-card'} />)
     loadOneSecondVideo()
+    fireEvent.click(screen.getByRole('tab', { name: '导入导出' }))
 
     const movButton = await screen.findByRole('button', {
       name: '导出透明 MOV',
@@ -169,6 +170,7 @@ describe('Workbench transparent export coordination', () => {
 
     render(<Workbench idFactory={() => 'cancel-card'} />)
     loadOneSecondVideo()
+    fireEvent.click(screen.getByRole('tab', { name: '导入导出' }))
     const movButton = await screen.findByRole('button', {
       name: '导出透明 MOV',
     })
@@ -182,10 +184,12 @@ describe('Workbench transparent export coordination', () => {
       name: '取消导出',
     })
     expect(cancelButton).toBeEnabled()
+    fireEvent.click(screen.getByRole('tab', { name: '工作区' }))
     expect(
       screen.getByRole('button', { name: '导出期间不可清空' }),
     ).toBeDisabled()
     expect(document.querySelector('.workspace')).not.toHaveAttribute('inert')
+    fireEvent.click(screen.getByRole('tab', { name: '导入导出' }))
     fireEvent.click(cancelButton)
 
     await screen.findByText('已取消，共生成 0 帧')
@@ -235,6 +239,7 @@ describe('Workbench transparent export coordination', () => {
       fireEvent.click(screen.getByRole('button', { name }))
     }
 
+    fireEvent.click(screen.getByRole('tab', { name: '导入导出' }))
     const movButton = await screen.findByRole('button', { name: '导出透明 MOV' })
     await waitFor(() => expect(movButton).toBeEnabled())
     fireEvent.click(movButton)

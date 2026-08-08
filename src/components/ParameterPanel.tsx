@@ -77,7 +77,7 @@ export function ParameterPanel({
     currentTab: ParameterTab,
   ) => {
     const currentIndex = parameterTabs.findIndex(({ id }) => id === currentTab)
-    let nextIndex = currentIndex
+    let nextIndex: number
 
     if (event.key === 'ArrowRight') {
       nextIndex = (currentIndex + 1) % parameterTabs.length

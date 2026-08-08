@@ -172,7 +172,7 @@ a:focus-visible {
   grid-template-columns:
     clamp(196px, 17vw, 258px)
     minmax(0, 1fr)
-    clamp(270px, 21vw, 320px);
+    clamp(420px, 30vw, 470px);
   overflow: hidden;
 }
 
@@ -550,7 +550,17 @@ a:focus-visible {
 }
 
 .rail-list {
-  overflow: auto;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.rail-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .rail-item-shell {
@@ -1246,28 +1256,121 @@ a:focus-visible {
 
 .parameter-panel {
   display: grid;
-  grid-template-rows: 82px minmax(0, 1fr) 70px;
+  grid-template-rows: 82px 62px minmax(0, 1fr);
   border-left: 1px solid var(--line-strong);
+  background: #24282d;
 }
 
 .panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: #24282d;
+}
+
+.panel-heading h2 {
+  font-size: 18px;
 }
 
 .live-indicator {
   display: flex;
   align-items: center;
   color: var(--signal);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: .1em;
 }
 
 .control-list {
-  overflow: auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+  background: #1c2024;
+}
+
+.parameter-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid #444b53;
+  background: #202429;
+}
+
+.parameter-tab {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 5px;
+  padding: 10px 13px 9px;
+  border: 0;
+  border-right: 1px solid #383e45;
+  color: #9ca4ad;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.parameter-tab:last-child {
+  border-right: 0;
+}
+
+.parameter-tab small {
+  color: #747d87;
+  font: 600 9px/1 var(--mono);
+  letter-spacing: .12em;
+}
+
+.parameter-tab span {
+  overflow: hidden;
+  font: 600 12px/1 var(--content);
+  letter-spacing: .04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parameter-tab:hover {
+  color: var(--paper);
+  background: rgba(255, 255, 255, .035);
+}
+
+.parameter-tab[aria-selected='true'] {
+  color: var(--paper);
+  background: #292e34;
+  box-shadow: inset 0 -3px 0 var(--motion-accent-blue);
+}
+
+.parameter-tab[aria-selected='true'] small {
+  color: var(--motion-accent-blue);
+}
+
+.parameter-tabpanel {
+  min-height: 100%;
+  background: #1c2024;
+}
+
+.parameter-tabpanel[hidden] {
+  display: none;
+}
+
+.parameter-tabpanel__intro {
+  display: grid;
+  gap: 5px;
+  padding: 17px 18px 15px;
+  border-bottom: 1px solid #353b42;
+  background: #20252a;
+}
+
+.parameter-tabpanel__intro span {
+  color: var(--paper);
+  font: 600 13px/1.2 var(--content);
+  letter-spacing: .05em;
+}
+
+.parameter-tabpanel__intro small {
+  color: #8f98a2;
+  font: 400 10px/1.5 var(--content);
 }
 
 .export-panel {
@@ -1295,15 +1398,15 @@ a:focus-visible {
 
 .export-panel__heading span {
   color: var(--paper);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: .08em;
 }
 
 .export-panel__heading small,
 .export-panel__message,
 .export-progress small {
-  color: var(--quiet);
-  font-size: 8px;
+  color: #8f98a2;
+  font-size: 10px;
   line-height: 1.45;
 }
 
@@ -1339,14 +1442,14 @@ a:focus-visible {
 
 .export-button strong {
   color: inherit;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: .06em;
 }
 
 .export-button small {
-  color: var(--quiet);
-  font-size: 7px;
+  color: #8f98a2;
+  font-size: 9px;
   letter-spacing: .04em;
 }
 
@@ -1461,13 +1564,13 @@ a:focus-visible {
 
 .workspace-danger-zone span {
   color: var(--paper);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: .08em;
 }
 
 .workspace-danger-zone small {
-  color: var(--quiet);
-  font-size: 8px;
+  color: #8f98a2;
+  font-size: 10px;
   line-height: 1.45;
 }
 
@@ -1477,7 +1580,7 @@ a:focus-visible {
   color: #d8a19d;
   background: transparent;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: .08em;
   cursor: pointer;
   transition: border-color .18s ease, color .18s ease, background .18s ease;
@@ -1530,14 +1633,14 @@ a:focus-visible {
 
 .video-setting__heading span {
   color: var(--paper);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: .08em;
 }
 
 .video-setting__heading small {
   overflow: hidden;
-  color: var(--quiet);
-  font-size: 8px;
+  color: #8f98a2;
+  font-size: 10px;
   line-height: 1.45;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1568,7 +1671,7 @@ a:focus-visible {
   color: var(--ink);
   background: var(--paper);
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: .06em;
   cursor: pointer;
   transition: color .18s ease, background .18s ease, border-color .18s ease;
@@ -1655,13 +1758,13 @@ a:focus-visible {
 
 .preview-setting span {
   color: var(--paper);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: .06em;
 }
 
 .preview-setting small {
-  color: var(--quiet);
-  font-size: 8px;
+  color: #8f98a2;
+  font-size: 10px;
 }
 
 .switch {
@@ -1698,8 +1801,8 @@ a:focus-visible {
 }
 
 .control-field > span {
-  color: var(--muted);
-  font-size: 9px;
+  color: #b5bcc4;
+  font-size: 12px;
   letter-spacing: .07em;
 }
 
@@ -1711,8 +1814,8 @@ a:focus-visible {
   border: 1px solid var(--line-strong);
   border-radius: 0;
   color: var(--paper);
-  background: #0a0b0c;
-  font-size: 11px;
+  background: #171a1e;
+  font-size: 13px;
 }
 
 .control-field select {
@@ -1729,8 +1832,8 @@ a:focus-visible {
   position: absolute;
   top: 14px;
   right: 18px;
-  color: var(--quiet);
-  font-size: 8px;
+  color: #7f8993;
+  font-size: 10px;
 }
 
 .control-field--range {
@@ -1739,7 +1842,7 @@ a:focus-visible {
 
 .control-field--range output {
   color: var(--paper);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .control-field--range input {
@@ -1768,16 +1871,21 @@ a:focus-visible {
 }
 
 .panel-actions {
+  position: sticky;
+  z-index: 2;
+  bottom: 0;
   display: grid;
   grid-template-columns: 1fr 1.25fr;
   gap: 8px;
   padding: 14px 16px;
   border-top: 1px solid var(--line-strong);
+  background: rgba(31, 35, 40, .97);
 }
 
 .button {
   border: 1px solid var(--line-strong);
-  font-size: 10px;
+  min-height: 42px;
+  font-size: 12px;
   cursor: pointer;
   transition: background .18s ease, color .18s ease;
 }
@@ -1804,6 +1912,39 @@ a:focus-visible {
 .button--primary:hover {
   color: var(--paper);
   background: transparent;
+}
+
+.parameter-panel .export-panel,
+.parameter-panel .project-file-controls,
+.parameter-panel .video-setting,
+.parameter-panel .workspace-danger-zone,
+.parameter-panel .preview-setting {
+  border-bottom-color: #353b42;
+  background: #20252a;
+}
+
+.parameter-panel .project-file-controls__heading > span {
+  font: 600 13px/1.2 var(--content);
+  letter-spacing: .05em;
+}
+
+.parameter-panel .project-file-controls__heading small,
+.parameter-panel .project-file-controls__error,
+.parameter-panel .video-setting__error {
+  color: #8f98a2;
+  font-family: var(--content);
+  font-size: 10px;
+}
+
+.parameter-panel .project-file-controls__actions button,
+.parameter-panel .export-progress button {
+  min-height: 38px;
+  font-size: 12px;
+}
+
+.parameter-panel .control-field {
+  border-bottom-color: #30363d;
+  background: #1c2024;
 }
 
 /* 1920 × 1080 motion compositions */
@@ -3692,7 +3833,7 @@ a:focus-visible {
 
 @media (max-width: 1400px) {
   .workspace {
-    grid-template-columns: 216px minmax(0, 1fr) 284px;
+    grid-template-columns: 216px minmax(0, 1fr) 434px;
   }
 
   .brand {
@@ -3723,7 +3864,7 @@ a:focus-visible {
 
 @media (max-width: 1120px) {
   .workspace {
-    grid-template-columns: 176px minmax(0, 1fr) 248px;
+    grid-template-columns: 176px minmax(0, 1fr) 398px;
   }
 
   .brand {
@@ -3803,8 +3944,8 @@ a:focus-visible {
 @media (max-height: 780px) {
   .workbench { grid-template-rows: 58px minmax(0, 1fr); }
   .component-rail,
-  .preview-stage,
-  .parameter-panel { grid-template-rows: 70px minmax(0, 1fr) 38px; }
+  .preview-stage { grid-template-rows: 70px minmax(0, 1fr) 38px; }
+  .parameter-panel { grid-template-rows: 70px 54px minmax(0, 1fr); }
   .preview-workspace { grid-template-rows: minmax(310px, 1fr) 128px; }
   .rail-item { min-height: 116px; }
   .control-field { padding-top: 11px; padding-bottom: 11px; }

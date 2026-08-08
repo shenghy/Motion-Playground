@@ -28,6 +28,12 @@ describe('StepFlow', () => {
     )
 
     expect(controlKeys).toEqual(expect.arrayContaining(['step6', 'step7']))
+    expect(definition.defaults).toMatchObject({
+      step4: '内部检查',
+      step5: '修正问题',
+      step6: '最终确认',
+      step7: '正式发布',
+    })
     expect(focusControl).toMatchObject({
       type: 'select',
       options: expect.arrayContaining([

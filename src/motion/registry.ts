@@ -282,7 +282,7 @@ export const motionRegistry: RegisteredMotion[] = [
       step1: '明确目标',
       step2: '准备内容',
       step3: '构建版本',
-      step4: '验证结果',
+      step4: '内部检查',
       step5: '修正问题',
       step6: '最终确认',
       step7: '正式发布',

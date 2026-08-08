@@ -126,7 +126,7 @@ describe('step flow canvas renderer', () => {
       },
     })
 
-    const safeLineX = 768
+    const safeLineX = 749
     const lineEndpoints = [
       ...vi.mocked(ctx.moveTo).mock.calls,
       ...vi.mocked(ctx.lineTo).mock.calls,
@@ -141,7 +141,8 @@ describe('step flow canvas renderer', () => {
     expect(lineEndpoints.every(([x]) => Number(x) < safeLineX)).toBe(true)
     expect(rectangleRightEdges.every((right) => right < safeLineX)).toBe(true)
     expect(textRightEdges.every((right) => right < safeLineX)).toBe(true)
-    expect(ctx.fillRect).toHaveBeenCalledWith(122, 110, 630, 760)
-    expect(ctx.lineTo).toHaveBeenCalledWith(720, 265)
+    expect(ctx.fillRect).toHaveBeenCalledWith(122, 110, 610, 760)
+    expect(ctx.lineTo).toHaveBeenCalledWith(700, 265)
+    expect(ctx.lineTo).toHaveBeenCalledWith(700, expect.any(Number))
   })
 })

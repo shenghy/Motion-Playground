@@ -4,6 +4,15 @@ import { describe, expect, it } from 'vitest'
 
 const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
 
+function getRule(selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return css.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`, 's'))?.[1] ?? ''
+}
+
+function getPercent(rule: string, property: string) {
+  return Number(rule.match(new RegExp(`${property}:\\s*([\\d.]+)%`))?.[1])
+}
+
 describe('workspace layout CSS contract', () => {
   it('widens the right panel and hides rail scrollbars while retaining vertical scrolling', () => {
     expect(css).toContain('clamp(420px, 30vw, 470px)')
@@ -22,9 +31,20 @@ describe('workspace layout CSS contract', () => {
   })
 
   it('keeps the seven-step flow in one compact column above the subtitle zone', () => {
-    expect(css).toMatch(
-      /\.step-flow__card\[data-pencil-layout='drawn-path'\]\s*\{[^}]*width:\s*33%/s,
-    )
+    const presenterSafeRule = getRule('.presenter-safe-area')
+    const stepFlowRule = getRule(".step-flow__card[data-pencil-layout='drawn-path']")
+    const audiencePollRule = getRule('.audience-poll__card')
+    const safeLine = getPercent(presenterSafeRule, 'left')
+
+    expect(safeLine).toBe(39)
+    for (const cardRule of [stepFlowRule, audiencePollRule]) {
+      const left = getPercent(cardRule, 'left')
+      const width = getPercent(cardRule, 'width')
+      expect(left).toBe(6.35)
+      expect(width).toBe(31.8)
+      expect(left + width).toBeLessThan(safeLine)
+      expect(safeLine - (left + width)).toBeCloseTo(0.85, 5)
+    }
     expect(css).toMatch(
       /\.step-flow__steps\s*\{[^}]*grid-template-rows:\s*repeat\(var\(--step-count\),\s*minmax\(0,\s*1fr\)\)/s,
     )

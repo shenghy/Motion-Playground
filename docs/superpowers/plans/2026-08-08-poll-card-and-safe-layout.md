@@ -20,32 +20,33 @@
 
 - [ ] **Step 1: Write failing CSS and Canvas boundary tests**
 
-Add assertions that require the step card width to be `33%`, the component rail zones to use `#24282d`, `#1c2024`, and `#202429`, and every step-flow Canvas drawing endpoint to remain left of `x = 768`.
+Add assertions that require the presenter-safe CSS line to be `39%` (`x = 748.8` at 1920), both card previews to start at `6.35%`, use `31.8%` width, and end at `38.15%`. Require every step-flow Canvas drawing endpoint to remain left of the integer test threshold `x = 749`, with the panel ending at `x = 732` and horizontal rules at `x = 700`.
 
 ```ts
-expect(css).toMatch(/\.step-flow__card\[data-pencil-layout='drawn-path'\]\s*\{[^}]*width:\s*33%/s)
+expect(css).toMatch(/\.presenter-safe-area\s*\{[^}]*left:\s*39%/s)
+expect(css).toMatch(/\.step-flow__card\[data-pencil-layout='drawn-path'\]\s*\{[^}]*width:\s*31\.8%/s)
 expect(css).toMatch(/\.component-rail\s*\{[^}]*background:\s*#24282d/s)
 expect(css).toMatch(/\.rail-list\s*\{[^}]*background:\s*#1c2024/s)
 expect(css).toMatch(/\.rail-footer\s*\{[^}]*background:\s*#202429/s)
-expect(Math.max(...horizontalLineEnds)).toBeLessThan(768)
+expect(Math.max(...horizontalLineEnds)).toBeLessThan(749)
 ```
 
 - [ ] **Step 2: Run the focused tests and verify RED**
 
 Run: `npm test -- --run src/layoutContract.test.ts src/motion/canvas/stepFlowRenderer.test.ts`
 
-Expected: FAIL because the card is still `52.5%`, the rail is near-black, and Canvas lines extend to `x = 1040`.
+Expected: FAIL because both cards still use `33%`, crossing the actual `39%` presenter-safe line, while the Canvas boundary assertions still use the older wider coordinates.
 
 - [ ] **Step 3: Implement the narrow layout and gray rail**
 
-Set the React step card to `width: 33%`, shorten step rows to the available content width, and apply the right-panel gray hierarchy to `.component-rail`, `.rail-heading`, `.rail-list`, and `.rail-footer`. In the Canvas renderer, use a panel width of `630` and cap heading rules and row rules at `x = 720`.
+Set the React step card to `width: 31.8%`, giving its `6.35%` left edge a `38.15%` right edge, shorten step rows to the available content width, and apply the right-panel gray hierarchy to `.component-rail`, `.rail-heading`, `.rail-list`, and `.rail-footer`. In the Canvas renderer, use a panel width of `610` so it ends at `x = 732`, and cap heading rules and row rules at `x = 700`.
 
 ```css
 .component-rail { background: #24282d; }
 .component-rail .rail-heading { background: #24282d; }
 .rail-list { background: #1c2024; }
 .rail-footer { background: #202429; }
-.step-flow__card[data-pencil-layout='drawn-path'] { width: 33%; }
+.step-flow__card[data-pencil-layout='drawn-path'] { width: 31.8%; }
 .step-flow__step { width: 100%; }
 ```
 
@@ -170,7 +171,7 @@ The DOM contract is:
 </section>
 ```
 
-Style the card at `left: 6.35%`, `width: 33%`, and above the subtitle-safe zone. Use Noto Sans SC and IBM Plex Mono, gray option borders, deep-blue active numbering, and no handwriting font.
+Style the card at `left: 6.35%`, `width: 31.8%`, ending at `38.15%` before the actual `39%` presenter-safe line, and above the subtitle-safe zone. Use Noto Sans SC and IBM Plex Mono, gray option borders, deep-blue active numbering, and no handwriting font.
 
 - [ ] **Step 4: Run the focused tests and verify GREEN**
 
@@ -196,13 +197,13 @@ git commit -m "feat: add audience poll preview"
 
 - [ ] **Step 1: Write failing Canvas renderer tests**
 
-Assert that all title, option, and call-to-action text is drawn; that every text x-coordinate and line endpoint remains left of `x = 768`; and that the Canvas registry contains all eight IDs.
+Assert that all title, option, and call-to-action text is drawn; that every text right edge and line endpoint remains left of the actual integer safe threshold `x = 749`; that the panel ends at `x = 732` and rules at `x = 700`; and that the Canvas registry contains all eight IDs.
 
 ```ts
 expect(drawnText).toEqual(expect.arrayContaining([
   params.title, params.option1, params.option2, params.option3, params.callToAction,
 ]))
-expect(textCalls.every(([, x]) => Number(x) < 768)).toBe(true)
+expect(textRightEdges.every((right) => right < 749)).toBe(true)
 expect(Object.keys(canvasRendererRegistry).sort()).toEqual([...MOTION_IDS].sort())
 ```
 
@@ -214,7 +215,7 @@ Expected: FAIL because the renderer and registry entry do not exist.
 
 - [ ] **Step 3: Implement and register the Canvas renderer**
 
-Use `getAudiencePollState` and Canvas primitives. Draw a panel from `x = 122` to at most `x = 752`, title text with `maxWidth <= 540`, vertically stacked option boxes, and the call-to-action rule and text. Register the renderer under `'audience-poll'` and add fixture samples `[0.3, 1.4, 3.4, 6]`.
+Use `getAudiencePollState` and Canvas primitives. Draw a panel from `x = 122` through `x = 732`, preserving about 17px before the actual `x = 748.8` safe line. Cap internal horizontal rules at `x = 700`, shorten text maximum widths proportionally without reducing font sizes, keep up to four vertically stacked option boxes, and draw the call-to-action rule and text. Register the renderer under `'audience-poll'` and add fixture samples `[0.3, 1.4, 3.4, 6]`.
 
 - [ ] **Step 4: Run the focused tests and verify GREEN**
 

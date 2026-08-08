@@ -21,7 +21,7 @@ function createContext() {
 
 const params: AudiencePollParams = {
   eyebrow: '08 / LIVE POLL', title: '你更看好哪种开发方式？',
-  option1: 'AI 辅助开发', option2: '', option3: '两者结合', option4: '',
+  option1: 'AI 辅助开发', option2: '传统手写代码', option3: '两者结合', option4: '其他方式',
   callToAction: '把编号打在弹幕或评论区，告诉我你的选择', duration: 6.2,
 }
 
@@ -36,20 +36,21 @@ describe('audience poll canvas renderer', () => {
     const texts = vi.mocked(ctx.fillText).mock.calls.map(([text]) => text)
     expect(texts).toEqual(expect.arrayContaining([
       '08 / LIVE POLL', '你更看好哪种开发方式？', '01', 'AI 辅助开发',
-      '02', '两者结合', '把编号打在弹幕或评论区，告诉我你的选择',
+      '02', '传统手写代码', '03', '两者结合', '04', '其他方式',
+      '把编号打在弹幕或评论区，告诉我你的选择',
     ]))
     expect(texts).not.toContain('')
     expect(texts.some((text) => String(text).includes('%'))).toBe(false)
   })
 
-  it('keeps panels, rules, option boxes, and text strictly left of x 768', () => {
+  it('keeps panels, rules, option boxes, and text strictly left of the actual x 749 safe threshold', () => {
     const { ctx } = createContext()
     renderAudiencePollToCanvas({ ctx, params, localTime: 3.4, resources: {
       width: 1920, height: 1080, displayFont: 'Syne Variable',
       monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
     } })
 
-    const safeX = 768
+    const safeX = 749
     const linePoints = [...vi.mocked(ctx.moveTo).mock.calls, ...vi.mocked(ctx.lineTo).mock.calls]
     const rectRights = [...vi.mocked(ctx.fillRect).mock.calls, ...vi.mocked(ctx.strokeRect).mock.calls]
       .map(([x, , width]) => Number(x) + Number(width))
@@ -59,7 +60,9 @@ describe('audience poll canvas renderer', () => {
     expect(linePoints.every(([x]) => Number(x) < safeX)).toBe(true)
     expect(rectRights.every((right) => right < safeX)).toBe(true)
     expect(textRights.every((right) => right < safeX)).toBe(true)
-    expect(ctx.fillRect).toHaveBeenCalledWith(122, 118, 630, 736)
+    expect(ctx.fillRect).toHaveBeenCalledWith(122, 118, 610, 736)
+    expect(ctx.lineTo).toHaveBeenCalledWith(700, 270)
+    expect(ctx.lineTo).toHaveBeenCalledWith(700, expect.any(Number))
   })
 
   it('matches the open React panel with exit-driven top and left rules only', () => {
@@ -69,9 +72,9 @@ describe('audience poll canvas renderer', () => {
       monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
     } })
 
-    expect(stable.ctx.strokeRect).not.toHaveBeenCalledWith(122, 118, 630, 736)
+    expect(stable.ctx.strokeRect).not.toHaveBeenCalledWith(122, 118, 610, 736)
     expect(stable.ctx.moveTo).toHaveBeenCalledWith(122, 118)
-    expect(stable.ctx.lineTo).toHaveBeenCalledWith(752, 118)
+    expect(stable.ctx.lineTo).toHaveBeenCalledWith(732, 118)
     expect(stable.ctx.moveTo).toHaveBeenCalledWith(122, 118)
     expect(stable.ctx.lineTo).toHaveBeenCalledWith(122, 854)
 

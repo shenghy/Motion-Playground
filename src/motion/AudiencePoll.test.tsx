@@ -55,9 +55,9 @@ describe('AudiencePoll', () => {
     expect(screen.queryByTestId('audience-poll-secondary')).not.toBeInTheDocument()
   })
 
-  it('fully hides the independent panel background at the cycle exit', () => {
+  it('keeps the panel visible at the cycle exit when reduced motion is preferred', () => {
     render(<AudiencePoll params={params} playbackTime={6.2} />)
 
-    expect(screen.getByTestId('audience-poll-panel')).toHaveStyle({ opacity: 0 })
+    expect(screen.getByTestId('audience-poll-panel')).toHaveStyle({ opacity: 1 })
   })
 })

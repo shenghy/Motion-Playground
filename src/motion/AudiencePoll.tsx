@@ -63,7 +63,9 @@ export function AudiencePoll({
           className="audience-poll__panel"
           data-testid="audience-poll-panel"
           style={{
-            opacity: sampled?.panelOpacity ?? livePanelOpacity,
+            opacity: reduceMotion
+              ? 1
+              : sampled?.panelOpacity ?? livePanelOpacity,
           }}
         />
         <motion.span

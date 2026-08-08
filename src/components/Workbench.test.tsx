@@ -665,9 +665,9 @@ describe('Workbench', () => {
 
     expect(
       screen.getAllByRole('button', {
-        name: /^选择组件(?:叙述|核心指标|对比卡片|人物信息|柱状对比|环形占比|步骤流程)$/,
+        name: /^选择组件(?:叙述|核心指标|对比卡片|人物信息|柱状对比|环形占比|步骤流程|投票卡片)$/,
       }),
-    ).toHaveLength(7)
+    ).toHaveLength(8)
 
     fireEvent.click(screen.getByRole('button', { name: '选择组件柱状对比' }))
     expect(screen.getByText('季度增长')).toBeInTheDocument()
@@ -679,6 +679,10 @@ describe('Workbench', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '选择组件步骤流程' }))
     expect(screen.getByText('发布流程')).toBeInTheDocument()
+    expectPencilStyle()
+
+    fireEvent.click(screen.getByRole('button', { name: '选择组件投票卡片' }))
+    expect(screen.getByText('你更看好哪种开发方式？')).toBeInTheDocument()
     expectPencilStyle()
 
     expect(screen.queryByText('MOTION PLAYGROUND')).not.toBeInTheDocument()

@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AudiencePoll } from './AudiencePoll'
 import type { AudiencePollParams } from './types'
 
-const getAudiencePollState = vi.hoisted(() => vi.fn(() => ({
+const getAudiencePollState = vi.hoisted(() => vi.fn((_params, time: number) => ({
   cycle: 6.2,
-  time: 2,
+  time,
+  panelOpacity: time >= 6.2 ? 0 : 1,
   header: { opacity: 1, y: 0 },
   title: { opacity: 1, y: 0 },
   options: [
@@ -52,5 +53,11 @@ describe('AudiencePoll', () => {
     expect(within(primary).getByText('传统手写代码').closest('li'))
       .toHaveAttribute('data-current', 'true')
     expect(screen.queryByTestId('audience-poll-secondary')).not.toBeInTheDocument()
+  })
+
+  it('fully hides the independent panel background at the cycle exit', () => {
+    render(<AudiencePoll params={params} playbackTime={6.2} />)
+
+    expect(screen.getByTestId('audience-poll-panel')).toHaveStyle({ opacity: 0 })
   })
 })

@@ -29,6 +29,7 @@ export function AudiencePoll({
   const clock = useTime()
   const liveState = useTransform(clock, (milliseconds) =>
     getAudiencePollState(params, milliseconds / 1000))
+  const livePanelOpacity = useTransform(liveState, (state) => state.panelOpacity)
   const liveHeaderOpacity = useTransform(liveState, (state) => state.header.opacity)
   const liveHeaderY = useTransform(liveState, (state) => state.header.y)
   const liveTitleOpacity = useTransform(liveState, (state) => state.title.opacity)
@@ -57,6 +58,14 @@ export function AudiencePoll({
         data-zone="left-primary"
         data-outer-frame="none"
       >
+        <motion.div
+          aria-hidden="true"
+          className="audience-poll__panel"
+          data-testid="audience-poll-panel"
+          style={{
+            opacity: sampled?.panelOpacity ?? livePanelOpacity,
+          }}
+        />
         <motion.span
           className="audience-poll__eyebrow"
           style={reduceMotion ? visible : sampled ? sampled.header : {

@@ -63,6 +63,7 @@ export function getAudiencePollState(
   return {
     cycle,
     time,
+    panelOpacity: exitOpacity(time, cycle),
     header: layer(time, cycle, 0.1, 0.38),
     title: layer(time, cycle, 0.34, 0.44),
     options,

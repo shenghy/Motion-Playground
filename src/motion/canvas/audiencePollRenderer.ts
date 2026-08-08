@@ -19,7 +19,7 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
   drawPanel(ctx, {
     x: 122, y: 118, width: 630, height: 736,
     fill: 'rgba(5,6,7,.66)', stroke: 'rgba(241,238,229,.38)',
-    alpha: state.header.opacity,
+    alpha: state.panelOpacity,
   })
   drawText(ctx, {
     text: params.eyebrow || '08 / LIVE POLL', x: 146, y: 150 + state.header.y,

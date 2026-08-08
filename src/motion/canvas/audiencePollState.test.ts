@@ -48,4 +48,8 @@ describe('getAudiencePollState', () => {
     expect(exit.options.every((option) => option.opacity < stable.options[0].opacity)).toBe(true)
     expect(exit.cta.opacity).toBeLessThan(stable.cta.opacity)
   })
+
+  it('sets the shared panel opacity to zero at the full cycle exit', () => {
+    expect(getAudiencePollState(params, 6.2).panelOpacity).toBe(0)
+  })
 })

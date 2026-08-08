@@ -3764,9 +3764,21 @@ a:focus-visible {
   flex-direction: column;
   padding: 1.75cqw 1.55cqw 1.3cqw;
   overflow: hidden;
+}
+
+.audience-poll__panel {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
   border-top: 1px solid rgba(241,238,229,.42);
   border-left: 2px solid var(--pencil-silver);
   background: linear-gradient(104deg, rgba(5,6,6,.68), rgba(5,6,6,.08) 85%, transparent);
+}
+
+.audience-poll__card > :not(.audience-poll__panel) {
+  position: relative;
+  z-index: 1;
 }
 
 .audience-poll__eyebrow {

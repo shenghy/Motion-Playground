@@ -195,7 +195,7 @@ describe('Workbench transparent export coordination', () => {
     await screen.findByText('已取消，共生成 0 帧')
   })
 
-  it('starts raw export for a snapshot containing all seven motions', async () => {
+  it('starts raw export for a snapshot containing all eight motions', async () => {
     WorkbenchSocket.instances = []
     vi.stubGlobal('WebSocket', WorkbenchSocket)
     Object.assign(window, {
@@ -235,9 +235,11 @@ describe('Workbench transparent export coordination', () => {
       '在播放头添加柱状对比',
       '在播放头添加环形占比',
       '在播放头添加步骤流程',
+      '在播放头添加投票卡片',
     ]) {
       fireEvent.click(screen.getByRole('button', { name }))
     }
+    expect(screen.getAllByRole('button', { name: /^选择.*片段/ })).toHaveLength(8)
 
     fireEvent.click(screen.getByRole('tab', { name: '导入导出' }))
     const movButton = await screen.findByRole('button', { name: '导出透明 MOV' })

@@ -30,7 +30,6 @@ export function CompareSplit({
         <h2 className="motion-content-text">
           {params.title || '未命名对比'}
         </h2>
-        <span>双项对比</span>
       </motion.header>
 
       <div className="compare-split__panels">

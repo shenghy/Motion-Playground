@@ -22,6 +22,8 @@ describe('CompareSplit', () => {
     expect(screen.getByText('BEFORE')).toBeInTheDocument()
     expect(screen.getByText('AFTER')).toBeInTheDocument()
     expect(screen.getByText('2.05× IMPROVEMENT')).toBeInTheDocument()
+    expect(screen.getByText('02 / 对比研究')).toBeInTheDocument()
+    expect(screen.queryByText('双项对比')).not.toBeInTheDocument()
     expect(screen.getByTestId('compare-left')).toHaveAttribute('data-emphasized', 'false')
     expect(screen.getByTestId('compare-right')).toHaveAttribute('data-emphasized', 'true')
     expect(screen.getByTestId('compare-left')).toHaveAttribute(

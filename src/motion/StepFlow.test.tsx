@@ -47,6 +47,9 @@ describe('StepFlow', () => {
       'double',
     )
     expect(
+      screen.getAllByTestId('flow-step')[2].querySelector('b'),
+    ).toHaveAttribute('data-active-accent', 'animated')
+    expect(
       screen
         .getByTestId('flow-primary')
         .querySelector('.motion-content-text'),

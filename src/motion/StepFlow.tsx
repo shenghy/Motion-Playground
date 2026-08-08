@@ -153,7 +153,44 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                 transition={stepTransition(index)}
                 key={`${step}-${index}`}
               >
-                <b>{String(index + 1).padStart(2, '0')}</b>
+                <motion.b
+                  data-active-accent="animated"
+                  initial={reduceMotion
+                    ? false
+                    : {
+                        color: '#72777b',
+                        borderColor: '#666b70',
+                        borderWidth: 2,
+                      }}
+                  animate={reduceMotion
+                    ? {
+                        color: initialFocus ? '#2f67b2' : '#72777b',
+                        borderColor: initialFocus ? '#2f67b2' : '#666b70',
+                        borderWidth: initialFocus ? 4 : 2,
+                      }
+                    : {
+                        color: [
+                          '#72777b',
+                          '#72777b',
+                          '#2f67b2',
+                          '#2f67b2',
+                          '#72777b',
+                          '#72777b',
+                        ],
+                        borderColor: [
+                          '#666b70',
+                          '#666b70',
+                          '#2f67b2',
+                          '#2f67b2',
+                          '#666b70',
+                          '#666b70',
+                        ],
+                        borderWidth: [2, 2, 4, 4, 2, 2],
+                      }}
+                  transition={stepTransition(index)}
+                >
+                  {String(index + 1).padStart(2, '0')}
+                </motion.b>
                 <span className="motion-content-text">
                   {step}
                 </span>

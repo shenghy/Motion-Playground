@@ -3453,9 +3453,15 @@ a:focus-visible {
   left: 6.35%;
   top: 9%;
   width: 52.5%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: .55cqw;
 }
 
-.compare-split__header > span:last-child {
+.compare-split__header > span:first-child {
+  display: block;
   color: var(--motion-accent-blue);
 }
 
@@ -3671,9 +3677,8 @@ a:focus-visible {
   stroke: var(--motion-accent-blue);
 }
 
-.step-flow__step[data-pencil-weight='double'] b {
-  border-color: var(--motion-accent-blue);
-  color: var(--motion-accent-blue);
+.step-flow__step b[data-active-accent='animated'] {
+  border-style: solid;
 }
 
 .metric-focus__frame[data-outer-frame='none'] .corner,

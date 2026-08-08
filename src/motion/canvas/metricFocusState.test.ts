@@ -24,7 +24,12 @@ describe('metric focus canvas state', () => {
   it('samples delayed layers and settles after entrance', () => {
     const beforeEyebrow = getMetricFocusState(params, 0.12)
     expect(beforeEyebrow.eyebrow.opacity).toBe(0)
+    expect(beforeEyebrow.eyebrow.y).toBe(18)
     expect(beforeEyebrow.value.opacity).toBe(0)
+    expect(beforeEyebrow.value.blur).toBe(12)
+
+    const beforeMeta = getMetricFocusState(params, 0.42)
+    expect(beforeMeta.meta.y).toBe(18)
 
     const middle = getMetricFocusState(params, 0.8)
     expect(middle.eyebrow.opacity).toBeGreaterThan(0.99)
@@ -34,6 +39,7 @@ describe('metric focus canvas state', () => {
     const settled = getMetricFocusState(params, 8)
     expect(settled.value.opacity).toBe(1)
     expect(settled.value.scale).toBe(1)
+    expect(settled.value.blur).toBe(0)
     expect(settled).not.toHaveProperty('secondary')
     expect(settled.pencilLine.reveal).toBe(1)
     expect(settled.ticks.reveal).toBe(1)

@@ -8,13 +8,14 @@ interface LayerState {
   x: number
   y: number
   scale: number
+  blur: number
 }
 
 function enter(
   time: number,
   delay: number,
   duration: number,
-  from: Partial<Pick<LayerState, 'x' | 'y' | 'scale'>> = {},
+  from: Partial<Pick<LayerState, 'x' | 'y' | 'scale' | 'blur'>> = {},
 ): LayerState {
   const progress = samplePencilEase(delayedProgress(time, delay, duration))
   return {
@@ -22,6 +23,7 @@ function enter(
     x: (from.x ?? 0) * (1 - progress),
     y: (from.y ?? 0) * (1 - progress),
     scale: (from.scale ?? 1) + (1 - (from.scale ?? 1)) * progress,
+    blur: (from.blur ?? 0) * (1 - progress),
   }
 }
 
@@ -39,9 +41,9 @@ export function getMetricFocusState(
       params.decimals,
       time,
     ),
-    eyebrow: enter(time, 0.12, entranceDuration, { y: 28 }),
-    value: enter(time, 0.2, entranceDuration, { scale: 0.94 }),
-    meta: enter(time, 0.42, entranceDuration, { y: 22 }),
+    eyebrow: enter(time, 0.12, entranceDuration, { y: 18 }),
+    value: enter(time, 0.2, entranceDuration, { scale: 0.94, blur: 12 }),
+    meta: enter(time, 0.42, entranceDuration, { y: 18 }),
     pencilLine: {
       reveal: samplePencilEase(delayedProgress(time, 0.48, entranceDuration)),
     },

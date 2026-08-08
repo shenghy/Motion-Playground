@@ -49,7 +49,9 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
   ctx.translate(CONTENT_X + 320, 430)
   ctx.scale(state.value.scale, state.value.scale)
   ctx.translate(-(CONTENT_X + 320), -430)
-  ctx.filter = state.value.scale < 0.99 ? 'blur(4px)' : 'none'
+  ctx.filter = state.value.blur > 0.01
+    ? `blur(${state.value.blur}px)`
+    : 'none'
   drawText(ctx, {
     text: params.prefix,
     x: CONTENT_X,

@@ -2,7 +2,22 @@ import { describe, expect, it, vi } from 'vitest'
 import type { AudiencePollParams } from '../types'
 import { renderAudiencePollToCanvas } from './audiencePollRenderer'
 
-function createContext() {
+function realisticTextWidth(value: string, font: string) {
+  const fontSize = Number(font.match(/([\d.]+)px/)?.[1] ?? 16)
+  return Array.from(value).reduce((width, character) => {
+    if (/\s/u.test(character)) return width + fontSize * 0.25
+    if (/\p{Script=Han}/u.test(character)) return width + fontSize
+    if (/[A-Z]/u.test(character)) return width + fontSize * 0.64
+    if (/[a-z]/u.test(character)) return width + fontSize * 0.52
+    if (/\d/u.test(character)) return width + fontSize * 0.6
+    return width + fontSize * 0.33
+  }, 0)
+}
+
+function createContext(measureWidth = (text: string, font: string) => {
+  void font
+  return text.length * 18
+}) {
   const strokeAlphas: number[] = []
   const textDraws: Array<{
     text: string
@@ -19,7 +34,7 @@ function createContext() {
     fillText: vi.fn((text: string, x: number, y: number, maxWidth?: number) => {
       textDraws.push({ text, x, y, maxWidth, font: context.font })
     }), setLineDash: vi.fn(),
-    measureText: vi.fn((text: string) => ({ width: text.length * 18 })),
+    measureText: vi.fn((text: string) => ({ width: measureWidth(text, context.font) })),
     globalAlpha: 1, fillStyle: '#000', strokeStyle: '#000', lineWidth: 1,
     font: '10px sans-serif', textAlign: 'start', textBaseline: 'alphabetic', filter: 'none',
   }
@@ -54,14 +69,14 @@ describe('audience poll canvas renderer', () => {
     expect(texts.some((text) => String(text).includes('%'))).toBe(false)
   })
 
-  it('keeps panels, rules, option boxes, and text strictly left of the actual x 749 safe threshold', () => {
+  it('keeps all drawing strictly left of the 39% presenter safe threshold', () => {
     const { ctx } = createContext()
     renderAudiencePollToCanvas({ ctx, params, localTime: 3.4, resources: {
       width: 1920, height: 1080, displayFont: 'Syne Variable',
       monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
     } })
 
-    const safeX = 749
+    const safeX = 1920 * 0.39
     const linePoints = [...vi.mocked(ctx.moveTo).mock.calls, ...vi.mocked(ctx.lineTo).mock.calls]
     const rectRights = [...vi.mocked(ctx.fillRect).mock.calls, ...vi.mocked(ctx.strokeRect).mock.calls]
       .map(([x, , width]) => Number(x) + Number(width))
@@ -72,6 +87,8 @@ describe('audience poll canvas renderer', () => {
     expect(rectRights.every((right) => right < safeX)).toBe(true)
     expect(textRights.every((right) => right < safeX)).toBe(true)
     expect(ctx.fillRect).toHaveBeenCalledWith(122, 119, 610, 779)
+    expect(122 + 610).toBe(732)
+    expect(122 + 610).toBeLessThan(safeX)
     expect(ctx.lineTo).toHaveBeenCalledWith(702, expect.any(Number))
   })
 
@@ -132,9 +149,12 @@ describe('audience poll canvas renderer', () => {
     })
   })
 
-  it('wraps a maximum-length title to two fixed-size lines instead of shrinking one line', () => {
-    const { ctx, textDraws } = createContext()
-    const longTitle = 'How should product teams build reliable AI features for every customer'
+  it.each([
+    ['Chinese', '这是一个需要稳定换行展示的中文投票问题吗'],
+    ['mixed Chinese and English', 'AI产品如何稳定服务全球用户与开发团队呢'],
+  ])('wraps a real maxLength 20 %s title into two 33px lines', (_label, longTitle) => {
+    expect(Array.from(longTitle)).toHaveLength(20)
+    const { ctx, textDraws } = createContext(realisticTextWidth)
     renderAudiencePollToCanvas({ ctx, params: { ...params, title: longTitle }, localTime: 3.4, resources: {
       width: 1920, height: 1080, displayFont: 'Syne Variable',
       monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
@@ -143,6 +163,49 @@ describe('audience poll canvas renderer', () => {
     const titleLines = textDraws.filter(({ font }) => font === '600 33px Noto Sans SC Variable')
     expect(titleLines).toHaveLength(2)
     expect(titleLines.map(({ y }) => y)).toEqual([188, 229])
+    expect(titleLines[1].y - titleLines[0].y).toBe(41)
     expect(titleLines.every(({ maxWidth }) => maxWidth === 550)).toBe(true)
+    expect(titleLines.map(({ text }) => text).join('')).toBe(longTitle)
+    expect(titleLines[1].text).not.toMatch(/…$/u)
+  })
+
+  it('fits four 61px options below a two-line title with 12px gaps before the fixed CTA', () => {
+    const title = '这是一个需要稳定换行展示的中文投票问题吗'
+    const optionLabels = ['第一个选项', '第二个选项', '第三个选项', '第四个选项']
+    const caseParams = {
+      ...params,
+      title,
+      option1: optionLabels[0],
+      option2: optionLabels[1],
+      option3: optionLabels[2],
+      option4: optionLabels[3],
+    }
+    const { ctx, textDraws } = createContext(realisticTextWidth)
+    renderAudiencePollToCanvas({ ctx, params: caseParams, localTime: 3.4, resources: {
+      width: 1920, height: 1080, displayFont: 'Syne Variable',
+      monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
+    } })
+
+    const optionRects = vi.mocked(ctx.fillRect).mock.calls
+      .filter(([x]) => Number(x) === 152)
+      .map(([x, y, width, height]) => [x, y, width, height])
+    expect(optionRects).toEqual([
+      [152, 312, 550, 61],
+      [152, 385, 550, 61],
+      [152, 458, 550, 61],
+      [152, 531, 550, 61],
+    ])
+    for (let index = 1; index < optionRects.length; index += 1) {
+      const previousBottom = Number(optionRects[index - 1][1]) + 61
+      expect(Number(optionRects[index][1]) - previousBottom).toBe(12)
+    }
+
+    const numberDraws = textDraws.filter(({ text }) => /^0[1-4]$/.test(text))
+    const labelDraws = textDraws.filter(({ text }) => optionLabels.includes(text))
+    expect(numberDraws).toHaveLength(4)
+    expect(numberDraws.every(({ font }) => font === '600 17px IBM Plex Mono')).toBe(true)
+    expect(labelDraws).toHaveLength(4)
+    expect(labelDraws.every(({ font }) => font === '550 21px Noto Sans SC Variable')).toBe(true)
+    expect(Number(optionRects.at(-1)?.[1]) + 61).toBeLessThan(829)
   })
 })

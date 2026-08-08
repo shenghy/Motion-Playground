@@ -11,6 +11,9 @@
   --signal: #b7ccc8;
   --pencil-warm: #b99d89;
   --pencil-warm-soft: rgba(185, 157, 137, .14);
+  --motion-accent-blue: #2f67b2;
+  --motion-accent-blue-muted: rgba(47, 103, 178, .42);
+  --motion-accent-blue-faint: rgba(47, 103, 178, .16);
   --graphite-grid: rgba(236, 236, 231, .055);
   --display: 'Syne Variable', 'Noto Sans SC Variable', sans-serif;
   --mono: 'IBM Plex Mono', 'Noto Sans SC Variable', monospace;
@@ -3007,9 +3010,6 @@ a:focus-visible {
   --pencil-silver: #f1eee5;
   --pencil-mid: #aaa79f;
   --pencil-faint: rgba(241, 238, 229, .24);
-  --motion-accent-blue: #2f67b2;
-  --motion-accent-blue-muted: rgba(47, 103, 178, .42);
-  --motion-accent-blue-faint: rgba(47, 103, 178, .16);
   --motion-content-width: 60%;
 }
 

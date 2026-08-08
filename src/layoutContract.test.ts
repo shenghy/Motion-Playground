@@ -15,6 +15,7 @@ describe('workspace layout CSS contract', () => {
   })
 
   it('styles accessible tab states and readable panel hierarchy', () => {
+    expect(css).toMatch(/:root\s*\{[^}]*--motion-accent-blue:\s*#2f67b2/s)
     expect(css).toContain('.parameter-tabs')
     expect(css).toContain(".parameter-tab[aria-selected='true']")
     expect(css).toContain('.parameter-tabpanel')

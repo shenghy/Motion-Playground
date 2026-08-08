@@ -6,8 +6,26 @@ import {
   drawText,
 } from '../../export/canvas/primitives'
 import type { AudiencePollParams } from '../types'
-import { audiencePollLayout, wrapAudiencePollTitle } from './audiencePollLayout'
+import {
+  audiencePollLayout,
+  audiencePollTypography,
+  wrapAudiencePollTitle,
+} from './audiencePollLayout'
 import { getAudiencePollState } from './audiencePollState'
+
+function withLetterSpacing(
+  ctx: CanvasRenderingContext2D,
+  letterSpacing: string,
+  draw: () => void,
+) {
+  ctx.save()
+  try {
+    ctx.letterSpacing = letterSpacing
+    draw()
+  } finally {
+    ctx.restore()
+  }
+}
 
 export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams> = ({
   ctx,
@@ -33,40 +51,48 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
     color: 'rgba(241,238,229,.38)', width: 2,
     alpha: state.panelOpacity,
   })
-  drawText(ctx, {
-    text: params.eyebrow || '08 / LIVE POLL',
-    x: content.x,
-    y: eyebrow.y + state.header.y,
-    font: `600 ${eyebrow.fontSize}px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlue,
-    maxWidth: content.width,
-    alpha: state.header.opacity,
+  withLetterSpacing(ctx, audiencePollTypography.eyebrowLetterSpacing, () => {
+    drawText(ctx, {
+      text: params.eyebrow || '08 / LIVE POLL',
+      x: content.x,
+      y: eyebrow.y + state.header.y,
+      font: `${audiencePollTypography.eyebrowFontWeight} ${eyebrow.fontSize}px ${resources.monoFont}`,
+      color: CANVAS_COLORS.accentBlue,
+      maxWidth: content.width,
+      alpha: state.header.opacity,
+    })
   })
 
-  const titleFont = `600 ${title.fontSize}px ${resources.contentFont}`
+  const titleFont = `${audiencePollTypography.contentFontWeight} ${title.fontSize}px ${resources.contentFont}`
   const titleLines = wrapAudiencePollTitle(
     ctx,
     params.title || '请选择你的答案',
     titleFont,
   )
-  titleLines.forEach((line, index) => drawText(ctx, {
-    text: line,
-    x: content.x,
-    y: title.y + index * title.lineHeight + state.title.y,
-    font: titleFont,
-    color: CANVAS_COLORS.paper,
-    maxWidth: content.width,
-    alpha: state.title.opacity,
-  }))
+  withLetterSpacing(ctx, audiencePollTypography.titleLetterSpacing, () => {
+    titleLines.forEach((line, index) => drawText(ctx, {
+      text: line,
+      x: content.x,
+      y: title.y + index * title.lineHeight + state.title.y,
+      font: titleFont,
+      color: CANVAS_COLORS.paper,
+      maxWidth: content.width,
+      alpha: state.title.opacity,
+    }))
+  })
 
   const dividerY = title.y + titleLines.length * title.lineHeight + title.dividerGap
   drawPencilLine(ctx, {
     x1: content.x, y1: dividerY, x2: content.right, y2: dividerY,
-    color: CANVAS_COLORS.accentBlueMuted, width: 2, alpha: state.title.opacity,
+    color: CANVAS_COLORS.accentBlueMuted, width: 1, alpha: state.title.opacity,
+  })
+  drawPencilLine(ctx, {
+    x1: content.x, y1: dividerY + 2, x2: content.right, y2: dividerY + 2,
+    color: CANVAS_COLORS.accentBlueMuted, width: 1, alpha: state.title.opacity,
   })
 
   state.options.forEach((option, index) => {
-    const y = dividerY + options.dividerToFirst
+    const y = dividerY + title.borderWidth + options.dividerToFirst
       + index * (options.height + options.gap) + option.y
     drawPanel(ctx, {
       x: content.x, y, width: content.width, height: options.height,
@@ -75,23 +101,27 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
       lineWidth: option.current ? 3 : 1,
       alpha: option.opacity,
     })
-    drawText(ctx, {
-      text: String(index + 1).padStart(2, '0'),
-      x: content.x + options.numberXOffset,
-      y: y + 21,
-      font: `600 ${options.numberFontSize}px ${resources.monoFont}`,
-      color: option.current ? CANVAS_COLORS.accentBlue : CANVAS_COLORS.muted,
-      maxWidth: 34,
-      alpha: option.opacity,
+    withLetterSpacing(ctx, audiencePollTypography.numberLetterSpacing, () => {
+      drawText(ctx, {
+        text: String(index + 1).padStart(2, '0'),
+        x: content.x + options.numberXOffset,
+        y: y + 21,
+        font: `${audiencePollTypography.numberFontWeight} ${options.numberFontSize}px ${resources.monoFont}`,
+        color: option.current ? CANVAS_COLORS.accentBlue : CANVAS_COLORS.muted,
+        maxWidth: 34,
+        alpha: option.opacity,
+      })
     })
-    drawText(ctx, {
-      text: option.label,
-      x: content.x + options.labelXOffset,
-      y: y + 17,
-      font: `550 ${options.labelFontSize}px ${resources.contentFont}`,
-      color: CANVAS_COLORS.paper,
-      maxWidth: options.labelWidth,
-      alpha: option.opacity,
+    withLetterSpacing(ctx, audiencePollTypography.bodyLetterSpacing, () => {
+      drawText(ctx, {
+        text: option.label,
+        x: content.x + options.labelXOffset,
+        y: y + 17,
+        font: `${audiencePollTypography.contentFontWeight} ${options.labelFontSize}px ${resources.contentFont}`,
+        color: CANVAS_COLORS.paper,
+        maxWidth: options.labelWidth,
+        alpha: option.opacity,
+      })
     })
   })
 
@@ -105,14 +135,16 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
     ctx.translate(content.x, ctaTextY)
     ctx.scale(state.cta.scale, state.cta.scale)
     ctx.translate(-content.x, -ctaTextY)
-    drawText(ctx, {
-      text: params.callToAction || '把编号打在弹幕或评论区，告诉我你的选择',
-      x: content.x,
-      y: ctaTextY,
-      font: `450 ${cta.fontSize}px ${resources.contentFont}`,
-      color: '#b7bdc2',
-      maxWidth: content.width,
-      alpha: state.cta.opacity,
+    withLetterSpacing(ctx, audiencePollTypography.bodyLetterSpacing, () => {
+      drawText(ctx, {
+        text: params.callToAction || '把编号打在弹幕或评论区，告诉我你的选择',
+        x: content.x,
+        y: ctaTextY,
+        font: `${audiencePollTypography.contentFontWeight} ${cta.fontSize}px ${resources.contentFont}`,
+        color: '#b7bdc2',
+        maxWidth: content.width,
+        alpha: state.cta.opacity,
+      })
     })
   } finally {
     ctx.restore()

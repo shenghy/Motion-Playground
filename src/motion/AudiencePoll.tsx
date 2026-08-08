@@ -1,6 +1,10 @@
 import { motion, useReducedMotion, useTime, useTransform } from 'motion/react'
 import type { MotionValue } from 'motion/react'
 import { PencilTexture } from './PencilTexture'
+import {
+  audiencePollTypography,
+  splitAudiencePollTitle,
+} from './canvas/audiencePollLayout'
 import { getAudiencePollState } from './canvas/audiencePollState'
 import type { AudiencePollParams, MotionComponentProps } from './types'
 
@@ -48,6 +52,15 @@ export function AudiencePoll({
     : getAudiencePollState(params, playbackTime)
   const content = sampled ?? getAudiencePollState(params, 3.4)
   const visible = { opacity: 1, y: 0 }
+  const titleText = params.title || '请选择你的答案'
+  const titleLines = splitAudiencePollTitle(titleText)
+  const titleMotion = reduceMotion ? visible : sampled ? sampled.title : {
+    opacity: liveTitleOpacity, y: liveTitleY,
+  }
+  const contentTypography = {
+    fontWeight: audiencePollTypography.contentFontWeight,
+    letterSpacing: audiencePollTypography.bodyLetterSpacing,
+  }
 
   return (
     <div className="motion-canvas audience-poll" data-pencil-style="silver-on-black">
@@ -77,12 +90,18 @@ export function AudiencePoll({
           {params.eyebrow || '08 / LIVE POLL'}
         </motion.span>
         <motion.h2
+          aria-label={titleText}
           className="motion-content-text"
-          style={reduceMotion ? visible : sampled ? sampled.title : {
-            opacity: liveTitleOpacity, y: liveTitleY,
+          style={{
+            ...titleMotion,
+            fontWeight: audiencePollTypography.contentFontWeight,
+            letterSpacing: audiencePollTypography.titleLetterSpacing,
+            textWrap: audiencePollTypography.titleWrap,
           }}
         >
-          {params.title || '请选择你的答案'}
+          {titleLines.map((line, index) => (
+            <span data-poll-title-line key={`${index}-${line}`}>{line}</span>
+          ))}
         </motion.h2>
         <ol className="audience-poll__options">
           {content.options.map((option, index) => (
@@ -105,14 +124,19 @@ export function AudiencePoll({
               }}>
                 {String(index + 1).padStart(2, '0')}
               </motion.b>
-              <span className="motion-content-text">{option.label}</span>
+              <span className="motion-content-text" style={contentTypography}>
+                {option.label}
+              </span>
             </motion.li>
           ))}
         </ol>
         <motion.p
           className="audience-poll__cta motion-content-text"
-          style={reduceMotion ? { ...visible, scale: 1 } : sampled ? sampled.cta : {
-            opacity: liveCtaOpacity, y: liveCtaY, scale: liveCtaScale,
+          style={{
+            ...(reduceMotion ? { ...visible, scale: 1 } : sampled ? sampled.cta : {
+              opacity: liveCtaOpacity, y: liveCtaY, scale: liveCtaScale,
+            }),
+            ...contentTypography,
           }}
         >
           {params.callToAction || '把编号打在弹幕或评论区，告诉我你的选择'}

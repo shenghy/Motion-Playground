@@ -3794,8 +3794,14 @@ a:focus-visible {
   border-bottom: 3px double rgba(47,103,178,.5);
   color: var(--pencil-silver);
   font-size: 1.72cqw;
+  font-weight: 500 !important;
   line-height: 1.25;
   letter-spacing: .025em !important;
+  text-wrap: nowrap;
+}
+
+.audience-poll__card > h2.motion-content-text > [data-poll-title-line] {
+  display: block;
 }
 
 .audience-poll__options {
@@ -3826,7 +3832,9 @@ a:focus-visible {
 .audience-poll__option .motion-content-text {
   color: var(--pencil-silver);
   font-size: 1.08cqw;
+  font-weight: 500 !important;
   line-height: 1.2;
+  letter-spacing: .035em !important;
 }
 
 .audience-poll__option[data-current='true'] {
@@ -3845,7 +3853,9 @@ a:focus-visible {
   border-top: 1px solid rgba(241,238,229,.28);
   color: #b7bdc2;
   font-size: .82cqw;
+  font-weight: 500 !important;
   line-height: 1.55;
+  letter-spacing: .035em !important;
   transform-origin: left center;
 }
 

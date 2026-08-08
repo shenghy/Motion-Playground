@@ -25,6 +25,7 @@ function createContext(measureWidth = (text: string, font: string) => {
     y: number
     maxWidth: number | undefined
     font: string
+    letterSpacing: string
   }> = []
   const context = {
     save: vi.fn(), restore: vi.fn(), translate: vi.fn(), scale: vi.fn(),
@@ -32,11 +33,14 @@ function createContext(measureWidth = (text: string, font: string) => {
     lineTo: vi.fn(), stroke: vi.fn(() => strokeAlphas.push(context.globalAlpha)),
     fillRect: vi.fn(), strokeRect: vi.fn(),
     fillText: vi.fn((text: string, x: number, y: number, maxWidth?: number) => {
-      textDraws.push({ text, x, y, maxWidth, font: context.font })
+      textDraws.push({
+        text, x, y, maxWidth, font: context.font, letterSpacing: context.letterSpacing,
+      })
     }), setLineDash: vi.fn(),
     measureText: vi.fn((text: string) => ({ width: measureWidth(text, context.font) })),
     globalAlpha: 1, fillStyle: '#000', strokeStyle: '#000', lineWidth: 1,
-    font: '10px sans-serif', textAlign: 'start', textBaseline: 'alphabetic', filter: 'none',
+    font: '10px sans-serif', letterSpacing: '0px',
+    textAlign: 'start', textBaseline: 'alphabetic', filter: 'none',
   }
   return {
     ctx: context as unknown as CanvasRenderingContext2D,
@@ -127,7 +131,10 @@ describe('audience poll canvas renderer', () => {
       x: 152, y: 152, maxWidth: 550, font: '600 15px IBM Plex Mono',
     })
     expect(textDraws.find(({ text }) => text === params.option1)).toMatchObject({
-      x: 223, maxWidth: 466, font: '550 21px Noto Sans SC Variable',
+      x: 223,
+      maxWidth: 466,
+      font: '500 21px Noto Sans SC Variable',
+      letterSpacing: '0.035em',
     })
   })
 
@@ -145,7 +152,11 @@ describe('audience poll canvas renderer', () => {
     expect(ctx.moveTo).toHaveBeenCalledWith(152, 829)
     expect(ctx.lineTo).toHaveBeenCalledWith(702, 829)
     expect(textDraws.find(({ text }) => text === params.callToAction)).toMatchObject({
-      x: 152, y: 849, maxWidth: 550, font: '450 16px Noto Sans SC Variable',
+      x: 152,
+      y: 849,
+      maxWidth: 550,
+      font: '500 16px Noto Sans SC Variable',
+      letterSpacing: '0.035em',
     })
   })
 
@@ -160,11 +171,13 @@ describe('audience poll canvas renderer', () => {
       monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
     } })
 
-    const titleLines = textDraws.filter(({ font }) => font === '600 33px Noto Sans SC Variable')
+    const titleLines = textDraws.filter(({ font }) => font === '500 33px Noto Sans SC Variable')
     expect(titleLines).toHaveLength(2)
     expect(titleLines.map(({ y }) => y)).toEqual([188, 229])
     expect(titleLines[1].y - titleLines[0].y).toBe(41)
+    expect(titleLines.map(({ text }) => Array.from(text).length)).toEqual([10, 10])
     expect(titleLines.every(({ maxWidth }) => maxWidth === 550)).toBe(true)
+    expect(titleLines.every(({ letterSpacing }) => letterSpacing === '0.025em')).toBe(true)
     expect(titleLines.map(({ text }) => text).join('')).toBe(longTitle)
     expect(titleLines[1].text).not.toMatch(/…$/u)
   })
@@ -190,10 +203,10 @@ describe('audience poll canvas renderer', () => {
       .filter(([x]) => Number(x) === 152)
       .map(([x, y, width, height]) => [x, y, width, height])
     expect(optionRects).toEqual([
-      [152, 312, 550, 61],
-      [152, 385, 550, 61],
-      [152, 458, 550, 61],
-      [152, 531, 550, 61],
+      [152, 315, 550, 61],
+      [152, 388, 550, 61],
+      [152, 461, 550, 61],
+      [152, 534, 550, 61],
     ])
     for (let index = 1; index < optionRects.length; index += 1) {
       const previousBottom = Number(optionRects[index - 1][1]) + 61
@@ -204,8 +217,12 @@ describe('audience poll canvas renderer', () => {
     const labelDraws = textDraws.filter(({ text }) => optionLabels.includes(text))
     expect(numberDraws).toHaveLength(4)
     expect(numberDraws.every(({ font }) => font === '600 17px IBM Plex Mono')).toBe(true)
+    expect(numberDraws.every(({ letterSpacing }) => letterSpacing === '0.08em')).toBe(true)
     expect(labelDraws).toHaveLength(4)
-    expect(labelDraws.every(({ font }) => font === '550 21px Noto Sans SC Variable')).toBe(true)
+    expect(labelDraws.every(({ font }) => font === '500 21px Noto Sans SC Variable')).toBe(true)
+    expect(labelDraws.every(({ letterSpacing }) => letterSpacing === '0.035em')).toBe(true)
     expect(Number(optionRects.at(-1)?.[1]) + 61).toBeLessThan(829)
+    expect(ctx.lineTo).toHaveBeenCalledWith(702, 290)
+    expect(ctx.lineTo).toHaveBeenCalledWith(702, 292)
   })
 })

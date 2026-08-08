@@ -5,6 +5,7 @@ import { getMotionDefinition } from '../registry'
 import {
   AUDIENCE_POLL_CSS_SOURCE,
   audiencePollLayout,
+  audiencePollTypography,
   wrapAudiencePollTitle,
 } from './audiencePollLayout'
 
@@ -89,6 +90,10 @@ describe('audience poll preview/export layout contract', () => {
       titleLineHeight: Number(property(titleRule, 'line-height')),
       titlePaddingBottomCqw: numberWithUnit(property(titleRule, 'padding-bottom'), 'cqw'),
       titleMarginBottomCqw: requiredAt(titleMargin, 1, 'title margin bottom'),
+      titleBorderBottomPx: numberWithUnit(
+        property(titleRule, 'border-bottom'),
+        'px',
+      ),
       optionHeightCqw: numberWithUnit(property(optionRule, 'min-height'), 'cqw'),
       optionGapCqw: numberWithUnit(property(optionsRule, 'gap'), 'cqw'),
       optionPaddingInlineCqw: Number.parseFloat(
@@ -154,6 +159,7 @@ describe('audience poll preview/export layout contract', () => {
       lineHeight: Math.round(
         parsedCssSource.titleFontCqw * parsedCssSource.titleLineHeight * cqw,
       ),
+      borderWidth: parsedCssSource.titleBorderBottomPx,
     })
     expect(audiencePollLayout.options).toMatchObject({
       height: Math.round(parsedCssSource.optionHeightCqw * cqw),
@@ -165,6 +171,39 @@ describe('audience poll preview/export layout contract', () => {
       separatorY: ctaSeparatorY,
       fontSize: Math.round(parsedCssSource.ctaFontCqw * cqw),
     })
+  })
+
+  it('matches the shared typography and deterministic wrap contract to real CSS', () => {
+    const eyebrowRule = getRule('.audience-poll__eyebrow')
+    const titleRule = getRule('.audience-poll__card > h2.motion-content-text')
+    const optionRule = getRule('.audience-poll__option .motion-content-text')
+    const numberRule = getRule('.audience-poll__option b')
+    const ctaRule = getRule('.audience-poll__cta.motion-content-text')
+    const fontWeight = (rule: string) => Number(
+      property(rule, 'font-weight').match(/\d+/)?.[0],
+    )
+    const shorthandWeight = (rule: string) => Number(
+      property(rule, 'font').match(/^\s*(\d+)/)?.[1],
+    )
+    const em = (rule: string) => `${numberWithUnit(
+      property(rule, 'letter-spacing'),
+      'em',
+    )}em`
+
+    expect({
+      contentFontWeight: fontWeight(titleRule),
+      titleLetterSpacing: em(titleRule),
+      bodyLetterSpacing: em(optionRule),
+      numberFontWeight: shorthandWeight(numberRule),
+      numberLetterSpacing: em(numberRule),
+      eyebrowFontWeight: shorthandWeight(eyebrowRule),
+      eyebrowLetterSpacing: em(eyebrowRule),
+      titleWrap: property(titleRule, 'text-wrap'),
+    }).toEqual(audiencePollTypography)
+    expect(fontWeight(optionRule)).toBe(audiencePollTypography.contentFontWeight)
+    expect(fontWeight(ctaRule)).toBe(audiencePollTypography.contentFontWeight)
+    expect(em(ctaRule)).toBe(audiencePollTypography.bodyLetterSpacing)
+    expect(property(titleRule, 'border-bottom')).toMatch(/^3px\s+double\b/)
   })
 
   it.each([
@@ -201,5 +240,28 @@ describe('audience poll preview/export layout contract', () => {
     expect(lines).toHaveLength(2)
     expect(lines[1]).toMatch(/…$/u)
     expect(lines.every((line) => ctx.measureText(line).width <= 550)).toBe(true)
+  })
+
+  it('never splits emoji grapheme clusters while wrapping or truncating', () => {
+    const family = '👨‍👩‍👧‍👦'
+    const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'grapheme' })
+    const graphemes = (value: string) => Array.from(
+      segmenter.segment(value),
+      ({ segment }) => segment,
+    )
+    const text = family.repeat(6)
+    const ctx = {
+      font: '',
+      measureText: vi.fn((value: string) => ({ width: value.length * 25 })),
+    } as unknown as CanvasRenderingContext2D
+
+    const lines = wrapAudiencePollTitle(ctx, text, '500 33px Noto Sans SC Variable')
+
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toBe(family.repeat(2))
+    expect(lines[1]).toBe(`${family}…`)
+    expect(graphemes(lines.join('')).every((grapheme) => (
+      grapheme === family || grapheme === '…'
+    ))).toBe(true)
   })
 })

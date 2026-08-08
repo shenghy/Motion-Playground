@@ -53,7 +53,7 @@ describe('AudiencePoll', () => {
     const primary = screen.getByTestId('audience-poll-primary')
     expect(primary).toHaveAttribute('data-zone', 'left-primary')
     expect(within(primary).getByText('08 / LIVE POLL')).toBeInTheDocument()
-    expect(within(primary).getByText('你更看好哪种开发方式？')).toBeInTheDocument()
+    expect(within(primary).getByRole('heading', { name: params.title })).toBeInTheDocument()
     expect(within(primary).getAllByRole('listitem')).toHaveLength(3)
     expect(within(primary).getByText('01')).toBeInTheDocument()
     expect(within(primary).getByText('传统手写代码').closest('li'))
@@ -65,5 +65,28 @@ describe('AudiencePoll', () => {
     render(<AudiencePoll params={params} playbackTime={6.2} />)
 
     expect(screen.getByTestId('audience-poll-panel')).toHaveStyle({ opacity: 1 })
+  })
+
+  it('renders the shared deterministic title lines and typography contract', () => {
+    const title = '这是一个需要稳定换行展示的中文投票问题吗'
+    const { container } = render(
+      <AudiencePoll params={{ ...params, title }} playbackTime={2} />,
+    )
+    const heading = container.querySelector('.audience-poll__card > h2')
+    const lines = heading?.querySelectorAll('[data-poll-title-line]') ?? []
+
+    expect(Array.from(lines, (line) => line.textContent)).toEqual([
+      '这是一个需要稳定换行',
+      '展示的中文投票问题吗',
+    ])
+    expect(heading).toHaveStyle({
+      fontWeight: '500',
+      letterSpacing: '0.025em',
+      textWrap: 'nowrap',
+    })
+    expect(container.querySelector('.audience-poll__option .motion-content-text'))
+      .toHaveStyle({ fontWeight: '500', letterSpacing: '0.035em' })
+    expect(container.querySelector('.audience-poll__cta'))
+      .toHaveStyle({ fontWeight: '500', letterSpacing: '0.035em' })
   })
 })

@@ -19,7 +19,16 @@ const defaultsByMotion: Record<MotionId, ParameterValues> = {
   'bar-compare': {},
   'share-ring': {},
   'step-flow': {},
-  'audience-poll': {},
+  'audience-poll': {
+    eyebrow: '08 / LIVE POLL',
+    title: '你更看好哪种开发方式？',
+    option1: 'AI 辅助开发',
+    option2: '传统手写代码',
+    option3: '两者结合',
+    option4: '',
+    callToAction: '把编号打在弹幕或评论区，告诉我你的选择',
+    duration: 6.2,
+  },
 }
 
 function makeCard(overrides: Partial<OverlayCard> = {}): OverlayCard {
@@ -232,6 +241,38 @@ describe('parseOverlayProject', () => {
     })
 
     expect(parseOverlayProject(text, defaultsByMotion).cards[0]).toEqual(card)
+  })
+
+  it('round-trips every audience poll option, including an empty fourth option', () => {
+    const pollParams = {
+      eyebrow: 'LIVE POLL',
+      title: 'Which path should we take?',
+      option1: 'Ship now',
+      option2: 'Polish first',
+      option3: 'Run an experiment',
+      option4: '',
+      callToAction: 'Reply with a number',
+      duration: 7.4,
+    }
+    const text = JSON.stringify({
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      cards: [
+        {
+          id: 'poll-round-trip',
+          motionId: 'audience-poll',
+          start: 1,
+          end: 8.4,
+          position: { x: 14, y: 9 },
+          zIndex: 3,
+          params: pollParams,
+        },
+      ],
+    })
+
+    expect(parseOverlayProject(text, defaultsByMotion).cards[0].params).toEqual(
+      pollParams,
+    )
   })
 
   it('accepts a decimal minimum-duration range from 0.1 to 0.3', () => {

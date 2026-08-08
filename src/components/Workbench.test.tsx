@@ -254,6 +254,72 @@ describe('Workbench', () => {
     )
   })
 
+  it('hydrates a seven-motion legacy workspace and autosaves current poll defaults', async () => {
+    const legacyMotionIds = [
+      'narrative',
+      'metric-focus',
+      'compare-split',
+      'profile-reveal',
+      'bar-compare',
+      'share-ring',
+      'step-flow',
+    ] as const
+    const legacyParameters = Object.fromEntries(
+      legacyMotionIds.map((motionId) => [
+        motionId,
+        {
+          ...persistedParameters[motionId],
+          ...(motionId === 'compare-split'
+            ? { title: 'Legacy comparison title' }
+            : {}),
+        },
+      ]),
+    ) as unknown as PersistedWorkspaceV1['parametersByMotion']
+    const workspace = persistedWorkspace({
+      project: {
+        version: 1,
+        canvas: { width: 1920, height: 1080 },
+        cards: [
+          {
+            id: 'legacy-card',
+            motionId: 'metric-focus',
+            start: 0,
+            end: 3,
+            position: { x: 7, y: 11 },
+            zIndex: 0,
+            params: {
+              ...persistedParameters['metric-focus'],
+              eyebrow: 'Legacy metric card',
+              value: 321,
+            },
+          },
+        ],
+      },
+      parametersByMotion: legacyParameters,
+      activeId: 'compare-split',
+    })
+    const { storage, getState } = createStorageDouble({ workspace, video: null })
+    const { container } = render(<Workbench storage={storage} />)
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('.timeline-editor__card')).toHaveLength(1)
+    })
+    expect(screen.getByText('Legacy metric card', { exact: false })).toBeInTheDocument()
+
+    fireEvent.click(container.querySelector('[role="switch"]') as HTMLElement)
+
+    await waitFor(
+      () => expect(storage.saveWorkspace).toHaveBeenCalled(),
+      { timeout: 1500 },
+    )
+    expect(getState().workspace?.parametersByMotion['compare-split']).toMatchObject({
+      title: 'Legacy comparison title',
+    })
+    expect(getState().workspace?.parametersByMotion['audience-poll']).toEqual(
+      persistedParameters['audience-poll'],
+    )
+  })
+
   it('reports invalid or unreadable persisted workspaces without restoring cards', async () => {
     const invalidStorage = createStorageDouble({
       workspace: {

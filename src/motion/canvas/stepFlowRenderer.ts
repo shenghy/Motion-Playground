@@ -5,24 +5,63 @@ import { getStepFlowState } from './stepFlowState'
 
 export const renderStepFlowToCanvas: CanvasMotionRenderer<StepFlowParams> = ({ ctx, params, localTime, resources }) => {
   const state = getStepFlowState(params, localTime)
-  const panel = { x: 78, y: 150, width: 616, height: 726 }
+  const panel = { x: 122, y: 110, width: 1008, height: 760 }
   drawPanel(ctx, { ...panel, fill: 'rgba(5,6,6,.66)', stroke: null })
-  drawText(ctx, { text: params.eyebrow || '06 / 流程图', x: 122, y: 210, font: `500 13px ${resources.monoFont}`, color: '#8c9196', maxWidth: 470, alpha: state.headerOpacity })
-  drawText(ctx, { text: params.title || '未命名流程', x: 122, y: 245, font: `600 39px ${resources.contentFont}`, color: CANVAS_COLORS.paper, maxWidth: 470, alpha: state.headerOpacity })
-  drawPencilLine(ctx, { x1: 122, y1: 302, x2: 608, y2: 302, color: 'rgba(241,238,229,.36)', width: 2, alpha: state.headerOpacity })
-  ctx.save()
-  ctx.globalAlpha = state.connectorReveal
-  ctx.strokeStyle = '#666b70'; ctx.lineWidth = 2; ctx.setLineDash([9, 7])
-  ctx.beginPath(); ctx.moveTo(187, 360); ctx.bezierCurveTo(130, 480, 250, 610, 185, 806); ctx.stroke(); ctx.restore()
-  const gap = 400 / Math.max(1, state.items.length - 1)
+  drawText(ctx, { text: params.eyebrow || '07 / 流程图', x: 156, y: 162, font: `500 15px ${resources.monoFont}`, color: CANVAS_COLORS.accentBlue, maxWidth: 820, alpha: state.headerOpacity })
+  drawText(ctx, { text: params.title || '未命名流程', x: 156, y: 198, font: `600 44px ${resources.contentFont}`, color: CANVAS_COLORS.paper, maxWidth: 820, alpha: state.headerOpacity })
+  drawPencilLine(ctx, { x1: 156, y1: 265, x2: 1040, y2: 265, color: 'rgba(241,238,229,.36)', width: 2, alpha: state.headerOpacity })
+
+  const firstY = 330
+  const lastY = 820
+  const x = 166
+  const gap = (lastY - firstY) / Math.max(1, state.items.length - 1)
+  drawPencilLine(ctx, {
+    x1: x,
+    y1: firstY,
+    x2: x,
+    y2: lastY,
+    color: '#4d555e',
+    width: 2,
+    dash: [9, 7],
+    alpha: state.connectorReveal,
+  })
+
   state.items.forEach((item, index) => {
-    const x = 186 + (index % 2 === 0 ? 0 : 58)
-    const y = 365 + index * gap
-    const radius = 27 * item.scale
-    ctx.save(); ctx.globalAlpha = item.opacity; ctx.strokeStyle = item.active > 0.5 ? CANVAS_COLORS.accentBlue : '#666b70'; ctx.lineWidth = item.active > 0.5 ? 4 : 2
-    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke(); ctx.restore()
-    drawText(ctx, { text: String(index + 1).padStart(2, '0'), x, y: y - 11, font: `500 15px ${resources.monoFont}`, color: item.active > 0.5 ? CANVAS_COLORS.accentBlue : '#72777b', maxWidth: 42, align: 'center', alpha: item.opacity })
-    drawText(ctx, { text: item.label, x: x + 68, y: y - 16, font: `500 27px ${resources.contentFont}`, color: item.active > 0.5 ? CANVAS_COLORS.paper : '#7e8386', maxWidth: 310, alpha: item.opacity })
-    drawPencilLine(ctx, { x1: x + 67, y1: y + 24, x2: x + 360, y2: y + 24, color: item.active > 0.5 ? '#adb0ae' : '#424649', width: item.active > 0.5 ? 2 : 1, alpha: item.opacity })
+    const y = firstY + index * gap
+    const active = item.active > 0.5
+    const progressed = active || item.completed
+    const boxSize = 48 * item.scale
+    const boxLeft = x - boxSize / 2
+    const boxTop = y - boxSize / 2
+    const accent = active
+      ? CANVAS_COLORS.accentBlue
+      : item.completed
+        ? CANVAS_COLORS.accentBlueMuted
+        : '#666b70'
+
+    if (index < state.items.length - 1 && progressed) {
+      drawPencilLine(ctx, {
+        x1: x,
+        y1: y,
+        x2: x,
+        y2: y + gap,
+        color: CANVAS_COLORS.accentBlueMuted,
+        width: 3,
+        alpha: item.opacity,
+      })
+    }
+
+    ctx.save()
+    ctx.globalAlpha = item.opacity
+    ctx.fillStyle = '#0c0d0f'
+    ctx.strokeStyle = accent
+    ctx.lineWidth = active ? 4 : 2
+    ctx.fillRect(boxLeft, boxTop, boxSize, boxSize)
+    ctx.strokeRect(boxLeft, boxTop, boxSize, boxSize)
+    ctx.restore()
+
+    drawText(ctx, { text: String(index + 1).padStart(2, '0'), x, y: y - 10, font: `500 15px ${resources.monoFont}`, color: accent, maxWidth: 42, align: 'center', alpha: item.opacity })
+    drawText(ctx, { text: item.label, x: 220, y: y - 16, font: `560 28px ${resources.contentFont}`, color: active ? CANVAS_COLORS.paper : item.completed ? '#7996b8' : '#7e8386', maxWidth: 720, alpha: item.opacity })
+    drawPencilLine(ctx, { x1: 220, y1: y + 24, x2: 1040, y2: y + 24, color: progressed ? CANVAS_COLORS.accentBlueMuted : '#424649', width: active ? 2 : 1, alpha: item.opacity })
   })
 }

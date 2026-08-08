@@ -35,7 +35,16 @@ export function getStepFlowState(params: StepFlowParams, localTime: number) {
       ? 1
       : 1 - samplePencilEase(delayedProgress(time, end - 0.18, 0.18))
     const active = Math.max(0, Math.min(entering, leaving))
-    return { label, index, order, active, opacity: 0.34 + active * 0.66, scale: 1 + active * 0.3 }
+    const completed = time >= end
+    return {
+      label,
+      index,
+      order,
+      active,
+      completed,
+      opacity: active > 0 ? 0.4 + active * 0.6 : completed ? 0.68 : 0.4,
+      scale: 1 + active * 0.1,
+    }
   })
   return { cycle, time, steps, focusIndex, orderedIndexes, headerOpacity, connectorReveal, items }
 }

@@ -23,6 +23,13 @@ describe('getStepFlowState', () => {
     expect(state.orderedIndexes).toEqual([5, 6, 0, 1, 2, 3, 4])
   })
 
+  it('retains a completed state after the focus moves forward', () => {
+    const state = getStepFlowState(params, 1.65)
+
+    expect(state.items[2]).toMatchObject({ completed: true })
+    expect(state.items[3]).toMatchObject({ completed: false })
+  })
+
   it('cycles in focus-step order', () => {
     const state = getStepFlowState({ ...params, step6: '', step7: '' }, 0)
     expect(state.orderedIndexes).toEqual([2, 3, 4, 0, 1])

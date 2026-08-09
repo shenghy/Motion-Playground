@@ -366,3 +366,7 @@ export const motionRegistry: RegisteredMotion[] = [
 export function getMotionDefinition(id: MotionId) {
   return motionRegistry.find((motion) => motion.id === id) ?? motionRegistry[0]
 }
+
+export function resolveMotionRenderer(id: MotionId) {
+  return getMotionDefinition(id).canvasRenderer
+}

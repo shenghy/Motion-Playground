@@ -92,6 +92,10 @@ describe('AudiencePoll', () => {
 
   it.each([
     ['wide Latin', 'WWWWWWWWWWWWWWWWWWWW', ['WWWWWWWWWW', 'WWWWWWWWWW']],
+    ['lowercase m', 'mmmmmmmmmmmmmmmmmmmm', ['mmmmmmmmmm', 'mmmmmmmmmm']],
+    ['lowercase w', 'wwwwwwwwwwwwwwwwwwww', ['wwwwwwwwww', 'wwwwwwwwww']],
+    ['at sign', '@@@@@@@@@@@@@@@@@@@@', ['@@@@@@@@@@', '@@@@@@@@@@']],
+    ['percent sign', '%%%%%%%%%%%%%%%%%%%%', ['%%%%%%%%%%', '%%%%%%%%%%']],
     ['over-limit ZWJ', '👨‍👩‍👧‍👦'.repeat(6), ['👨‍👩‍👧‍👦…']],
   ])('renders canonical %s title lines', (_label, title, expectedLines) => {
     const { container } = render(

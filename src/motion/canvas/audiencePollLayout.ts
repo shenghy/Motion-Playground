@@ -199,14 +199,14 @@ function graphemes(text: string) {
 }
 
 function titleDisplayUnits(segment: string) {
-  if (/\s/u.test(segment)) return 0.25
-  if (/^[WM]+$/u.test(segment)) return 1
-  if (/^[A-Z]+$/u.test(segment)) return 0.65
-  if (/^[a-z]+$/u.test(segment)) return 0.55
-  if (/^\d+$/u.test(segment)) return 0.6
+  if (/\s/u.test(segment)) return 0.3
+  if (/^[WMm@%]+$/u.test(segment)) return 1
+  if (/^w+$/u.test(segment)) return 0.9
+  if (/^[ilIjtfr.,:;!'"|`]+$/u.test(segment)) return 0.4
+  if (/^[A-Za-z0-9]+$/u.test(segment)) return 0.68
   if (Array.from(segment).every((character) => (
     (character.codePointAt(0) ?? 0) <= 0x7f
-  ))) return 0.35
+  ))) return 1
   return 1
 }
 
@@ -261,14 +261,4 @@ export function splitAudiencePollTitle(text: string) {
     segments.slice(0, splitIndex).join('').trimEnd(),
     segments.slice(splitIndex).join('').trimStart(),
   ]
-}
-
-export function wrapAudiencePollTitle(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  font: string,
-) {
-  ctx.font = font
-  ctx.letterSpacing = audiencePollTypography.titleLetterSpacing
-  return splitAudiencePollTitle(text)
 }

@@ -228,6 +228,10 @@ describe('audience poll canvas renderer', () => {
 
   it.each([
     ['wide Latin', 'WWWWWWWWWWWWWWWWWWWW', ['WWWWWWWWWW', 'WWWWWWWWWW']],
+    ['lowercase m', 'mmmmmmmmmmmmmmmmmmmm', ['mmmmmmmmmm', 'mmmmmmmmmm']],
+    ['lowercase w', 'wwwwwwwwwwwwwwwwwwww', ['wwwwwwwwww', 'wwwwwwwwww']],
+    ['at sign', '@@@@@@@@@@@@@@@@@@@@', ['@@@@@@@@@@', '@@@@@@@@@@']],
+    ['percent sign', '%%%%%%%%%%%%%%%%%%%%', ['%%%%%%%%%%', '%%%%%%%%%%']],
     ['over-limit ZWJ', '👨‍👩‍👧‍👦'.repeat(6), ['👨‍👩‍👧‍👦…']],
   ])('uses the canonical %s title lines without Canvas-only reflow', (
     _label,

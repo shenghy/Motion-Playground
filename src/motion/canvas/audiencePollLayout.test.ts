@@ -6,7 +6,7 @@ import {
   AUDIENCE_POLL_CSS_SOURCE,
   audiencePollLayout,
   audiencePollTypography,
-  wrapAudiencePollTitle,
+  splitAudiencePollTitle,
 } from './audiencePollLayout'
 
 const css = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
@@ -43,17 +43,6 @@ function requiredAt(values: number[] | undefined, index: number, label: string) 
   const value = values?.[index]
   if (!Number.isFinite(value)) throw new Error(`Missing CSS token: ${label}`)
   return value as number
-}
-
-function realisticTextWidth(value: string) {
-  return Array.from(value).reduce((width, character) => {
-    if (/\s/u.test(character)) return width + 8
-    if (/\p{Script=Han}/u.test(character)) return width + 33
-    if (/[A-Z]/u.test(character)) return width + 21
-    if (/[a-z]/u.test(character)) return width + 17
-    if (/\d/u.test(character)) return width + 18
-    return width + 11
-  }, 0)
 }
 
 describe('audience poll preview/export layout contract', () => {
@@ -230,32 +219,30 @@ describe('audience poll preview/export layout contract', () => {
       .find((control) => control.key === 'title')
     expect(titleControl).toMatchObject({ type: 'text', maxLength: 20 })
     expect(Array.from(text)).toHaveLength(20)
-    const ctx = {
-      font: '',
-      measureText: vi.fn((value: string) => ({ width: realisticTextWidth(value) })),
-    } as unknown as CanvasRenderingContext2D
-
-    const lines = wrapAudiencePollTitle(ctx, text, '600 33px Noto Sans SC Variable')
+    const lines = splitAudiencePollTitle(text)
 
     expect(lines).toHaveLength(2)
     expect(lines.join('')).toBe(text)
-    expect(lines.every((line) => ctx.measureText(line).width <= 550)).toBe(true)
     expect(lines[1]).not.toMatch(/…$/u)
-    expect(ctx.font).toBe('600 33px Noto Sans SC Variable')
+  })
+
+  it('prefers word boundaries and treats unknown ASCII conservatively', () => {
+    expect(splitAudiencePollTitle('WWWWW WWWWW WWWWW WW')).toEqual([
+      'WWWWW WWWWW',
+      'WWWWW WW',
+    ])
+    expect(splitAudiencePollTitle('^^^^^^^^^^^^^^^^^^^^')).toEqual([
+      '^^^^^^^^^^',
+      '^^^^^^^^^^',
+    ])
   })
 
   it('terminates over-limit content at two lines with an ellipsis', () => {
     const text = '这是一个明显超过参数上限并且需要确定终止行为的超长中文投票标题内容用于验证省略号'
-    const ctx = {
-      font: '',
-      measureText: vi.fn((value: string) => ({ width: realisticTextWidth(value) })),
-    } as unknown as CanvasRenderingContext2D
-
-    const lines = wrapAudiencePollTitle(ctx, text, '600 33px Noto Sans SC Variable')
+    const lines = splitAudiencePollTitle(text)
 
     expect(lines).toHaveLength(2)
     expect(lines[1]).toMatch(/…$/u)
-    expect(lines.every((line) => ctx.measureText(line).width <= 550)).toBe(true)
   })
 
   it('never splits emoji grapheme clusters while wrapping or truncating', () => {
@@ -266,12 +253,7 @@ describe('audience poll preview/export layout contract', () => {
       ({ segment }) => segment,
     )
     const text = family.repeat(6)
-    const ctx = {
-      font: '',
-      measureText: vi.fn((value: string) => ({ width: value.length * 25 })),
-    } as unknown as CanvasRenderingContext2D
-
-    const lines = wrapAudiencePollTitle(ctx, text, '500 33px Noto Sans SC Variable')
+    const lines = splitAudiencePollTitle(text)
 
     expect(lines).toEqual([`${family}…`])
     expect(graphemes(lines.join('')).every((grapheme) => (
@@ -294,6 +276,15 @@ describe('audience poll preview/export layout contract', () => {
       )).toEqual(['这是一个需要稳定换行', '展示的中文投票问题吗'])
       expect(fallbackModule.splitAudiencePollTitle('👨‍👩‍👧‍👦'.repeat(6)))
         .toEqual(['👨‍👩‍👧‍👦…'])
+      for (const grapheme of [
+        'a\u0301',
+        '✈️',
+        '👍🏽',
+        '🇨🇳',
+        '👨‍👩‍👧‍👦',
+      ]) {
+        expect(fallbackModule.splitAudiencePollTitle(grapheme)).toEqual([grapheme])
+      }
     } finally {
       if (segmenterDescriptor) {
         Object.defineProperty(Intl, 'Segmenter', segmenterDescriptor)

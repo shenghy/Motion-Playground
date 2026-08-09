@@ -1,6 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws'
 import {
   decodeOrderedRawFrame,
+  decodeOrderedRoiFrame,
   decodeOrderedZeroRleFrame,
   decodeRawFrame,
 } from './raw-frame-protocol.mjs'
@@ -59,7 +60,26 @@ export function createExportWebSocket({ manager, origin }) {
       processing = processing.then(async () => {
         if (completed) throw new Error('透明导出任务已经完成')
         if (isBinary) {
-          const decoded = jobInfo.transport === 'raw-rgba-rle-ordered'
+          const roiFrame = jobInfo.transport === 'raw-rgba-roi-ordered'
+            ? (data.subarray(0, 4).toString('ascii') === 'ROI4'
+                ? decodeOrderedRoiFrame(data, jobInfo.width, jobInfo.height)
+                : {
+                    rect: {
+                      x: 0,
+                      y: 0,
+                      width: jobInfo.width,
+                      height: jobInfo.height,
+                    },
+                    pixels: decodeOrderedZeroRleFrame(
+                      data,
+                      jobInfo.width,
+                      jobInfo.height,
+                    ),
+                  })
+            : null
+          const decoded = roiFrame
+            ? { frameIndex: expectedFrame, pixels: null }
+            : jobInfo.transport === 'raw-rgba-rle-ordered'
             ? {
                 frameIndex: expectedFrame,
                 pixels: decodeOrderedZeroRleFrame(
@@ -82,7 +102,8 @@ export function createExportWebSocket({ manager, origin }) {
           if (frameIndex !== expectedFrame) {
             throw new Error('透明导出帧序号不连续')
           }
-          await manager.appendRawFrame(jobId, frameIndex, pixels)
+          if (roiFrame) await manager.appendRoiFrame(jobId, frameIndex, roiFrame)
+          else await manager.appendRawFrame(jobId, frameIndex, pixels)
           expectedFrame += 1
           socket.send(JSON.stringify({
             type: 'frame-accepted',
@@ -137,6 +158,7 @@ export function createExportWebSocket({ manager, origin }) {
             jobInfo.transport !== 'raw-rgba'
             && jobInfo.transport !== 'raw-rgba-ordered'
             && jobInfo.transport !== 'raw-rgba-rle-ordered'
+            && jobInfo.transport !== 'raw-rgba-roi-ordered'
           ) {
             throw new Error('当前任务不是 RGBA 导出任务')
           }

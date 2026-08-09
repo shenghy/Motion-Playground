@@ -3,7 +3,10 @@ import { once } from 'node:events'
 import { WebSocket } from 'ws'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createExportWebSocket } from './export-websocket.mjs'
-import { encodeRawFrame } from './raw-frame-protocol.mjs'
+import {
+  encodeOrderedRoiFrame,
+  encodeRawFrame,
+} from './raw-frame-protocol.mjs'
 
 const resources = []
 
@@ -35,6 +38,7 @@ function managerFixture(overrides = {}) {
       status: 'rendering',
     })),
     appendRawFrame: vi.fn(async () => undefined),
+    appendRoiFrame: vi.fn(async () => undefined),
     finishJob: vi.fn(async () => ({ size: 123, encodingMs: 9 })),
     cancelJob: vi.fn(async () => undefined),
     ...overrides,
@@ -126,6 +130,92 @@ describe('raw export websocket bridge', () => {
       frameIndex: 1,
     })
     socket.close()
+  })
+
+  it('decodes ordered ROI packets before acknowledging them', async () => {
+    const manager = managerFixture({
+      getJobInfo: vi.fn(() => ({
+        id: 'job-1',
+        width: 2,
+        height: 2,
+        totalFrames: 1,
+        nextFrame: 0,
+        transport: 'raw-rgba-roi-ordered',
+        status: 'rendering',
+      })),
+    })
+    const { url, origin } = await startBridge(manager)
+    const socket = new WebSocket(`${url}/__overlay_export__/jobs/job-1/raw`, {
+      origin,
+    })
+    await once(socket, 'open')
+    socket.send(encodeOrderedRoiFrame(
+      { x: 1, y: 0, width: 1, height: 1 },
+      Buffer.from([1, 2, 3, 4]),
+    ))
+
+    await expect(nextJson(socket)).resolves.toEqual({
+      type: 'frame-accepted',
+      frameIndex: 0,
+    })
+    expect(manager.appendRoiFrame).toHaveBeenCalledWith('job-1', 0, {
+      rect: { x: 1, y: 0, width: 1, height: 1 },
+      pixels: Buffer.from([1, 2, 3, 4]),
+    })
+    socket.close()
+  })
+
+  it('accepts full-frame RLE fallback packets for an ROI job', async () => {
+    const manager = managerFixture({
+      getJobInfo: vi.fn(() => ({
+        id: 'job-1', width: 2, height: 2, totalFrames: 1, nextFrame: 0,
+        transport: 'raw-rgba-roi-ordered', status: 'rendering',
+      })),
+    })
+    const { url, origin } = await startBridge(manager)
+    const socket = new WebSocket(`${url}/__overlay_export__/jobs/job-1/raw`, {
+      origin,
+    })
+    await once(socket, 'open')
+    socket.send(Buffer.from([
+      1, 0, 0, 0,
+      0, 0, 0, 0,
+      1, 0, 0, 0,
+      9, 8, 7, 6,
+    ]))
+
+    await expect(nextJson(socket)).resolves.toMatchObject({
+      type: 'frame-accepted', frameIndex: 0,
+    })
+    expect(manager.appendRoiFrame).toHaveBeenCalledWith('job-1', 0, {
+      rect: { x: 0, y: 0, width: 2, height: 2 },
+      pixels: Buffer.from([
+        9, 8, 7, 6,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+      ]),
+    })
+    socket.close()
+  })
+
+  it('cancels an ROI job after a malformed packet', async () => {
+    const manager = managerFixture({
+      getJobInfo: vi.fn(() => ({
+        id: 'job-1', width: 2, height: 2, totalFrames: 1, nextFrame: 0,
+        transport: 'raw-rgba-roi-ordered', status: 'rendering',
+      })),
+    })
+    const { url, origin } = await startBridge(manager)
+    const socket = new WebSocket(`${url}/__overlay_export__/jobs/job-1/raw`, {
+      origin,
+    })
+    await once(socket, 'open')
+    socket.send(Buffer.from('ROI4'))
+
+    const [code] = await once(socket, 'close')
+    expect(code).toBe(1008)
+    await vi.waitFor(() => expect(manager.cancelJob).toHaveBeenCalledWith('job-1'))
   })
 
   it('rejects a cross-origin upgrade', async () => {

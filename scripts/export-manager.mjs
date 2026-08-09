@@ -5,7 +5,10 @@ import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { once } from 'node:events'
-import { rawFrameBytes } from './raw-frame-protocol.mjs'
+import {
+  applyOrderedRoiFrame,
+  rawFrameBytes,
+} from './raw-frame-protocol.mjs'
 
 const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
@@ -59,6 +62,7 @@ function validateTransport(transport) {
     && transport !== 'raw-rgba'
     && transport !== 'raw-rgba-ordered'
     && transport !== 'raw-rgba-rle-ordered'
+    && transport !== 'raw-rgba-roi-ordered'
   ) {
     throw new Error('透明导出传输格式无效')
   }
@@ -162,6 +166,7 @@ export function createExportManager({
       transport === 'raw-rgba'
       || transport === 'raw-rgba-ordered'
       || transport === 'raw-rgba-rle-ordered'
+      || transport === 'raw-rgba-roi-ordered'
         ? rawFfmpegArguments(
             options.fps,
             outputPath,
@@ -182,6 +187,13 @@ export function createExportManager({
       height: options.height,
       transport,
       status: 'rendering',
+      roiSlots: transport === 'raw-rgba-roi-ordered'
+        ? Array.from({ length: 3 }, () => ({
+            buffer: Buffer.alloc(rawFrameBytes(options.width, options.height)),
+            rect: { x: 0, y: 0, width: 0, height: 0 },
+            pending: Promise.resolve(),
+          }))
+        : null,
       stderr: '',
       closeResult: null,
       expiryTimer: null,
@@ -265,12 +277,46 @@ export function createExportManager({
     refreshExpiry(job)
   }
 
+  async function appendRoiFrame(id, frameIndex, roi) {
+    const job = requireJob(id)
+    if (job.status !== 'rendering') throw new Error('导出任务不再接收帧')
+    if (job.transport !== 'raw-rgba-roi-ordered' || !job.roiSlots) {
+      throw new Error('当前导出任务不接收 ROI 帧')
+    }
+    if (frameIndex !== job.nextFrame) throw new Error('透明导出帧序号不连续')
+    const slot = job.roiSlots[frameIndex % job.roiSlots.length]
+    await slot.pending
+    slot.rect = applyOrderedRoiFrame(
+      slot.buffer,
+      roi,
+      job.width,
+      job.height,
+      slot.rect,
+    )
+    let resolveConsumed
+    let rejectConsumed
+    slot.pending = new Promise((resolve, reject) => {
+      resolveConsumed = resolve
+      rejectConsumed = reject
+    })
+    const accepted = job.child.stdin.write(slot.buffer, (error) => {
+      if (error) rejectConsumed(error)
+      else resolveConsumed()
+    })
+    if (!accepted) await once(job.child.stdin, 'drain')
+    job.nextFrame += 1
+    refreshExpiry(job)
+  }
+
   async function finishJob(id) {
     const job = requireJob(id)
     if (job.nextFrame !== job.totalFrames) {
       throw new Error('透明导出帧数量不完整')
     }
     job.status = 'encoding'
+    if (job.roiSlots) {
+      await Promise.all(job.roiSlots.map((slot) => slot.pending))
+    }
     const encodingStartedAt = now()
     job.child.stdin.end()
     const result = await job.closeResult
@@ -321,6 +367,7 @@ export function createExportManager({
     getJobInfo,
     appendFrame,
     appendRawFrame,
+    appendRoiFrame,
     finishJob,
     cancelJob,
     openResult,

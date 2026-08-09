@@ -51,6 +51,7 @@ export function createExportApi({ manager, origin }) {
           workerPipeline: true,
           pipelineWindow: 3,
           orderedRleProtocol: 'v3',
+          orderedRoiProtocol: 'v4',
         })
         return true
       }

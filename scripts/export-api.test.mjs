@@ -64,6 +64,7 @@ describe('localhost transparent export API', () => {
         workerPipeline: true,
         pipelineWindow: 3,
         orderedRleProtocol: 'v3',
+        orderedRoiProtocol: 'v4',
       })
 
       const created = await fetch(`${origin}/__overlay_export__/jobs`, {

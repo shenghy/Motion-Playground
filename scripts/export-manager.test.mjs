@@ -92,6 +92,96 @@ describe('transparent MOV export manager', () => {
     }
   })
 
+  it('reconstructs an ROI packet into one exact full RGBA frame', async () => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), 'overlay-export-'))
+    const child = createFakeProcess()
+    const writeRoiToInput = child.stdin.write.bind(child.stdin)
+    child.stdin.write = vi.fn((chunk, callback) => {
+      writeRoiToInput(chunk, callback)
+      return true
+    })
+    const manager = createExportManager({
+      ffmpegPath: 'bundled-ffmpeg',
+      spawnProcess: () => child,
+      temporaryRoot,
+    })
+    const input = []
+    child.stdin.on('data', (chunk) => input.push(chunk))
+
+    try {
+      const job = await manager.createJob({
+        width: 1920,
+        height: 1080,
+        fps: 30,
+        totalFrames: 1,
+        transport: 'raw-rgba-roi-ordered',
+      })
+      await manager.appendRoiFrame(job.id, 0, {
+        rect: { x: 1, y: 1, width: 2, height: 1 },
+        pixels: Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]),
+      })
+
+      const received = Buffer.concat(input)
+      expect(received.length).toBe(rawFrameBytes(1920, 1080))
+      const rowOffset = (1920 + 1) * 4
+      expect(received.subarray(rowOffset, rowOffset + 8)).toEqual(
+        Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]),
+      )
+      expect(received.subarray(0, rowOffset).every((byte) => byte === 0)).toBe(true)
+      expect(received.subarray(rowOffset + 8).every((byte) => byte === 0)).toBe(true)
+    } finally {
+      await manager.close()
+      await rm(temporaryRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('does not reuse an ROI slot before the prior FFmpeg write completes', async () => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), 'overlay-export-'))
+    const child = createFakeProcess()
+    const callbacks = []
+    child.stdin.write = vi.fn((_chunk, callback) => {
+      callbacks.push(callback)
+      return true
+    })
+    const manager = createExportManager({
+      ffmpegPath: 'bundled-ffmpeg',
+      spawnProcess: () => child,
+      temporaryRoot,
+    })
+
+    try {
+      const job = await manager.createJob({
+        width: 1920,
+        height: 1080,
+        fps: 30,
+        totalFrames: 4,
+        transport: 'raw-rgba-roi-ordered',
+      })
+      const roi = {
+        rect: { x: 0, y: 0, width: 1, height: 1 },
+        pixels: Buffer.from([1, 2, 3, 4]),
+      }
+      await manager.appendRoiFrame(job.id, 0, roi)
+      await manager.appendRoiFrame(job.id, 1, roi)
+      await manager.appendRoiFrame(job.id, 2, roi)
+
+      let fourthCompleted = false
+      const fourth = manager.appendRoiFrame(job.id, 3, roi).then(() => {
+        fourthCompleted = true
+      })
+      await Promise.resolve()
+      expect(child.stdin.write).toHaveBeenCalledTimes(3)
+      expect(fourthCompleted).toBe(false)
+
+      callbacks[0]()
+      await fourth
+      expect(child.stdin.write).toHaveBeenCalledTimes(4)
+    } finally {
+      await manager.close()
+      await rm(temporaryRoot, { recursive: true, force: true })
+    }
+  })
+
   it('streams ordered PNG frames to ProRes 4444 with alpha', async () => {
     const temporaryRoot = await mkdtemp(join(tmpdir(), 'overlay-export-'))
     let clock = 100

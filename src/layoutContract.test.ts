@@ -30,14 +30,15 @@ describe('workspace layout CSS contract', () => {
     expect(css).toContain('.parameter-tabpanel')
   })
 
-  it('keeps the seven-step flow in one compact column above the subtitle zone', () => {
+  it('keeps left-side cards before the presenter line', () => {
     const presenterSafeRule = getRule('.presenter-safe-area')
     const stepFlowRule = getRule(".step-flow__card[data-pencil-layout='drawn-path']")
     const audiencePollRule = getRule('.audience-poll__card')
+    const compareSplitRule = getRule('.compare-split__card')
     const safeLine = getPercent(presenterSafeRule, 'left')
 
     expect(safeLine).toBe(39)
-    for (const cardRule of [stepFlowRule, audiencePollRule]) {
+    for (const cardRule of [stepFlowRule, audiencePollRule, compareSplitRule]) {
       const left = getPercent(cardRule, 'left')
       const width = getPercent(cardRule, 'width')
       expect(left).toBe(6.35)

@@ -2294,6 +2294,15 @@ a:focus-visible {
   --primary-width: 31%;
 }
 
+.compare-split__card {
+  position: absolute;
+  left: 6.35%;
+  top: 11%;
+  bottom: calc(var(--subtitle-safe-bottom) + 3%);
+  width: 31.8%;
+  overflow: hidden;
+}
+
 .compare-split__header {
   position: absolute;
   z-index: 2;

@@ -4,6 +4,8 @@ import {
   type CanvasExportSession,
 } from '../canvas/CanvasExportSurface'
 import { resolveCanvasRenderer } from '../canvas/rendererRegistry'
+import { canvasFrameAreaRatio } from '../canvas/frameBounds'
+import { resolveMotionBounds } from '../../motion/registry'
 import {
   calculateFrameCount,
   calculateFrameTime,
@@ -14,6 +16,7 @@ import { runFramePipeline } from './framePipeline'
 import { loadWorkerFonts } from './fonts'
 import { createZeroRleEncoder } from './zeroRle'
 import { createZeroRleWorkerPool } from './zeroRlePool'
+import { encodeOrderedRoiFrame } from './roiFrame'
 import {
   validateWorkerExportCommand,
   type WorkerExportCommand,
@@ -22,6 +25,7 @@ import {
 } from './messages'
 
 const MAX_BUFFERED_BYTES = 32 * 1024 * 1024
+const ROI_AREA_THRESHOLD = 0.45
 
 export interface WorkerExportSocket {
   readyState: number
@@ -225,15 +229,22 @@ export function createRawMovExportWorkerRuntime({
         },
         renderFrame: (frameIndex) => {
           const started = now()
-          session.renderFrame(calculateFrameTime(frameIndex))
-          const pixels = session.readRgba()
+          const frameTime = calculateFrameTime(frameIndex)
+          session.renderFrame(frameTime)
+          const bounds = session.frameBounds(frameTime)
+          const useRoi = canvasFrameAreaRatio(bounds) <= ROI_AREA_THRESHOLD
+          const pixels = useRoi
+            ? session.readRgbaRegion(bounds)
+            : session.readRgba()
           timings.frameCaptureMs += now() - started
           const compressionStarted = now()
-          const compressed = compressFrame
-            ? compressFrame(pixels)
-            : Promise.resolve((
-                rleEncoder ??= createZeroRleEncoder(pixels.byteLength / 4)
-              ).encode(pixels).slice())
+          const compressed = useRoi
+            ? Promise.resolve(encodeOrderedRoiFrame(bounds, pixels))
+            : compressFrame
+              ? compressFrame(pixels)
+              : Promise.resolve((
+                  rleEncoder ??= createZeroRleEncoder(pixels.byteLength / 4)
+                ).encode(pixels).slice())
           return compressed.then((result) => {
             timings.frameTransferMs += now() - compressionStarted
             return result
@@ -334,6 +345,7 @@ function createBrowserWorkerRuntime() {
         canvas,
         cards,
         resolveRenderer: resolveCanvasRenderer,
+        resolveBounds: resolveMotionBounds,
         fontReady: async () => undefined,
         resources,
       })

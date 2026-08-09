@@ -82,13 +82,14 @@ describe('worker MOV client', () => {
     expect(canUseWorkerMovExport({ ...features, FontFace: undefined })).toBe(false)
   })
 
-  it('requires both ordered-v2 and worker server capabilities', () => {
+  it('requires the ordered ROI v4 worker server capability', () => {
     const base = { mov: true, rawRgba: true, transport: 'websocket' }
     expect(supportsWorkerMovPipeline({
       ...base,
       orderedRawProtocol: 'v2',
       workerPipeline: true,
       orderedRleProtocol: 'v3',
+      orderedRoiProtocol: 'v4',
     })).toBe(true)
     expect(supportsWorkerMovPipeline(base)).toBe(false)
     expect(supportsWorkerMovPipeline({
@@ -96,6 +97,7 @@ describe('worker MOV client', () => {
       orderedRawProtocol: 'v2',
       workerPipeline: false,
       orderedRleProtocol: 'v3',
+      orderedRoiProtocol: 'v4',
     })).toBe(false)
   })
 
@@ -132,7 +134,7 @@ describe('worker MOV client', () => {
       height: 1080,
       fps: 30,
       totalFrames: 1,
-      transport: 'raw-rgba-rle-ordered',
+      transport: 'raw-rgba-roi-ordered',
     })
     expect(onJobCreated).toHaveBeenCalledExactlyOnceWith('worker-job')
     expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({

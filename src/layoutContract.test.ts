@@ -55,6 +55,12 @@ describe('workspace layout CSS contract', () => {
     expect(css).toMatch(
       /\.step-flow__step\s*\{[^}]*width:\s*100%[^}]*grid-template-columns:\s*1\.7cqw\s+minmax\(0,\s*1fr\)/s,
     )
+    expect(css).toMatch(
+      /\.compare-split__tracks\s*\{[^}]*grid-template-rows:/s,
+    )
+    expect(css).not.toMatch(
+      /\.compare-split__panels\s*\{[^}]*grid-template-columns:\s*repeat\(2/s,
+    )
   })
 
   it('uses the right-panel gray hierarchy across the component rail', () => {

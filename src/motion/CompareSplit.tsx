@@ -1,18 +1,28 @@
-import { motion, useReducedMotion } from 'motion/react'
+import type { CSSProperties } from 'react'
+import { useReducedMotion } from 'motion/react'
 import { PencilTexture } from './PencilTexture'
+import { getCompareSplitState } from './canvas/compareSplitState'
 import type { CompareSplitParams, MotionComponentProps } from './types'
-import { useCountUp } from './useCountUp'
 
-const ease = [0.22, 1, 0.36, 1] as const
+type CompareStyle = CSSProperties & Record<`--${string}`, string | number>
+
+function meterScale(value: number) {
+  if (!Number.isFinite(value)) return 0.08
+  return Math.max(0.08, Math.min(1, value / 100))
+}
 
 export function CompareSplit({
   params,
-  playbackTime,
+  playbackTime = 0,
 }: MotionComponentProps<CompareSplitParams>) {
   const reduceMotion = useReducedMotion()
-  const leftValue = useCountUp(params.leftValue, params.duration, 0, playbackTime)
-  const rightValue = useCountUp(params.rightValue, params.duration, 0, playbackTime)
-  const duration = reduceMotion ? 0 : params.duration * 0.45
+  const stableTime = Math.max(2.4, params.duration + 0.6)
+  const state = getCompareSplitState(
+    params,
+    reduceMotion ? stableTime : playbackTime,
+  )
+  const suffix = params.suffix || '%'
+
   return (
     <div
       className="motion-canvas compare-split"
@@ -20,123 +30,96 @@ export function CompareSplit({
     >
       <PencilTexture variant="eraser" />
       <div className="canvas-grid" aria-hidden="true" />
-      <motion.header
-        className="compare-split__header"
-        initial={{ opacity: 0, y: -24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration, delay: reduceMotion ? 0 : 0.12, ease }}
-      >
-        <span>02 / 对比研究</span>
-        <h2 className="motion-content-text">
-          {params.title || '未命名对比'}
-        </h2>
-      </motion.header>
 
-      <div className="compare-split__panels">
-        <motion.section
-          className="compare-panel compare-panel--left"
-          data-testid="compare-left"
-          data-outer-frame="none"
-          data-emphasized={params.emphasis === 'left'}
-          data-pencil-state={params.emphasis === 'left' ? 'emphasized' : 'struck'}
-          data-zone="left-primary"
-          initial={{ opacity: 0, x: -90, clipPath: 'inset(0 100% 0 0)' }}
-          animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0% 0 0)' }}
-          transition={{ duration, delay: reduceMotion ? 0 : 0.1, ease }}
-        >
-          <span className="compare-panel__index">方案甲 / 01</span>
-          <div className="compare-panel__content">
-            <span
-              className="compare-panel__label motion-content-text"
-            >
-              {params.leftLabel || '左侧'}
-            </span>
-            <strong>
-              {leftValue}<em>{params.suffix}</em>
-            </strong>
-            <span className="compare-panel__baseline">基准 / 参考</span>
-            <motion.i
-              className="compare-panel__strike"
-              aria-hidden="true"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration, delay: reduceMotion ? 0 : 0.5, ease }}
-            />
-          </div>
-          <div className="compare-panel__meter" aria-hidden="true">
-            <motion.i
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: Math.max(0.08, params.leftValue / 100) }}
-              transition={{ duration, delay: reduceMotion ? 0 : 0.36, ease }}
-            />
-          </div>
-        </motion.section>
-
-        <motion.section
-          className="compare-panel compare-panel--right"
-          data-testid="compare-right"
-          data-outer-frame="none"
-          data-emphasized={params.emphasis === 'right'}
-          data-pencil-state={params.emphasis === 'right' ? 'emphasized' : 'struck'}
-          data-zone="left-primary"
-          initial={{ opacity: 0, x: 90, clipPath: 'inset(0 0 0 100%)' }}
-          animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0 0%)' }}
-          transition={{ duration, delay: reduceMotion ? 0 : 0.22, ease }}
-        >
-          <span className="compare-panel__index">方案乙 / 02</span>
-          <div className="compare-panel__content">
-            <span
-              className="compare-panel__label motion-content-text"
-            >
-              {params.rightLabel || '右侧'}
-            </span>
-            <strong>
-              {rightValue}<em>{params.suffix}</em>
-            </strong>
-            <span className="compare-panel__baseline">当前 / 已优化</span>
-            <motion.i
-              className="compare-panel__strike"
-              aria-hidden="true"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration, delay: reduceMotion ? 0 : 0.5, ease }}
-            />
-          </div>
-          <div className="compare-panel__meter" aria-hidden="true">
-            <motion.i
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: Math.max(0.08, params.rightValue / 100) }}
-              transition={{ duration, delay: reduceMotion ? 0 : 0.48, ease }}
-            />
-          </div>
-        </motion.section>
-      </div>
-
-      <motion.i
-        className="compare-split__pencil-arrow"
-        data-testid="compare-pencil-arrow"
-        aria-hidden="true"
-        initial={{ scaleX: 0, opacity: 0 }}
-        animate={{ scaleX: 1, opacity: 1 }}
-        transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
-      />
-
-      <motion.footer
-        className="compare-split__result"
-        data-testid="compare-result"
-        data-outer-frame="none"
+      <section
+        className="compare-split__card"
+        data-testid="compare-card"
         data-zone="left-primary"
-        data-safe-motion="upward"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration, delay: reduceMotion ? 0 : 0.62, ease }}
+        style={{
+          '--compare-split': `${state.verticalSplit}%`,
+          opacity: state.panelOpacity,
+        } as CompareStyle}
       >
-        <span>结论 / 已锁定</span>
-        <strong className="motion-content-text">
-          {params.conclusion || '暂无结论'}
-        </strong>
-        <span>可信度 98.4</span>
-      </motion.footer>
+        <header
+          className="compare-split__header"
+          style={{ opacity: state.headerOpacity }}
+        >
+          <span>03 / 对比研究</span>
+          <h2 className="motion-content-text">
+            {params.title || '未命名对比'}
+          </h2>
+        </header>
+
+        <div className="compare-split__tracks">
+          <article
+            className="compare-track compare-track--upper"
+            data-testid="compare-upper"
+            data-emphasized={state.emphasis === 'left'}
+            style={{
+              '--meter-scale': meterScale(params.leftValue),
+              opacity: state.upperOpacity,
+            } as CompareStyle}
+          >
+            <span className="compare-track__index">基准 / 01</span>
+            <div className="compare-track__reading">
+              <span className="compare-track__label motion-content-text">
+                {params.leftLabel || '优化前'}
+              </span>
+              <strong>
+                {state.upperValue}
+                <em>{suffix}</em>
+              </strong>
+            </div>
+            <i className="compare-track__meter" aria-hidden="true" />
+          </article>
+
+          <i
+            className="compare-split__scan"
+            data-testid="compare-scan"
+            aria-hidden="true"
+            style={{
+              top: `${state.verticalSplit * state.scanProgress}%`,
+              opacity: state.scanProgress,
+            }}
+          />
+
+          <article
+            className="compare-track compare-track--lower"
+            data-testid="compare-lower"
+            data-emphasized={state.emphasis === 'right'}
+            style={{
+              '--meter-scale': meterScale(params.rightValue),
+              '--highlight': state.lowerHighlight,
+              opacity: state.lowerOpacity,
+            } as CompareStyle}
+          >
+            <span className="compare-track__index">结果 / 02</span>
+            <div className="compare-track__reading">
+              <span className="compare-track__label motion-content-text">
+                {params.rightLabel || '优化后'}
+              </span>
+              <strong>
+                {state.lowerValue}
+                <em>{suffix}</em>
+              </strong>
+            </div>
+            <i className="compare-track__meter" aria-hidden="true" />
+          </article>
+        </div>
+
+        <footer
+          className="compare-split__result"
+          data-testid="compare-result"
+          data-zone="left-primary"
+          data-safe-motion="upward"
+          style={{ opacity: state.resultOpacity }}
+        >
+          <span>结论 / 已锁定</span>
+          <strong className="motion-content-text">
+            {params.conclusion || '暂无结论'}
+          </strong>
+        </footer>
+      </section>
     </div>
   )
 }

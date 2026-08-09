@@ -1,13 +1,7 @@
 import type { ExportPerformanceSnapshot } from '../export/exportPerformance'
+import type { ExportStatus } from '../export/exportStatus'
 
-export type ExportStatus =
-  | 'idle'
-  | 'rendering'
-  | 'encoding'
-  | 'saving'
-  | 'completed'
-  | 'cancelled'
-  | 'error'
+export type { ExportStatus } from '../export/exportStatus'
 
 interface ExportPanelProps {
   canExport: boolean

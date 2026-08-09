@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { motionRegistry, getMotionDefinition } from '../motion/registry'
 import type { MotionId, ParameterValue, ParameterValues } from '../motion/types'
 import {
@@ -39,7 +39,6 @@ import {
 import {
   createExportPerformance,
   type ExportPerformance,
-  type ExportPerformanceSnapshot,
 } from '../export/exportPerformance'
 import {
   discardTransparentMov,
@@ -53,21 +52,23 @@ import {
   WorkerMovPreparationError,
 } from '../export/worker/workerMovClient'
 import { ComponentRail } from './ComponentRail'
-import {
-  ExportPanel,
-  type ExportStatus,
-} from './ExportPanel'
+import { ExportPanel } from './ExportPanel'
 import { ParameterPanel } from './ParameterPanel'
 import { PreviewStage } from './PreviewStage'
 import { TimelineEditor } from './TimelineEditor'
-
-const createInitialParameters = () => {
-  const initial = {} as Record<MotionId, ParameterValues>
-  motionRegistry.forEach((definition) => {
-    initial[definition.id] = { ...definition.defaults }
-  })
-  return initial
-}
+import {
+  createInitialParameters,
+  createMotionPlaybackKeys,
+  createOverlayWorkspaceState,
+  useProjectController,
+  type OverlayWorkspaceState,
+} from '../workbench/useProjectController'
+import {
+  useVideoController,
+  type VideoPreview,
+} from '../workbench/useVideoController'
+import { usePersistenceController } from '../workbench/usePersistenceController'
+import { useExportController } from '../workbench/useExportController'
 
 const MOTION_NAMES = Object.fromEntries(
   motionRegistry.map((definition) => [definition.id, definition.name]),
@@ -108,24 +109,9 @@ function createUniqueCardId(cards: OverlayCard[], idFactory: () => string) {
   return fallbackId
 }
 
-interface VideoPreview {
-  name: string
-  url: string
-  blob: Blob
-  type: string
-  lastModified: number
-  restored: boolean
-}
-
 interface WorkbenchProps {
   idFactory?: () => string
   storage?: WorkspaceStorage
-}
-
-interface OverlayWorkspaceState {
-  cards: OverlayCard[]
-  selectedCardId: string | null
-  playbackKeys: Record<string, number>
 }
 
 interface PendingMovJob {
@@ -144,16 +130,6 @@ function cloneOverlayCards(cards: OverlayCard[]) {
 function exportFingerprint(cards: OverlayCard[], duration: number) {
   return JSON.stringify({ duration, cards })
 }
-
-const createOverlayWorkspaceState = (): OverlayWorkspaceState => ({
-  cards: [],
-  selectedCardId: null,
-  playbackKeys: {},
-})
-
-const createMotionPlaybackKeys = () => Object.fromEntries(
-  motionRegistry.map(({ id }) => [id, 0]),
-) as Record<MotionId, number>
 
 function isEditableDeleteTarget(target: EventTarget | null) {
   return (
@@ -199,24 +175,41 @@ export function Workbench({
   idFactory = createBrowserCardId,
   storage,
 }: WorkbenchProps) {
-  const [activeId, setActiveId] = useState<MotionId>('metric-focus')
-  const [showSafeArea, setShowSafeArea] = useState(true)
-  const [parameters, setParameters] = useState(createInitialParameters)
-  const [overlayWorkspace, setOverlayWorkspace] = useState(
-    createOverlayWorkspaceState,
-  )
+  const {
+    activeId,
+    setActiveId,
+    showSafeArea,
+    setShowSafeArea,
+    parameters,
+    setParameters,
+    overlayWorkspace,
+    setOverlayWorkspace,
+    projectError,
+    setProjectError,
+    playbackKeys,
+    setPlaybackKeys,
+  } = useProjectController()
   const overlayWorkspaceRef = useRef(overlayWorkspace)
-  const [videoTime, setVideoTime] = useState(0)
-  const [videoDuration, setVideoDuration] = useState(0)
-  const [videoPreview, setVideoPreview] = useState<VideoPreview | null>(null)
-  const [pendingVideo, setPendingVideo] = useState<VideoPreview | null>(null)
-  const [videoError, setVideoError] = useState('')
-  const [projectError, setProjectError] = useState('')
-  const [storageError, setStorageError] = useState('')
-  const [isClearingWorkspace, setIsClearingWorkspace] = useState(false)
-  const [hydrationStatus, setHydrationStatus] = useState<'loading' | 'ready'>(
-    storage ? 'loading' : 'ready',
-  )
+  const {
+    videoTime,
+    setVideoTime,
+    videoDuration,
+    setVideoDuration,
+    videoPreview,
+    setVideoPreview,
+    pendingVideo,
+    setPendingVideo,
+    videoError,
+    setVideoError,
+  } = useVideoController()
+  const {
+    storageError,
+    setStorageError,
+    isClearingWorkspace,
+    setIsClearingWorkspace,
+    hydrationStatus,
+    setHydrationStatus,
+  } = usePersistenceController(Boolean(storage))
   const videoPreviewRef = useRef<VideoPreview | null>(null)
   const pendingVideoRef = useRef<VideoPreview | null>(null)
   const skipNextAutosaveRef = useRef(Boolean(storage))
@@ -229,18 +222,22 @@ export function Workbench({
   const serverExportJobRef = useRef<string | null>(null)
   const pendingMovJobRef = useRef<PendingMovJob | null>(null)
   const exportOperationRef = useRef(false)
-  const [exportOperationActive, setExportOperationActive] = useState(false)
-  const [exportCards, setExportCards] = useState<OverlayCard[]>([])
-  const [movAvailable, setMovAvailable] = useState(false)
-  const [workerMovAvailable, setWorkerMovAvailable] = useState(false)
-  const [exportStatus, setExportStatus] = useState<ExportStatus>('idle')
-  const [exportProgress, setExportProgress] = useState({
-    completedFrames: 0,
-    totalFrames: 0,
-    performance: null as ExportPerformanceSnapshot | null,
-  })
-  const [exportMessage, setExportMessage] = useState('')
-  const [playbackKeys, setPlaybackKeys] = useState(createMotionPlaybackKeys)
+  const {
+    exportOperationActive,
+    setExportOperationActive,
+    exportCards,
+    setExportCards,
+    movAvailable,
+    setMovAvailable,
+    workerMovAvailable,
+    setWorkerMovAvailable,
+    exportStatus,
+    setExportStatus,
+    exportProgress,
+    setExportProgress,
+    exportMessage,
+    setExportMessage,
+  } = useExportController()
   const { cards, selectedCardId } = overlayWorkspace
   const queuePersistenceOperation = useCallback(
     <T,>(operation: () => Promise<T>) => {
@@ -263,7 +260,7 @@ export function Workbench({
       setOverlayWorkspace(next)
       return next
     },
-    [],
+    [setOverlayWorkspace],
   )
 
   const activeDefinition = useMemo(() => getMotionDefinition(activeId), [activeId])
@@ -317,7 +314,7 @@ export function Workbench({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [setMovAvailable, setWorkerMovAvailable])
 
   useEffect(() => {
     if (!storage) {
@@ -400,7 +397,18 @@ export function Workbench({
     return () => {
       cancelled = true
     }
-  }, [storage])
+  }, [
+    setActiveId,
+    setHydrationStatus,
+    setOverlayWorkspace,
+    setParameters,
+    setShowSafeArea,
+    setStorageError,
+    setVideoDuration,
+    setVideoPreview,
+    setVideoTime,
+    storage,
+  ])
 
   useEffect(() => {
     if (
@@ -448,6 +456,7 @@ export function Workbench({
     parameters,
     queuePersistenceOperation,
     showSafeArea,
+    setStorageError,
     storage,
     videoPreview,
   ])
@@ -949,11 +958,11 @@ export function Workbench({
 
   const handleMediaTimeChange = useCallback((time: number) => {
     setVideoTime(Number.isFinite(time) ? Math.max(0, time) : 0)
-  }, [])
+  }, [setVideoTime])
 
   const handleMediaDurationChange = useCallback((duration: number) => {
     setVideoDuration(Number.isFinite(duration) ? Math.max(0, duration) : 0)
-  }, [])
+  }, [setVideoDuration])
 
   const handleSeekControllerReady = useCallback(
     (controller: ((time: number) => void) | null) => {
@@ -985,7 +994,7 @@ export function Workbench({
       totalFrames: progress.totalFrames,
       performance: progress.performance ?? null,
     })
-  }, [])
+  }, [setExportProgress, setExportStatus])
 
   const cancelExport = useCallback(() => {
     exportAbortRef.current?.abort()
@@ -1045,7 +1054,17 @@ export function Workbench({
       exportOperationRef.current = false
       setExportOperationActive(false)
     }
-  }, [captureExportFrame, cards, updateExportProgress, videoDuration])
+  }, [
+    captureExportFrame,
+    cards,
+    setExportCards,
+    setExportMessage,
+    setExportOperationActive,
+    setExportProgress,
+    setExportStatus,
+    updateExportProgress,
+    videoDuration,
+  ])
 
   const exportMov = useCallback(async () => {
     if (exportOperationRef.current) return
@@ -1200,6 +1219,11 @@ export function Workbench({
     }
   }, [
     cards,
+    setExportCards,
+    setExportMessage,
+    setExportOperationActive,
+    setExportProgress,
+    setExportStatus,
     updateExportProgress,
     videoDuration,
     workerMovAvailable,
@@ -1220,7 +1244,13 @@ export function Workbench({
     void discardTransparentMov(pendingJob.id).catch(() => undefined)
     setExportStatus('idle')
     setExportMessage('工程已修改，之前编码的 MOV 已放弃')
-  }, [cards, exportOperationActive, videoDuration])
+  }, [
+    cards,
+    exportOperationActive,
+    setExportMessage,
+    setExportStatus,
+    videoDuration,
+  ])
 
   useEffect(
     () => () => {

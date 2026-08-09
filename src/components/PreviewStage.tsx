@@ -4,11 +4,8 @@ import { getCardPlaybackTime } from '../motion/playbackTiming'
 import { getActiveCards, updateCardPosition } from '../timeline/project'
 import type { OverlayCard, OverlayPosition } from '../timeline/types'
 import { VideoPlaybackControls } from './VideoPlaybackControls'
-import type {
-  MotionDefinition,
-  MotionId,
-  ParameterValues,
-} from '../motion/types'
+import { MotionCanvasPreview } from '../motion/MotionCanvasPreview'
+import type { MotionId, ParameterValues } from '../motion/types'
 
 interface PreviewStageProps {
   motionId: MotionId
@@ -64,13 +61,17 @@ function renderMotion(
   playbackTime?: number,
   playbackDuration?: number,
 ) {
-  const definition = getMotionDefinition(id) as unknown as MotionDefinition
-  const MotionComponent = definition.component
+  const definition = getMotionDefinition(id)
+  const label = id === 'metric-focus'
+    ? `${definition.name} ${String(params.prefix ?? '')}${Number(params.value ?? 0).toFixed(Number(params.decimals ?? 0))}${String(params.suffix ?? '')}`
+    : `${definition.name} motion preview`
   return (
-    <MotionComponent
+    <MotionCanvasPreview
+      motionId={id}
       params={params}
       playbackTime={playbackTime}
       playbackDuration={playbackDuration}
+      label={label}
     />
   )
 }

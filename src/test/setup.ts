@@ -20,6 +20,7 @@ Object.defineProperty(window, 'matchMedia', {
 
 const testCanvasPixels = new Uint8ClampedArray(1920 * 1080 * 4)
 const canvasNoop = () => undefined
+const testCanvasGradient = { addColorStop: canvasNoop }
 const testCanvasContext = new Proxy({
   globalAlpha: 1,
   globalCompositeOperation: 'source-over',
@@ -31,6 +32,8 @@ const testCanvasContext = new Proxy({
   textBaseline: 'alphabetic',
   filter: 'none',
   measureText: (text: string) => ({ width: text.length * 20 }),
+  createLinearGradient: () => testCanvasGradient,
+  createRadialGradient: () => testCanvasGradient,
   getImageData: () => ({ data: testCanvasPixels }),
 } as unknown as CanvasRenderingContext2D, {
   get(target, property, receiver) {

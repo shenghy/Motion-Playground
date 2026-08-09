@@ -192,7 +192,10 @@ describe('PreviewStage overlays', () => {
       />,
     )
 
-    expect(screen.getByTestId('metric-number')).toHaveTextContent('0')
+    expect(document.querySelector('canvas[data-motion-id="metric-focus"]')).toHaveAttribute(
+      'data-playback-time',
+      '0',
+    )
 
     rerender(
       <PreviewStage
@@ -200,7 +203,10 @@ describe('PreviewStage overlays', () => {
       />,
     )
 
-    expect(screen.getByTestId('metric-number')).toHaveTextContent('248')
+    expect(document.querySelector('canvas[data-motion-id="metric-focus"]')).toHaveAttribute(
+      'data-playback-time',
+      '2',
+    )
   })
 
   it('uses internal media time for active cards when currentTime is uncontrolled', () => {
@@ -225,7 +231,7 @@ describe('PreviewStage overlays', () => {
     const { container } = render(<PreviewStage {...createProps()} />)
 
     expect(container.querySelector('.motion-slot')).toBeInTheDocument()
-    expect(screen.getByLabelText('核心指标 +248%')).toBeInTheDocument()
+    expect(container.querySelector('canvas[data-motion-id="metric-focus"]')).toBeInTheDocument()
     expect(screen.queryByTestId('overlay-card')).not.toBeInTheDocument()
     expect(screen.getByTestId('presenter-safe-area')).toBeInTheDocument()
     expect(screen.getByTestId('subtitle-safe-area')).toHaveAttribute(

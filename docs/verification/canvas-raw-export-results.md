@@ -95,3 +95,4 @@ React visual renderers are no longer part of the production registry or bundle.
 - Output: 16,549,304-byte MOV, 2.00 seconds, 30 fps.
 - FFmpeg probe: ProRes 4444 (`ap4h`), `yuva444p12le`, 1920x1080, no audio.
 - Alpha samples: frame 0 is fully transparent as the one-shot entrance begins; frames 30 and 59 both contain `YMIN=0` and `YMAX=4095`, proving transparent and fully opaque regions coexist after entrance.
+- Clean-origin browser review: all eight component-library selections rendered a 1920x1080 `motion-canvas-preview` with the expected motion ID, and the page reported no preview errors or console warnings/errors.

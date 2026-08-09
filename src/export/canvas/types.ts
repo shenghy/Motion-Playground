@@ -6,6 +6,13 @@ export interface CanvasRenderResources {
   contentFont: string
 }
 
+export interface CanvasFrameRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface CanvasMotionRenderInput<T> {
   ctx: CanvasRenderingContext2D
   params: T

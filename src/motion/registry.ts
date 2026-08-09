@@ -19,6 +19,13 @@ import type {
   StepFlowParams,
 } from './types'
 
+const LEFT_ZONE_CANVAS_BOUNDS = {
+  x: 24,
+  y: 44,
+  width: 800,
+  height: 904,
+} as const
+
 type RegisteredMotion =
   | MotionDefinition<NarrativeParams>
   | MotionDefinition<MetricFocusParams>
@@ -38,6 +45,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '文字 / 叙述',
     description: '双行大字内容概述',
     canvasRenderer: renderNarrativeToCanvas,
+    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
     defaults: {
       line1: '把复杂的工作',
       line2: '交给自动化',
@@ -59,6 +67,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 指标',
     description: '核心数字动效',
     canvasRenderer: renderMetricFocusToCanvas,
+    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
     defaults: {
       eyebrow: '季度增长',
       value: 248,
@@ -88,6 +97,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '双层 / 对比',
     description: '上下双层数据轨',
     canvasRenderer: renderCompareSplitToCanvas,
+    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
     defaults: {
       title: '转化率',
       leftLabel: '优化前',
@@ -129,6 +139,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '叙事 / 人物',
     description: '逐句动态信息卡',
     canvasRenderer: renderProfileRevealToCanvas,
+    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
     defaults: {
       category: '创作者 / 人物档案',
       descriptor: '独立开发者 · 产品构建者',
@@ -166,6 +177,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 柱状',
     description: '柱状数据对比',
     canvasRenderer: renderBarCompareToCanvas,
+    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
     defaults: {
       eyebrow: '04 / 数据对比',
       title: '季度增长',
@@ -219,6 +231,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 占比',
     description: '环形占比分析',
     canvasRenderer: renderShareRingToCanvas,
+    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
     defaults: {
       eyebrow: '05 / 占比分析',
       title: '用户构成',
@@ -272,6 +285,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '流程 / 步骤',
     description: '步骤流程讲解',
     canvasRenderer: renderStepFlowToCanvas,
+    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
     defaults: {
       eyebrow: '06 / 流程图',
       title: '发布流程',
@@ -324,6 +338,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '互动 / 投票',
     description: '编号投票互动卡片',
     canvasRenderer: renderAudiencePollToCanvas,
+    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
     defaults: {
       eyebrow: '08 / LIVE POLL',
       title: '你更看好哪种开发方式？',
@@ -353,4 +368,8 @@ export function getMotionDefinition(id: MotionId) {
 
 export function resolveMotionRenderer(id: MotionId) {
   return getMotionDefinition(id).canvasRenderer
+}
+
+export function resolveMotionBounds(id: MotionId) {
+  return getMotionDefinition(id).canvasBounds
 }

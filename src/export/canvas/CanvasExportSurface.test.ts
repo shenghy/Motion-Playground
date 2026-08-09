@@ -116,6 +116,37 @@ describe('persistent canvas export session', () => {
     expect(fontReady).toHaveBeenCalledTimes(2)
   })
 
+  it('returns frame bounds and reads only the requested rgba region', async () => {
+    const { canvas, ctx } = canvasFixture()
+    const regionPixels = new Uint8ClampedArray(10 * 20 * 4)
+    vi.mocked(ctx.getImageData).mockReturnValueOnce({
+      data: regionPixels,
+    } as ImageData)
+    const session = createCanvasExportSession({
+      canvas,
+      cards: [card('visible', 0, 5, 0, 10, 5)],
+      resolveRenderer: () => vi.fn(),
+      resolveBounds: () => ({ x: 20, y: 30, width: 10, height: 20 }),
+      fontReady: vi.fn(async () => undefined),
+    })
+
+    await session.begin()
+    expect(session.frameBounds(1)).toEqual({
+      x: 212,
+      y: 84,
+      width: 10,
+      height: 20,
+    })
+    session.renderFrame(1)
+    expect(session.readRgbaRegion({
+      x: 212,
+      y: 84,
+      width: 10,
+      height: 20,
+    })).toBe(regionPixels)
+    expect(ctx.getImageData).toHaveBeenCalledWith(212, 84, 10, 20)
+  })
+
   it('reads rgba and captures png from an OffscreenCanvas-shaped source', async () => {
     const pixels = new Uint8ClampedArray(1920 * 1080 * 4)
     const png = new Blob(['offscreen'], { type: 'image/png' })

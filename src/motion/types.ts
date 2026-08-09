@@ -1,4 +1,7 @@
-import type { CanvasMotionRenderer } from '../export/canvas/types'
+import type {
+  CanvasFrameRect,
+  CanvasMotionRenderer,
+} from '../export/canvas/types'
 
 export const MOTION_IDS = [
   'narrative',
@@ -178,4 +181,5 @@ export interface MotionDefinition<T extends ParameterValues = ParameterValues> {
   defaults: T
   controls: Control[]
   canvasRenderer: CanvasMotionRenderer<T>
+  canvasBounds: CanvasFrameRect
 }

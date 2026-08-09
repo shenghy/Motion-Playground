@@ -50,7 +50,9 @@ function workerSession(totalFrames: number) {
       frameTimes.push(time)
       currentFrame = Math.round(time * 30)
     }),
+    frameBounds: vi.fn(() => ({ x: 0, y: 0, width: 1, height: 1 })),
     readRgba: vi.fn(() => pixels[currentFrame]),
+    readRgbaRegion: vi.fn(() => pixels[currentFrame]),
     capturePng: vi.fn(),
     end: vi.fn(),
   }

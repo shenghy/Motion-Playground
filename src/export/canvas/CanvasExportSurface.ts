@@ -7,14 +7,18 @@ import {
   getCardPlaybackState,
 } from '../frameMath'
 import type {
+  CanvasFrameRect,
   CanvasMotionRenderer,
   CanvasRenderResources,
 } from './types'
+import { resolveCanvasFrameBounds } from './frameBounds'
 
 export interface CanvasExportSession {
   begin(): Promise<void>
   renderFrame(time: number): void
+  frameBounds(time: number): CanvasFrameRect
   readRgba(): Uint8ClampedArray
+  readRgbaRegion(rect: CanvasFrameRect): Uint8ClampedArray
   capturePng(): Promise<Blob>
   end(): void
 }
@@ -36,6 +40,7 @@ interface CanvasExportSessionOptions {
   resolveRenderer(
     motionId: MotionId,
   ): CanvasMotionRenderer<ParameterValues> | undefined
+  resolveBounds?(motionId: MotionId): CanvasFrameRect | undefined
   fontReady(): Promise<void>
   resources?: CanvasRenderResources
 }
@@ -54,6 +59,12 @@ export function createCanvasExportSession({
   resolveRenderer,
   fontReady,
   resources = DEFAULT_CANVAS_RESOURCES,
+  resolveBounds = () => ({
+    x: 0,
+    y: 0,
+    width: EXPORT_WIDTH,
+    height: EXPORT_HEIGHT,
+  }),
 }: CanvasExportSessionOptions): CanvasExportSession {
   canvas.width = EXPORT_WIDTH
   canvas.height = EXPORT_HEIGHT
@@ -110,9 +121,18 @@ export function createCanvasExportSession({
         }
       }
     },
+    frameBounds(time) {
+      if (!begun) throw new Error('Canvas 导出会话尚未开始')
+      return resolveCanvasFrameBounds(cards, time, resolveBounds)
+    },
     readRgba() {
       if (!begun) throw new Error('Canvas 导出会话尚未开始')
       return ctx.getImageData(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT).data
+    },
+    readRgbaRegion(rect) {
+      if (!begun) throw new Error('Canvas 导出会话尚未开始')
+      if (rect.width === 0 || rect.height === 0) return new Uint8ClampedArray(0)
+      return ctx.getImageData(rect.x, rect.y, rect.width, rect.height).data
     },
     async capturePng() {
       if (!begun) throw new Error('Canvas 导出会话尚未开始')

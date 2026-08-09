@@ -7,7 +7,27 @@ import {
   drawText,
 } from '../../export/canvas/primitives'
 import type { CompareSplitParams } from '../types'
+import { COMPARE_SPLIT_LAYOUT, getCompareSplitTrackLayout } from './compareSplitLayout'
 import { getCompareSplitState } from './compareSplitState'
+
+function meterScale(value: number) {
+  if (!Number.isFinite(value)) return 0.08
+  return Math.max(0.08, Math.min(1, value / 100))
+}
+
+function withLetterSpacing(
+  ctx: CanvasRenderingContext2D,
+  letterSpacing: string,
+  draw: () => void,
+) {
+  ctx.save()
+  try {
+    ctx.letterSpacing = letterSpacing
+    draw()
+  } finally {
+    ctx.restore()
+  }
+}
 
 export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams> = ({
   ctx,
@@ -16,104 +36,195 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
   resources,
 }) => {
   const state = getCompareSplitState(params, localTime)
+  const { panel, content, headerDividerY, tracks, conclusionDividerY, conclusionTextY } = COMPARE_SPLIT_LAYOUT
+  const trackLayout = getCompareSplitTrackLayout(state.verticalSplit)
+  const contentRight = content.x + content.width
+  const suffix = params.suffix || '%'
+
   drawGrid(ctx, { width: resources.width, height: 930, step: 96, alpha: 0.09 })
-  drawText(ctx, {
-    text: '02 / 对比研究', x: 96, y: 74,
-    font: `600 13px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlue, maxWidth: 240, alpha: state.headerOpacity,
+  drawPanel(ctx, {
+    x: panel.x,
+    y: panel.y,
+    width: panel.width,
+    height: panel.height,
+    fill: 'rgba(5,6,6,.72)',
+    stroke: null,
+    alpha: state.panelOpacity,
   })
-  drawText(ctx, {
-    text: params.title || '未命名对比', x: 96, y: 108,
-    font: `600 38px ${resources.contentFont}`,
-    color: CANVAS_COLORS.paper, maxWidth: 900, alpha: state.headerOpacity,
+  drawPencilLine(ctx, {
+    x1: panel.x, y1: panel.y, x2: panel.x + panel.width, y2: panel.y,
+    color: 'rgba(241,238,229,.32)', alpha: state.panelOpacity,
+  })
+  drawPencilLine(ctx, {
+    x1: panel.x, y1: panel.y, x2: panel.x, y2: panel.y + panel.height,
+    color: 'rgba(241,238,229,.28)', width: 2, alpha: state.panelOpacity,
   })
 
-  const left = { x: 82, y: 200, width: 470, height: 550 }
-  const right = { x: 590, y: 200, width: 470, height: 550 }
+  withLetterSpacing(ctx, '2.9px', () => drawText(ctx, {
+    text: '03 / 对比研究',
+    x: content.x,
+    y: 147,
+    font: `500 12px ${resources.monoFont}`,
+    color: CANVAS_COLORS.accentBlue,
+    maxWidth: content.width,
+    alpha: state.headerOpacity,
+  }))
+  withLetterSpacing(ctx, '1.3px', () => drawText(ctx, {
+    text: params.title || '未命名对比',
+    x: content.x,
+    y: 172,
+    font: `650 34px ${resources.contentFont}`,
+    color: CANVAS_COLORS.paper,
+    maxWidth: content.width,
+    alpha: state.headerOpacity,
+  }))
+  drawPencilLine(ctx, {
+    x1: content.x, y1: headerDividerY, x2: contentRight, y2: headerDividerY,
+    color: 'rgba(241,238,229,.32)', alpha: state.headerOpacity,
+  })
+  drawPencilLine(ctx, {
+    x1: content.x, y1: headerDividerY + 3, x2: contentRight, y2: headerDividerY + 3,
+    color: 'rgba(241,238,229,.18)', alpha: state.headerOpacity,
+  })
 
-  const drawSide = (side: 'left' | 'right') => {
-    const box = side === 'left' ? left : right
-    const reveal = side === 'left' ? state.leftReveal : state.rightReveal
-    const emphasized = params.emphasis === side
-    const value = side === 'left' ? state.leftValue : state.rightValue
-    const label = side === 'left'
-      ? (params.leftLabel || '左侧')
-      : (params.rightLabel || '右侧')
-    const meter = side === 'left' ? state.leftMeter : state.rightMeter
-
-    ctx.save()
-    ctx.beginPath()
-    ctx.rect(box.x, box.y, box.width * reveal, box.height)
-    ctx.clip()
-    drawPanel(ctx, {
-      ...box,
-      fill: emphasized ? 'rgba(20,23,23,.82)' : 'rgba(5,6,6,.62)',
-      stroke: null,
+  const drawTrack = ({
+    startY,
+    endY,
+    index,
+    label,
+    value,
+    rawValue,
+    emphasized,
+    opacity,
+    highlight = 0,
+  }: {
+    startY: number
+    endY: number
+    index: string
+    label: string
+    value: string
+    rawValue: number
+    emphasized: boolean
+    opacity: number
+    highlight?: number
+  }) => {
+    const readingY = startY + Math.min(76, Math.max(62, (endY - startY) * 0.38))
+    const meterY = endY - 18
+    if (highlight > 0) {
+      drawPanel(ctx, {
+        x: content.x,
+        y: startY,
+        width: content.width,
+        height: endY - startY,
+        fill: `rgba(47,103,178,${highlight * 0.16})`,
+        stroke: null,
+        alpha: opacity,
+      })
+    }
+    withLetterSpacing(ctx, '1.5px', () => drawText(ctx, {
+      text: index,
+      x: content.x,
+      y: startY + 20,
+      font: `500 11px ${resources.monoFont}`,
+      color: emphasized ? CANVAS_COLORS.accentBlue : '#737a7f',
+      maxWidth: content.width,
+      alpha: opacity,
+    }))
+    withLetterSpacing(ctx, '.8px', () => drawText(ctx, {
+      text: label,
+      x: content.x,
+      y: readingY + 16,
+      font: `500 20px ${resources.contentFont}`,
+      color: '#9ba1a4',
+      maxWidth: 242,
+      alpha: opacity,
+    }))
+    drawText(ctx, {
+      text: value,
+      x: content.x + 290,
+      y: readingY,
+      font: `650 70px ${resources.displayFont}`,
+      color: emphasized ? CANVAS_COLORS.paper : '#a8adae',
+      maxWidth: 190,
+      alpha: opacity,
     })
     drawText(ctx, {
-      text: side === 'left' ? '方案甲 / 01' : '方案乙 / 02',
-      x: box.x + 28, y: box.y + 28,
-      font: `600 12px ${resources.monoFont}`,
-      color: emphasized ? CANVAS_COLORS.accentBlue : '#7c8184',
-      maxWidth: box.width - 56,
-    })
-    drawText(ctx, {
-      text: label, x: box.x + 34, y: box.y + 116,
-      font: `500 28px ${resources.contentFont}`,
-      color: emphasized ? CANVAS_COLORS.paper : '#999e9f',
-      maxWidth: box.width - 68,
-    })
-    drawText(ctx, {
-      text: value, x: box.x + 34, y: box.y + 176,
-      font: `650 94px ${resources.displayFont}`,
-      color: emphasized ? CANVAS_COLORS.paper : '#a1a5a4',
-      maxWidth: box.width - 110,
-    })
-    drawText(ctx, {
-      text: params.suffix, x: box.x + box.width - 66, y: box.y + 225,
-      font: `550 26px ${resources.displayFont}`,
-      color: emphasized ? CANVAS_COLORS.accentBlue : '#858a89', maxWidth: 44,
-    })
-    drawText(ctx, {
-      text: side === 'left' ? '基准 / 参考' : '当前 / 已优化',
-      x: box.x + 34, y: box.y + 350,
-      font: `500 12px ${resources.monoFont}`,
-      color: '#74797c', maxWidth: box.width - 68,
+      text: suffix,
+      x: content.x + 498,
+      y: readingY + 46,
+      font: `500 22px ${resources.contentFont}`,
+      color: emphasized ? CANVAS_COLORS.accentBlue : '#81888c',
+      maxWidth: 52,
+      alpha: opacity,
     })
     drawPencilLine(ctx, {
-      x1: box.x + 34, y1: box.y + 418,
-      x2: box.x + box.width - 34, y2: box.y + 418,
-      color: '#555a5d',
+      x1: content.x, y1: meterY, x2: contentRight, y2: meterY,
+      color: 'rgba(241,238,229,.12)', width: 3, alpha: opacity,
     })
     drawPencilLine(ctx, {
-      x1: box.x + 34, y1: box.y + 418,
-      x2: box.x + 34 + (box.width - 68) * Math.min(1, meter),
-      y2: box.y + 418,
-      color: emphasized ? CANVAS_COLORS.accentBlue : '#94999a',
-      width: emphasized ? 5 : 3,
+      x1: content.x,
+      y1: meterY,
+      x2: content.x + content.width * meterScale(rawValue),
+      y2: meterY,
+      color: emphasized ? CANVAS_COLORS.accentBlue : '#8e9598',
+      width: emphasized ? 4 : 3,
+      alpha: opacity,
     })
-    ctx.restore()
   }
 
-  drawSide('left')
-  drawSide('right')
-  drawPencilLine(ctx, {
-    x1: 540, y1: 480, x2: 582, y2: 480,
-    color: CANVAS_COLORS.accentBlue, width: 3, alpha: state.resultOpacity,
+  drawTrack({
+    startY: trackLayout.upperY,
+    endY: trackLayout.dividerY,
+    index: '基准 / 01',
+    label: params.leftLabel || '优化前',
+    value: state.upperValue,
+    rawValue: params.leftValue,
+    emphasized: state.emphasis === 'left',
+    opacity: state.upperOpacity,
   })
 
-  drawPanel(ctx, {
-    x: 82, y: 820, width: 978, height: 122,
-    fill: 'rgba(5,6,6,.68)', stroke: null, alpha: state.resultOpacity,
+  const scanY = tracks.topY
+    + (trackLayout.dividerY - tracks.topY) * state.scanProgress
+  drawPencilLine(ctx, {
+    x1: content.x, y1: scanY, x2: contentRight, y2: scanY,
+    color: CANVAS_COLORS.accentBlue,
+    width: 3,
+    alpha: state.scanProgress,
   })
-  drawText(ctx, {
-    text: '结论 / 已锁定', x: 116, y: 850,
-    font: `600 12px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlue, maxWidth: 180, alpha: state.resultOpacity,
+
+  drawTrack({
+    startY: trackLayout.lowerY,
+    endY: trackLayout.bottomY,
+    index: '结果 / 02',
+    label: params.rightLabel || '优化后',
+    value: state.lowerValue,
+    rawValue: params.rightValue,
+    emphasized: state.emphasis === 'right',
+    opacity: state.lowerOpacity,
+    highlight: state.lowerHighlight,
   })
-  drawText(ctx, {
-    text: params.conclusion || '暂无结论', x: 116, y: 882,
-    font: `500 28px ${resources.contentFont}`,
-    color: CANVAS_COLORS.paper, maxWidth: 860, alpha: state.resultOpacity,
+
+  drawPencilLine(ctx, {
+    x1: content.x, y1: conclusionDividerY, x2: contentRight, y2: conclusionDividerY,
+    color: CANVAS_COLORS.accentBlueMuted,
+    alpha: state.resultOpacity,
   })
+  withLetterSpacing(ctx, '1.3px', () => drawText(ctx, {
+    text: '结论 / 已锁定',
+    x: content.x,
+    y: conclusionTextY,
+    font: `500 11px ${resources.monoFont}`,
+    color: CANVAS_COLORS.accentBlue,
+    maxWidth: 126,
+    alpha: state.resultOpacity,
+  }))
+  withLetterSpacing(ctx, '.8px', () => drawText(ctx, {
+    text: params.conclusion || '暂无结论',
+    x: content.x + 144,
+    y: conclusionTextY - 4,
+    font: `550 20px ${resources.contentFont}`,
+    color: CANVAS_COLORS.paper,
+    maxWidth: content.width - 144,
+    alpha: state.resultOpacity,
+  }))
 }

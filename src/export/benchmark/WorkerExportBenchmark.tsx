@@ -16,6 +16,7 @@ import {
   unionCanvasFrameRects,
 } from '../canvas/frameBounds'
 import type { CanvasFrameRect } from '../canvas/types'
+import { createRoiStressSamples } from './roiStressFixtures'
 
 export type BenchmarkMode = 'short' | 'long'
 
@@ -148,29 +149,7 @@ async function verifyCanvasParity() {
     const ready = await readyPromise
     if (ready.type !== 'ready') throw new Error('Canvas 一致性 Worker 未准备')
     const resources = await loadWorkerFonts(document.fonts, FontFace)
-    const samples = motionRegistry.flatMap((definition) => {
-      const duration = typeof definition.defaults.duration === 'number'
-        ? definition.defaults.duration
-        : 3
-      return [
-        0.25,
-        Math.max(0.8, duration * 0.25),
-        Math.max(1.8, duration * 0.65),
-        Math.max(2.5, duration - 0.3),
-      ]
-        .map((time) => ({
-          card: {
-            id: `parity-${definition.id}-${time}`,
-            motionId: definition.id,
-            start: 0,
-            end: Math.max(10, duration + 1),
-            position: { x: 0, y: 0 },
-            zIndex: 0,
-            params: { ...definition.defaults },
-          } satisfies OverlayCard,
-          time,
-        }))
-    })
+    const samples = createRoiStressSamples()
 
     const parityDiff = {
       maxChangedRatio: 0,
@@ -185,20 +164,24 @@ async function verifyCanvasParity() {
         canvas,
         cards: [sample.card],
         resolveRenderer: resolveCanvasRenderer,
+        resolveBounds: resolveMotionBounds,
         fontReady: async () => undefined,
         resources,
       })
       await session.begin()
       session.renderFrame(sample.time)
       const htmlPixels = session.readRgba()
-      const sampleLabel = `${sample.card.motionId}@${sample.time}`
-      requireAlpha(htmlPixels, `HTML ${sampleLabel}`)
+      const sampleLabel = `${sample.card.motionId}/${sample.parameterProfile}`
+        + `@${sample.time}[${sample.card.position.x},${sample.card.position.y}]`
+      const predicted = session.frameBounds(sample.time)
+      if (predicted.width > 0 && predicted.height > 0) {
+        requireAlpha(htmlPixels, `HTML ${sampleLabel}`)
+      }
       const observed = findVisiblePixelBounds(
         htmlPixels,
         EXPORT_WIDTH,
         EXPORT_HEIGHT,
       )
-      const predicted = resolveMotionBounds(sample.card.motionId)
       if (
         observed.x < predicted.x
         || observed.y < predicted.y
@@ -219,7 +202,9 @@ async function verifyCanvasParity() {
         throw new Error('Canvas 一致性 Worker 返回无效帧')
       }
       const workerPixels = new Uint8ClampedArray(response.pixels)
-      requireAlpha(workerPixels, `Worker ${sampleLabel}`)
+      if (predicted.width > 0 && predicted.height > 0) {
+        requireAlpha(workerPixels, `Worker ${sampleLabel}`)
+      }
       if (workerPixels.length !== htmlPixels.length) {
         throw new Error('HTML/Worker Canvas 像素长度不一致')
       }

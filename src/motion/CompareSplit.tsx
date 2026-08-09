@@ -1,10 +1,20 @@
-import type { CSSProperties } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useRef } from 'react'
+import {
+  motion,
+  useMotionValueEvent,
+  useReducedMotion,
+  useTime,
+  useTransform,
+} from 'motion/react'
+import type { MotionStyle, MotionValue } from 'motion/react'
 import { PencilTexture } from './PencilTexture'
 import { getCompareSplitState } from './canvas/compareSplitState'
 import type { CompareSplitParams, MotionComponentProps } from './types'
 
-type CompareStyle = CSSProperties & Record<`--${string}`, string | number>
+type CompareStyle = MotionStyle & Record<
+  `--${string}`,
+  string | number | MotionValue<string | number>
+>
 
 function meterScale(value: number) {
   if (!Number.isFinite(value)) return 0.08
@@ -13,13 +23,41 @@ function meterScale(value: number) {
 
 export function CompareSplit({
   params,
-  playbackTime = 0,
+  playbackTime,
 }: MotionComponentProps<CompareSplitParams>) {
   const reduceMotion = useReducedMotion()
+  const clock = useTime()
+  const upperValueRef = useRef<HTMLSpanElement>(null)
+  const lowerValueRef = useRef<HTMLSpanElement>(null)
   const stableTime = Math.max(2.4, params.duration + 0.6)
-  const state = getCompareSplitState(
-    params,
-    reduceMotion ? stableTime : playbackTime,
+  const stable = getCompareSplitState(params, stableTime)
+  const sampled = playbackTime === undefined
+    ? null
+    : getCompareSplitState(params, playbackTime)
+  const content = reduceMotion ? stable : sampled ?? getCompareSplitState(params, 0)
+  const liveState = useTransform(clock, (milliseconds) =>
+    getCompareSplitState(params, milliseconds / 1000))
+  const livePanelOpacity = useTransform(liveState, (state) => state.panelOpacity)
+  const liveHeaderOpacity = useTransform(liveState, (state) => state.headerOpacity)
+  const liveUpperOpacity = useTransform(liveState, (state) => state.upperOpacity)
+  const liveLowerOpacity = useTransform(liveState, (state) => state.lowerOpacity)
+  const liveScanProgress = useTransform(liveState, (state) => state.scanProgress)
+  const liveScanTop = useTransform(
+    liveState,
+    (state) => `${state.verticalSplit * state.scanProgress}%`,
+  )
+  const liveLowerHighlight = useTransform(liveState, (state) => state.lowerHighlight)
+  const liveResultOpacity = useTransform(liveState, (state) => state.resultOpacity)
+  const liveMode = !reduceMotion && sampled === null
+
+  useMotionValueEvent(liveState, 'change', (state) => {
+    if (!liveMode) return
+    if (upperValueRef.current) upperValueRef.current.textContent = state.upperValue
+    if (lowerValueRef.current) lowerValueRef.current.textContent = state.lowerValue
+  })
+
+  const animated = <T,>(stableValue: T, sampledValue: T, liveValue: MotionValue<T>) => (
+    reduceMotion ? stableValue : sampled ? sampledValue : liveValue
   )
   const suffix = params.suffix || '%'
 
@@ -31,33 +69,47 @@ export function CompareSplit({
       <PencilTexture variant="eraser" />
       <div className="canvas-grid" aria-hidden="true" />
 
-      <section
+      <motion.section
         className="compare-split__card"
         data-testid="compare-card"
         data-zone="left-primary"
         style={{
-          '--compare-split': `${state.verticalSplit}%`,
-          opacity: state.panelOpacity,
+          '--compare-split': `${content.verticalSplit}%`,
+          opacity: animated(
+            stable.panelOpacity,
+            sampled?.panelOpacity ?? content.panelOpacity,
+            livePanelOpacity,
+          ),
         } as CompareStyle}
       >
-        <header
+        <motion.header
           className="compare-split__header"
-          style={{ opacity: state.headerOpacity }}
+          style={{
+            opacity: animated(
+              stable.headerOpacity,
+              sampled?.headerOpacity ?? content.headerOpacity,
+              liveHeaderOpacity,
+            ),
+          }}
         >
           <span>03 / 对比研究</span>
           <h2 className="motion-content-text">
             {params.title || '未命名对比'}
           </h2>
-        </header>
+        </motion.header>
 
         <div className="compare-split__tracks">
-          <article
+          <motion.article
             className="compare-track compare-track--upper"
             data-testid="compare-upper"
-            data-emphasized={state.emphasis === 'left'}
+            data-emphasized={content.emphasis === 'left'}
             style={{
               '--meter-scale': meterScale(params.leftValue),
-              opacity: state.upperOpacity,
+              opacity: animated(
+                stable.upperOpacity,
+                sampled?.upperOpacity ?? content.upperOpacity,
+                liveUpperOpacity,
+              ),
             } as CompareStyle}
           >
             <span className="compare-track__index">基准 / 01</span>
@@ -66,31 +118,47 @@ export function CompareSplit({
                 {params.leftLabel || '优化前'}
               </span>
               <strong>
-                {state.upperValue}
+                <span ref={upperValueRef}>{content.upperValue}</span>
                 <em>{suffix}</em>
               </strong>
             </div>
             <i className="compare-track__meter" aria-hidden="true" />
-          </article>
+          </motion.article>
 
-          <i
+          <motion.i
             className="compare-split__scan"
             data-testid="compare-scan"
             aria-hidden="true"
             style={{
-              top: `${state.verticalSplit * state.scanProgress}%`,
-              opacity: state.scanProgress,
+              top: animated(
+                `${stable.verticalSplit * stable.scanProgress}%`,
+                `${content.verticalSplit * content.scanProgress}%`,
+                liveScanTop,
+              ),
+              opacity: animated(
+                stable.scanProgress,
+                sampled?.scanProgress ?? content.scanProgress,
+                liveScanProgress,
+              ),
             }}
           />
 
-          <article
+          <motion.article
             className="compare-track compare-track--lower"
             data-testid="compare-lower"
-            data-emphasized={state.emphasis === 'right'}
+            data-emphasized={content.emphasis === 'right'}
             style={{
               '--meter-scale': meterScale(params.rightValue),
-              '--highlight': state.lowerHighlight,
-              opacity: state.lowerOpacity,
+              '--highlight': animated(
+                stable.lowerHighlight,
+                sampled?.lowerHighlight ?? content.lowerHighlight,
+                liveLowerHighlight,
+              ),
+              opacity: animated(
+                stable.lowerOpacity,
+                sampled?.lowerOpacity ?? content.lowerOpacity,
+                liveLowerOpacity,
+              ),
             } as CompareStyle}
           >
             <span className="compare-track__index">结果 / 02</span>
@@ -99,27 +167,33 @@ export function CompareSplit({
                 {params.rightLabel || '优化后'}
               </span>
               <strong>
-                {state.lowerValue}
+                <span ref={lowerValueRef}>{content.lowerValue}</span>
                 <em>{suffix}</em>
               </strong>
             </div>
             <i className="compare-track__meter" aria-hidden="true" />
-          </article>
+          </motion.article>
         </div>
 
-        <footer
+        <motion.footer
           className="compare-split__result"
           data-testid="compare-result"
           data-zone="left-primary"
           data-safe-motion="upward"
-          style={{ opacity: state.resultOpacity }}
+          style={{
+            opacity: animated(
+              stable.resultOpacity,
+              sampled?.resultOpacity ?? content.resultOpacity,
+              liveResultOpacity,
+            ),
+          }}
         >
           <span>结论 / 已锁定</span>
           <strong className="motion-content-text">
             {params.conclusion || '暂无结论'}
           </strong>
-        </footer>
-      </section>
+        </motion.footer>
+      </motion.section>
     </div>
   )
 }

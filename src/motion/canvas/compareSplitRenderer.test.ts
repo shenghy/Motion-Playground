@@ -36,7 +36,7 @@ const resources = {
   displayFont: 'Syne Variable',
   monoFont: 'IBM Plex Mono',
   contentFont: 'Noto Sans SC Variable',
-}
+} as const
 
 const params: CompareSplitParams = {
   title: '转化率', leftLabel: '优化前', leftValue: 42,
@@ -48,7 +48,7 @@ function render(overrides: Partial<CompareSplitParams> = {}) {
   const captured = createContext()
   renderCompareSplitToCanvas({
     ctx: captured.context,
-    params: { ...params, ...overrides },
+    params: { ...params, ...overrides } as CompareSplitParams,
     localTime: 2,
     resources,
   })

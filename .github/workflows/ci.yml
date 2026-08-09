@@ -1,0 +1,28 @@
+name: Windows CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci
+      - name: Unit and integration tests
+        run: npm test -- --run
+      - name: Visual rendering contracts
+        run: npm run test:visual
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build

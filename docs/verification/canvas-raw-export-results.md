@@ -23,7 +23,7 @@ local export server does not advertise the v3 ordered RLE protocol.
 
 ## Mixed 300-frame benchmark
 
-The fixture contains all six motions, overlapping cards with different z-index values, positive and negative positions, a transparent gap, and looping motion state.
+The fixture contains all eight motions, overlapping cards with different z-index values, positive and negative positions, a transparent gap, and one-shot motion state.
 
 | Run | Total | FPS | Frame capture | Frame transfer | Encoding |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -40,7 +40,7 @@ The three local save times were 336 ms, 303 ms, and 295 ms.
 
 Four samples per motion (entrance, expansion, stable, exit) were rendered in
 both the main-thread HTML Canvas renderer and the Worker OffscreenCanvas
-renderer, for 24 samples total. All 24 samples passed:
+renderer, for 32 samples total. All 32 samples passed:
 
 - visible pixels have non-zero Alpha;
 - all four canvas corners remain Alpha 0;
@@ -80,3 +80,18 @@ Audio streams: none
 ```
 
 Frames 0, 5,624, and 11,247 were decoded through `alphaextract,signalstats`. Every sample reported `YMIN=0` and `YMAX=4095`, proving each sampled frame contains both fully transparent and fully opaque Alpha regions. The final-frame sample also confirms frame 11,247 exists, matching 11,248 total frames indexed from zero.
+
+## Unified preview/export renderer verification
+
+Date: 2026-08-09 (Asia/Shanghai)
+
+The live React preview now hosts the same Canvas renderer function used by
+main-thread export and Worker OffscreenCanvas export. The legacy per-motion
+React visual renderers are no longer part of the production registry or bundle.
+
+- `npm run test:visual`: 6 files / 18 tests passed.
+- Browser benchmark: 60/60 frames completed in 2.632 seconds.
+- Browser/Worker parity: 32 samples, changed-byte ratio 0, mean absolute error 0, maximum channel delta 0.
+- Output: 16,549,304-byte MOV, 2.00 seconds, 30 fps.
+- FFmpeg probe: ProRes 4444 (`ap4h`), `yuva444p12le`, 1920x1080, no audio.
+- Alpha samples: frame 0 is fully transparent as the one-shot entrance begins; frames 30 and 59 both contain `YMIN=0` and `YMAX=4095`, proving transparent and fully opaque regions coexist after entrance.

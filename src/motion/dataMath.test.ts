@@ -1,4 +1,9 @@
-import { clampDataValue, normalizeShares, resolveFocusIndex } from './dataMath'
+import {
+  clampDataValue,
+  formatCountUp,
+  normalizeShares,
+  resolveFocusIndex,
+} from './dataMath'
 
 describe('dataMath', () => {
   it('clamps invalid data values into a safe range', () => {
@@ -15,5 +20,11 @@ describe('dataMath', () => {
   it('uses the requested focus or falls back to the largest value', () => {
     expect(resolveFocusIndex([20, 70, 10], '2')).toBe(1)
     expect(resolveFocusIndex([20, 70, 10], '9')).toBe(1)
+  })
+
+  it('formats deterministic count-up values without React', () => {
+    expect(formatCountUp(100, 2, 0, 0)).toBe('0')
+    expect(formatCountUp(100, 2, 1, 2)).toBe('100.0')
+    expect(formatCountUp(100, 2, 0, 1)).toBe('94')
   })
 })

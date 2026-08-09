@@ -3,20 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { MOTION_IDS } from './types'
 import { getMotionDefinition } from './registry'
 
-const componentFiles = [
-  'Narrative.tsx',
-  'MetricFocus.tsx',
-  'CompareSplit.tsx',
-  'ProfileReveal.tsx',
-  'BarCompare.tsx',
-  'ShareRing.tsx',
-  'StepFlow.tsx',
-  'AudiencePoll.tsx',
-]
+const previewFiles = ['MotionCanvasPreview.tsx']
 
 describe('one-shot motion contract', () => {
-  it('does not configure any motion component to repeat forever', () => {
-    for (const file of componentFiles) {
+  it('does not configure the shared preview renderer to repeat forever', () => {
+    for (const file of previewFiles) {
       const source = readFileSync(new URL(file, import.meta.url), 'utf8')
       expect(source, file).not.toMatch(/repeat\s*:\s*Infinity/)
     }

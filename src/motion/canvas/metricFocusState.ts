@@ -1,6 +1,6 @@
 import { delayedProgress } from '../../export/frameMath'
 import { samplePencilEase } from '../../export/canvas/timing'
-import { formatCountUp } from '../useCountUp'
+import { formatCountUp } from '../dataMath'
 import type { MetricFocusParams } from '../types'
 
 interface LayerState {

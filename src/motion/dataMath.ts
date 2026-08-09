@@ -3,6 +3,18 @@ export function clampDataValue(value: number, max: number) {
   return Math.min(max, Math.max(0, value))
 }
 
+export function formatCountUp(
+  target: number,
+  duration: number,
+  decimals = 0,
+  playbackTime = 0,
+) {
+  const safeDuration = Math.max(0.2, duration)
+  const progress = Math.min(1, Math.max(0, playbackTime / safeDuration))
+  const eased = 1 - Math.pow(1 - progress, 4)
+  return (target * eased).toFixed(decimals)
+}
+
 export function normalizeShares(values: number[]) {
   if (values.length === 0) return []
 

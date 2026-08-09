@@ -1,7 +1,7 @@
 import { delayedProgress } from '../../export/frameMath'
 import { sampleOnce, samplePencilEase } from '../../export/canvas/timing'
 import type { CompareSplitParams } from '../types'
-import { formatCountUp } from '../useCountUp'
+import { formatCountUp } from '../dataMath'
 
 function clampDuration(duration: number) {
   if (!Number.isFinite(duration)) return 1.5

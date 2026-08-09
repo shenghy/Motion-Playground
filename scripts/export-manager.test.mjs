@@ -92,7 +92,7 @@ describe('transparent MOV export manager', () => {
     }
   })
 
-  it('reconstructs an ROI packet into one exact full RGBA frame', async () => {
+  it('streams one exact fixed ROI and lets FFmpeg pad it to the full frame', async () => {
     const temporaryRoot = await mkdtemp(join(tmpdir(), 'overlay-export-'))
     const child = createFakeProcess()
     const writeRoiToInput = child.stdin.write.bind(child.stdin)
@@ -100,9 +100,10 @@ describe('transparent MOV export manager', () => {
       writeRoiToInput(chunk, callback)
       return true
     })
+    const spawnProcess = vi.fn(() => child)
     const manager = createExportManager({
       ffmpegPath: 'bundled-ffmpeg',
-      spawnProcess: () => child,
+      spawnProcess,
       temporaryRoot,
     })
     const input = []
@@ -115,6 +116,7 @@ describe('transparent MOV export manager', () => {
         fps: 30,
         totalFrames: 1,
         transport: 'raw-rgba-roi-ordered',
+        roiBounds: { x: 1, y: 1, width: 2, height: 1 },
       })
       await manager.appendRoiFrame(job.id, 0, {
         rect: { x: 1, y: 1, width: 2, height: 1 },
@@ -122,13 +124,11 @@ describe('transparent MOV export manager', () => {
       })
 
       const received = Buffer.concat(input)
-      expect(received.length).toBe(rawFrameBytes(1920, 1080))
-      const rowOffset = (1920 + 1) * 4
-      expect(received.subarray(rowOffset, rowOffset + 8)).toEqual(
-        Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]),
-      )
-      expect(received.subarray(0, rowOffset).every((byte) => byte === 0)).toBe(true)
-      expect(received.subarray(rowOffset + 8).every((byte) => byte === 0)).toBe(true)
+      expect(received).toEqual(Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]))
+      expect(spawnProcess.mock.calls[0][1]).toEqual(expect.arrayContaining([
+        '-video_size', '2x1',
+        '-vf', 'pad=1920:1080:1:1:color=black@0',
+      ]))
     } finally {
       await manager.close()
       await rm(temporaryRoot, { recursive: true, force: true })

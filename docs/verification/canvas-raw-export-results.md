@@ -96,3 +96,31 @@ React visual renderers are no longer part of the production registry or bundle.
 - FFmpeg probe: ProRes 4444 (`ap4h`), `yuva444p12le`, 1920x1080, no audio.
 - Alpha samples: frame 0 is fully transparent as the one-shot entrance begins; frames 30 and 59 both contain `YMIN=0` and `YMAX=4095`, proving transparent and fully opaque regions coexist after entrance.
 - Clean-origin browser review: all eight component-library selections rendered a 1920x1080 `motion-canvas-preview` with the expected motion ID, and the page reported no preview errors or console warnings/errors.
+
+## Lossless ROI export verification
+
+Date: 2026-08-09 (Asia/Shanghai)
+
+The Worker now captures only the conservative visible region for the active
+motion. The server reconstructs that region inside an export-wide fixed crop,
+then FFmpeg pads the crop with transparent RGBA pixels before the unchanged
+`prores_ks` ProRes 4444 encoder. Motion-specific bounds include at least a
+24-pixel safety margin (with extra room for configurable narrative text) and
+are checked against 32 real rendered samples.
+
+- Previous 300-frame median: 37.56 fps.
+- Final 300-frame run: 7.529 seconds, 39.85 fps (6.1% faster).
+- Browser/Worker parity: 32 samples, zero changed pixels.
+- Final output: 108,112,875 bytes.
+- Final SHA-256: `4DD435B2FD9767210B2A7372D22F0FC1ED0ABEBF551A3A49338539322011B619`.
+- The SHA-256 is byte-for-byte identical to the pre-padding ROI output, proving
+  the crop/pad optimization did not change the encoded MOV.
+- FFmpeg probe: ProRes 4444 (`ap4h`), `yuva444p12le`, 1920x1080, 30 fps,
+  10.00 seconds, no audio.
+- Alpha samples: frame 0 is fully transparent; frames 150 and 299 contain both
+  `YMIN=0` and `YMAX=4095`.
+
+Raw ROI and zero-RLE ROI were both benchmarked. Extra RLE compression did not
+improve elapsed time and was removed. The remaining limit is the unchanged CPU
+ProRes encoder; hardware and alternate encoders were rejected because their
+decoded RGB output was not byte-equivalent to the current quality path.

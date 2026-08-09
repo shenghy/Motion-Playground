@@ -8,6 +8,8 @@ import {
   EXPORT_WIDTH,
 } from '../frameMath'
 import { discardTransparentMov } from '../movExportClient'
+import { resolveCanvasExportBounds } from '../canvas/frameBounds'
+import { resolveMotionBounds } from '../../motion/registry'
 import type { RenderRawMovResult } from '../rawMovClient'
 import type {
   WorkerExportCommand,
@@ -16,6 +18,13 @@ import type {
 } from './messages'
 
 const API_PREFIX = '/__overlay_export__'
+
+function exportRoiBounds(cards: OverlayCard[]) {
+  const bounds = resolveCanvasExportBounds(cards, resolveMotionBounds)
+  return bounds.width > 0 && bounds.height > 0
+    ? bounds
+    : { x: 0, y: 0, width: 1, height: 1 }
+}
 
 export interface WorkerLike {
   addEventListener(
@@ -228,6 +237,7 @@ export async function renderTransparentMovWorker({
         fps: EXPORT_FPS,
         totalFrames,
         transport: 'raw-rgba-roi-ordered',
+        roiBounds: exportRoiBounds(cards),
       }),
       signal,
     }))

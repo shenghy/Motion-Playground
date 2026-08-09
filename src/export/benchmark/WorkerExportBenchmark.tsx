@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react'
-import { motionRegistry } from '../../motion/registry'
+import { motionRegistry, resolveMotionBounds } from '../../motion/registry'
 import type { OverlayCard } from '../../timeline/types'
 import { createCanvasExportSession } from '../canvas/CanvasExportSurface'
 import { resolveCanvasRenderer } from '../canvas/rendererRegistry'
@@ -11,6 +11,11 @@ import {
 import { loadWorkerFonts } from '../worker/fonts'
 import { createExportPerformance } from '../exportPerformance'
 import { renderTransparentMovWorker } from '../worker/workerMovClient'
+import {
+  findVisiblePixelBounds,
+  unionCanvasFrameRects,
+} from '../canvas/frameBounds'
+import type { CanvasFrameRect } from '../canvas/types'
 
 export type BenchmarkMode = 'short' | 'long'
 
@@ -42,6 +47,7 @@ interface BenchmarkState {
     maxMeanAbsoluteError: number
     maxChannelDelta: number
   }
+  observedBounds?: Record<string, CanvasFrameRect>
   pipelineWindow: 3
   message?: string
 }
@@ -171,6 +177,7 @@ async function verifyCanvasParity() {
       maxMeanAbsoluteError: 0,
       maxChannelDelta: 0,
     }
+    const observedBounds: Record<string, CanvasFrameRect> = {}
     for (let id = 0; id < samples.length; id += 1) {
       const sample = samples[id]
       const canvas = document.createElement('canvas')
@@ -186,6 +193,23 @@ async function verifyCanvasParity() {
       const htmlPixels = session.readRgba()
       const sampleLabel = `${sample.card.motionId}@${sample.time}`
       requireAlpha(htmlPixels, `HTML ${sampleLabel}`)
+      const observed = findVisiblePixelBounds(
+        htmlPixels,
+        EXPORT_WIDTH,
+        EXPORT_HEIGHT,
+      )
+      const predicted = resolveMotionBounds(sample.card.motionId)
+      if (
+        observed.x < predicted.x
+        || observed.y < predicted.y
+        || observed.x + observed.width > predicted.x + predicted.width
+        || observed.y + observed.height > predicted.y + predicted.height
+      ) {
+        throw new Error(`Canvas ROI 边界没有覆盖可见像素：${sampleLabel}`)
+      }
+      observedBounds[sample.card.motionId] = observedBounds[sample.card.motionId]
+        ? unionCanvasFrameRects(observedBounds[sample.card.motionId], observed)
+        : observed
 
       const responsePromise = nextWorkerMessage(worker)
       worker.postMessage({ type: 'render', id, ...sample })
@@ -231,7 +255,7 @@ async function verifyCanvasParity() {
       }
       session.end()
     }
-    return { samples: samples.length, parityDiff }
+    return { samples: samples.length, parityDiff, observedBounds }
   } finally {
     worker.terminate()
   }
@@ -270,6 +294,7 @@ export function WorkerExportBenchmark() {
         publish({
           status: 'running', mode, stage: 'export', totalFrames,
           paritySamples, parityDiff: parity.parityDiff, pipelineWindow: 3,
+          observedBounds: parity.observedBounds,
         })
         const result = await renderTransparentMovWorker({
           cards: createBenchmarkCards(mode),
@@ -280,6 +305,7 @@ export function WorkerExportBenchmark() {
             status: 'running', mode, stage: progress.phase,
             completedFrames: progress.completedFrames,
             totalFrames, paritySamples, parityDiff: parity.parityDiff,
+            observedBounds: parity.observedBounds,
             pipelineWindow: 3,
             phases: progress.performance?.phases,
           }),
@@ -297,6 +323,7 @@ export function WorkerExportBenchmark() {
           fps: totalFrames / (elapsedMs / 1000),
           phases: snapshot.phases, paritySamples,
           parityDiff: parity.parityDiff, pipelineWindow: 3,
+          observedBounds: parity.observedBounds,
         })
       } catch (error) {
         publish({

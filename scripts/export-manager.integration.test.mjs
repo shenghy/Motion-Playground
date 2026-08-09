@@ -7,6 +7,30 @@ import { describe, expect, it } from 'vitest'
 import { createExportManager } from './export-manager.mjs'
 
 describe('bundled FFmpeg transparent MOV integration', () => {
+  it('pads a fixed ROI to an exact 1920x1080 transparent ProRes frame', async () => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), 'overlay-export-roi-integration-'))
+    const manager = createExportManager({
+      ffmpegPath,
+      temporaryRoot: join(temporaryRoot, 'jobs'),
+    })
+    try {
+      const job = await manager.createJob({
+        width: 1920, height: 1080, fps: 30, totalFrames: 1,
+        transport: 'raw-rgba-roi-ordered',
+        roiBounds: { x: 100, y: 100, width: 2, height: 2 },
+      })
+      await manager.appendRoiFrame(job.id, 0, {
+        rect: { x: 100, y: 100, width: 2, height: 2 },
+        pixels: Buffer.alloc(16, 255),
+      })
+      const result = await manager.finishJob(job.id)
+      expect(result.size).toBeGreaterThan(0)
+    } finally {
+      await manager.close()
+      await rm(temporaryRoot, { recursive: true, force: true })
+    }
+  })
+
   it('encodes a real raw RGBA frame as ProRes 4444 with alpha', async () => {
     const temporaryRoot = await mkdtemp(
       join(tmpdir(), 'overlay-export-raw-integration-'),

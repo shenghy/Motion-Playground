@@ -18,13 +18,18 @@ import type {
   ShareRingParams,
   StepFlowParams,
 } from './types'
+import type { CanvasFrameRect } from '../export/canvas/types'
 
-const LEFT_ZONE_CANVAS_BOUNDS = {
-  x: 24,
-  y: 44,
-  width: 800,
-  height: 904,
-} as const
+const MOTION_CANVAS_BOUNDS = {
+  narrative: { x: 72, y: 140, width: 850, height: 450 },
+  'metric-focus': { x: 68, y: 44, width: 657, height: 612 },
+  'compare-split': { x: 97, y: 94, width: 659, height: 828 },
+  'profile-reveal': { x: 54, y: 118, width: 734, height: 800 },
+  'bar-compare': { x: 54, y: 126, width: 664, height: 774 },
+  'share-ring': { x: 54, y: 126, width: 664, height: 774 },
+  'step-flow': { x: 98, y: 86, width: 658, height: 808 },
+  'audience-poll': { x: 97, y: 94, width: 659, height: 828 },
+} satisfies Record<MotionId, CanvasFrameRect>
 
 type RegisteredMotion =
   | MotionDefinition<NarrativeParams>
@@ -45,7 +50,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '文字 / 叙述',
     description: '双行大字内容概述',
     canvasRenderer: renderNarrativeToCanvas,
-    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
+    canvasBounds: MOTION_CANVAS_BOUNDS.narrative,
     defaults: {
       line1: '把复杂的工作',
       line2: '交给自动化',
@@ -67,7 +72,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 指标',
     description: '核心数字动效',
     canvasRenderer: renderMetricFocusToCanvas,
-    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
+    canvasBounds: MOTION_CANVAS_BOUNDS['metric-focus'],
     defaults: {
       eyebrow: '季度增长',
       value: 248,
@@ -97,7 +102,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '双层 / 对比',
     description: '上下双层数据轨',
     canvasRenderer: renderCompareSplitToCanvas,
-    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
+    canvasBounds: MOTION_CANVAS_BOUNDS['compare-split'],
     defaults: {
       title: '转化率',
       leftLabel: '优化前',
@@ -139,7 +144,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '叙事 / 人物',
     description: '逐句动态信息卡',
     canvasRenderer: renderProfileRevealToCanvas,
-    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
+    canvasBounds: MOTION_CANVAS_BOUNDS['profile-reveal'],
     defaults: {
       category: '创作者 / 人物档案',
       descriptor: '独立开发者 · 产品构建者',
@@ -177,7 +182,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 柱状',
     description: '柱状数据对比',
     canvasRenderer: renderBarCompareToCanvas,
-    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
+    canvasBounds: MOTION_CANVAS_BOUNDS['bar-compare'],
     defaults: {
       eyebrow: '04 / 数据对比',
       title: '季度增长',
@@ -231,7 +236,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '数据 / 占比',
     description: '环形占比分析',
     canvasRenderer: renderShareRingToCanvas,
-    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
+    canvasBounds: MOTION_CANVAS_BOUNDS['share-ring'],
     defaults: {
       eyebrow: '05 / 占比分析',
       title: '用户构成',
@@ -285,7 +290,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '流程 / 步骤',
     description: '步骤流程讲解',
     canvasRenderer: renderStepFlowToCanvas,
-    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
+    canvasBounds: MOTION_CANVAS_BOUNDS['step-flow'],
     defaults: {
       eyebrow: '06 / 流程图',
       title: '发布流程',
@@ -338,7 +343,7 @@ export const motionRegistry: RegisteredMotion[] = [
     category: '互动 / 投票',
     description: '编号投票互动卡片',
     canvasRenderer: renderAudiencePollToCanvas,
-    canvasBounds: LEFT_ZONE_CANVAS_BOUNDS,
+    canvasBounds: MOTION_CANVAS_BOUNDS['audience-poll'],
     defaults: {
       eyebrow: '08 / LIVE POLL',
       title: '你更看好哪种开发方式？',

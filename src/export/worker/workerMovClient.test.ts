@@ -135,6 +135,7 @@ describe('worker MOV client', () => {
       fps: 30,
       totalFrames: 1,
       transport: 'raw-rgba-roi-ordered',
+      roiBounds: { x: 0, y: 0, width: 1, height: 1 },
     })
     expect(onJobCreated).toHaveBeenCalledExactlyOnceWith('worker-job')
     expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({

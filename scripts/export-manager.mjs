@@ -56,6 +56,21 @@ function validateJobOptions({ width, height, fps, totalFrames }) {
   }
 }
 
+function validateRoiBounds(rect, frameWidth, frameHeight) {
+  if (
+    !rect
+    || !Number.isInteger(rect.x) || rect.x < 0
+    || !Number.isInteger(rect.y) || rect.y < 0
+    || !Number.isInteger(rect.width) || rect.width < 1
+    || !Number.isInteger(rect.height) || rect.height < 1
+    || rect.x + rect.width > frameWidth
+    || rect.y + rect.height > frameHeight
+  ) {
+    throw new Error('RGBA ROI 导出边界无效')
+  }
+  return { ...rect }
+}
+
 function validateTransport(transport) {
   if (
     transport !== 'png'
@@ -68,7 +83,15 @@ function validateTransport(transport) {
   }
 }
 
-export function rawFfmpegArguments(fps, outputPath, width = 1920, height = 1080) {
+export function rawFfmpegArguments(
+  fps,
+  outputPath,
+  width = 1920,
+  height = 1080,
+  roiBounds,
+) {
+  const inputWidth = roiBounds?.width ?? width
+  const inputHeight = roiBounds?.height ?? height
   return [
     '-hide_banner',
     '-loglevel',
@@ -78,11 +101,15 @@ export function rawFfmpegArguments(fps, outputPath, width = 1920, height = 1080)
     '-pixel_format',
     'rgba',
     '-video_size',
-    `${width}x${height}`,
+    `${inputWidth}x${inputHeight}`,
     '-framerate',
     String(fps),
     '-i',
     'pipe:0',
+    ...(roiBounds ? [
+      '-vf',
+      `pad=${width}:${height}:${roiBounds.x}:${roiBounds.y}:color=black@0`,
+    ] : []),
     '-an',
     '-c:v',
     'prores_ks',
@@ -155,6 +182,18 @@ export function createExportManager({
     validateJobOptions(options)
     const transport = options.transport ?? 'png'
     validateTransport(transport)
+    const roiBounds = transport === 'raw-rgba-roi-ordered'
+      ? validateRoiBounds(
+          options.roiBounds ?? {
+            x: 0,
+            y: 0,
+            width: options.width,
+            height: options.height,
+          },
+          options.width,
+          options.height,
+        )
+      : null
     if (!ffmpegPath) throw new Error('本地 FFmpeg 编码器不可用')
     if (activeJob) throw new Error('已有导出任务正在进行')
 
@@ -172,6 +211,7 @@ export function createExportManager({
             outputPath,
             options.width,
             options.height,
+            roiBounds,
           )
         : pngFfmpegArguments(options.fps, outputPath),
       { stdio: ['pipe', 'ignore', 'pipe'], windowsHide: true },
@@ -186,10 +226,11 @@ export function createExportManager({
       width: options.width,
       height: options.height,
       transport,
+      roiBounds,
       status: 'rendering',
       roiSlots: transport === 'raw-rgba-roi-ordered'
         ? Array.from({ length: 3 }, () => ({
-            buffer: Buffer.alloc(rawFrameBytes(options.width, options.height)),
+            buffer: Buffer.alloc(rawFrameBytes(roiBounds.width, roiBounds.height)),
             rect: { x: 0, y: 0, width: 0, height: 0 },
             pending: Promise.resolve(),
           }))
@@ -226,6 +267,7 @@ export function createExportManager({
       totalFrames: job.totalFrames,
       nextFrame: job.nextFrame,
       transport: job.transport,
+      roiBounds: job.roiBounds,
       status: job.status,
     }
   }
@@ -286,11 +328,19 @@ export function createExportManager({
     if (frameIndex !== job.nextFrame) throw new Error('透明导出帧序号不连续')
     const slot = job.roiSlots[frameIndex % job.roiSlots.length]
     await slot.pending
+    const translatedRect = roi.rect.width === 0 || roi.rect.height === 0
+      ? roi.rect
+      : {
+          x: roi.rect.x - job.roiBounds.x,
+          y: roi.rect.y - job.roiBounds.y,
+          width: roi.rect.width,
+          height: roi.rect.height,
+        }
     slot.rect = applyOrderedRoiFrame(
       slot.buffer,
-      roi,
-      job.width,
-      job.height,
+      { rect: translatedRect, pixels: roi.pixels },
+      job.roiBounds.width,
+      job.roiBounds.height,
       slot.rect,
     )
     let resolveConsumed

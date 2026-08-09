@@ -54,4 +54,20 @@ describe('AudiencePoll without reduced motion', () => {
     }
     expect(within(primary).getByText(params.callToAction)).toHaveStyle({ opacity: 0 })
   })
+
+  it('preserves a sole edited option and renders the normalized placeholder', () => {
+    render(<AudiencePoll params={{
+      ...params,
+      option1: '',
+      option2: '',
+      option3: '用户保留项',
+      option4: '',
+    }} playbackTime={3.4} />)
+
+    const options = within(screen.getByTestId('audience-poll-primary'))
+      .getAllByRole('listitem')
+    expect(options).toHaveLength(2)
+    expect(within(options[0]).getByText('用户保留项')).toBeInTheDocument()
+    expect(within(options[1]).getByText('待补充选项')).toBeInTheDocument()
+  })
 })

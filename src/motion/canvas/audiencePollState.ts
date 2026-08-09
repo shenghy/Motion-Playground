@@ -3,6 +3,7 @@ import { sampleCycle, samplePencilEase } from '../../export/canvas/timing'
 import type { AudiencePollParams } from '../types'
 
 const FALLBACK_OPTIONS = ['选项一', '选项二'] as const
+const SINGLE_OPTION_PLACEHOLDER = '待补充选项'
 
 function clampDuration(duration: number) {
   if (!Number.isFinite(duration)) return 6.2
@@ -14,7 +15,9 @@ function resolveOptions(params: AudiencePollParams) {
     .map((option) => option.trim())
     .filter(Boolean)
     .slice(0, 4)
-  return options.length >= 2 ? options : [...FALLBACK_OPTIONS]
+  if (options.length >= 2) return options
+  if (options.length === 1) return [options[0], SINGLE_OPTION_PLACEHOLDER]
+  return [...FALLBACK_OPTIONS]
 }
 
 function exitOpacity(time: number, cycle: number) {
@@ -56,8 +59,10 @@ export function getAudiencePollState(
   })
   const ctaStart = optionStart + labels.length * optionStagger + 0.18
   const cta = layer(time, cycle, ctaStart, 0.4)
-  const pulse = cta.opacity > 0
-    ? 1 + Math.sin(Math.max(0, time - ctaStart) * Math.PI * 1.25) * 0.012
+  const pulseDuration = 0.8
+  const pulseElapsed = time - ctaStart
+  const pulse = cta.opacity > 0 && pulseElapsed > 0 && pulseElapsed < pulseDuration
+    ? 1 + Math.sin((pulseElapsed / pulseDuration) * Math.PI) * 0.012
     : 1
 
   return {

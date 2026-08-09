@@ -152,6 +152,49 @@ describe('workspace storage', () => {
     })
   })
 
+  it('round-trips a singleton option without persisting a display placeholder', async () => {
+    const storage = createStorage()
+    const pollParams = {
+      ...defaultsByMotion['audience-poll'],
+      option1: '',
+      option2: '',
+      option3: '仅持久化这一项',
+      option4: '',
+    }
+    const workspace = createWorkspace({
+      project: {
+        version: 1,
+        canvas: { width: 1920, height: 1080 },
+        cards: [{
+          id: 'singleton-poll',
+          motionId: 'audience-poll',
+          start: 0,
+          end: 6.2,
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          params: pollParams,
+        }],
+      },
+      parametersByMotion: {
+        ...structuredClone(defaultsByMotion),
+        'audience-poll': pollParams,
+      },
+      activeId: 'audience-poll',
+    })
+
+    await storage.saveWorkspace(workspace)
+    const restored = await storage.load()
+    const parsed = parsePersistedWorkspace(restored.workspace, defaultsByMotion)
+
+    expect(parsed.parametersByMotion['audience-poll']).toEqual(pollParams)
+    expect(parsed.project.cards[0]).toMatchObject({
+      motionId: 'audience-poll',
+      params: pollParams,
+    })
+    expect(JSON.stringify(parsed.parametersByMotion['audience-poll']))
+      .not.toContain('待补充选项')
+  })
+
   it('commits, removes, and clears video and workspace records', async () => {
     const storage = createStorage()
     const video = createVideo()

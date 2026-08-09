@@ -248,4 +248,22 @@ describe('audience poll canvas renderer', () => {
       .filter(({ font }) => font === '500 33px Noto Sans SC Variable')
       .map(({ text }) => text)).toEqual(expectedLines)
   })
+
+  it('renders the same preserved singleton and placeholder as React', () => {
+    const { ctx } = createContext(realisticTextWidth)
+    renderAudiencePollToCanvas({ ctx, params: {
+      ...params,
+      option1: '',
+      option2: '',
+      option3: '用户保留项',
+      option4: '',
+    }, localTime: 3.4, resources: {
+      width: 1920, height: 1080, displayFont: 'Syne Variable',
+      monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
+    } })
+
+    const texts = vi.mocked(ctx.fillText).mock.calls.map(([text]) => text)
+    expect(texts).toEqual(expect.arrayContaining(['用户保留项', '待补充选项']))
+    expect(texts).not.toEqual(expect.arrayContaining(['选项一', '选项二']))
+  })
 })

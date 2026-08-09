@@ -26,12 +26,25 @@ describe('getAudiencePollState', () => {
     expect(state.options.map((option) => option.label)).toEqual(['第一项', '第三项'])
   })
 
-  it('uses two stable fallback choices when fewer than two options remain', () => {
-    const empty = getAudiencePollState({ ...params, option1: '', option2: '', option3: '', option4: '' }, 2)
-    const single = getAudiencePollState({ ...params, option1: '仅一个', option2: '', option3: '', option4: '' }, 2)
+  it('uses two stable fallback choices only when all options are empty', () => {
+    const empty = getAudiencePollState({
+      ...params, option1: '', option2: '', option3: '', option4: '',
+    }, 2)
 
     expect(empty.options.map((option) => option.label)).toEqual(['选项一', '选项二'])
-    expect(single.options.map((option) => option.label)).toEqual(['选项一', '选项二'])
+  })
+
+  it.each([
+    ['option1', { option1: '保留第一项', option2: '', option3: '', option4: '' }],
+    ['option3', { option1: '', option2: '', option3: '保留第三项', option4: '' }],
+  ])('preserves a sole %s value and appends a deterministic placeholder', (_label, options) => {
+    const state = getAudiencePollState({ ...params, ...options }, 2)
+
+    expect(state.options.map((option) => option.label)).toEqual([
+      Object.values(options).find(Boolean),
+      '待补充选项',
+    ])
+    expect(state.options).toHaveLength(2)
   })
 
   it('reveals header, options in sequence, then the call to action before a full exit', () => {
@@ -51,5 +64,17 @@ describe('getAudiencePollState', () => {
 
   it('sets the shared panel opacity to zero at the full cycle exit', () => {
     expect(getAudiencePollState(params, 6.2).panelOpacity).toBe(0)
+  })
+
+  it('runs one restrained CTA pulse and then remains at rest', () => {
+    const before = getAudiencePollState(params, 2.06).cta.scale
+    const peak = getAudiencePollState(params, 2.46).cta.scale
+    const settled = [2.86, 3.26, 3.66, 4.06]
+      .map((time) => getAudiencePollState(params, time).cta.scale)
+
+    expect(before).toBeCloseTo(1, 5)
+    expect(peak).toBeGreaterThan(1)
+    expect(peak).toBeLessThanOrEqual(1.012)
+    expect(settled).toEqual([1, 1, 1, 1])
   })
 })

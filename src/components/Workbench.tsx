@@ -134,7 +134,7 @@ export function Workbench({
       setOverlayWorkspace(next)
       return next
     },
-    [setOverlayWorkspace],
+    [exportOperationRef, setOverlayWorkspace],
   )
 
   const activeDefinition = useMemo(() => getMotionDefinition(activeId), [activeId])

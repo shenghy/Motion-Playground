@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react'
 import type { CanvasMotionRenderer } from '../export/canvas/types'
 
 export const MOTION_IDS = [
@@ -178,6 +177,5 @@ export interface MotionDefinition<T extends ParameterValues = ParameterValues> {
   timelineColor: `#${string}`
   defaults: T
   controls: Control[]
-  component: ComponentType<MotionComponentProps<T>>
   canvasRenderer: CanvasMotionRenderer<T>
 }

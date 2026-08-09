@@ -12,7 +12,7 @@ export interface OverlayWorkspaceState {
 export function createInitialParameters() {
   return Object.fromEntries(
     motionRegistry.map(({ id, defaults }) => [id, { ...defaults }]),
-  ) as Record<MotionId, ParameterValues>
+  ) as unknown as Record<MotionId, ParameterValues>
 }
 
 export function createOverlayWorkspaceState(): OverlayWorkspaceState {

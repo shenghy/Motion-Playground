@@ -16,4 +16,10 @@ describe('shared motion renderer contract', () => {
       )
     }
   })
+
+  it('keeps the production registry free of React visual components', () => {
+    for (const definition of motionRegistry) {
+      expect(definition).not.toHaveProperty('component')
+    }
+  })
 })

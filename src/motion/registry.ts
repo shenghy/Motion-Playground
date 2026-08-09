@@ -1,11 +1,3 @@
-import { BarCompare } from './BarCompare'
-import { CompareSplit } from './CompareSplit'
-import { MetricFocus } from './MetricFocus'
-import { Narrative } from './Narrative'
-import { ProfileReveal } from './ProfileReveal'
-import { ShareRing } from './ShareRing'
-import { StepFlow } from './StepFlow'
-import { AudiencePoll } from './AudiencePoll'
 import { renderBarCompareToCanvas } from './canvas/barCompareRenderer'
 import { renderCompareSplitToCanvas } from './canvas/compareSplitRenderer'
 import { renderMetricFocusToCanvas } from './canvas/metricFocusRenderer'
@@ -45,7 +37,6 @@ export const motionRegistry: RegisteredMotion[] = [
     name: '叙述',
     category: '文字 / 叙述',
     description: '双行大字内容概述',
-    component: Narrative,
     canvasRenderer: renderNarrativeToCanvas,
     defaults: {
       line1: '把复杂的工作',
@@ -67,7 +58,6 @@ export const motionRegistry: RegisteredMotion[] = [
     name: '核心指标',
     category: '数据 / 指标',
     description: '核心数字动效',
-    component: MetricFocus,
     canvasRenderer: renderMetricFocusToCanvas,
     defaults: {
       eyebrow: '季度增长',
@@ -97,7 +87,6 @@ export const motionRegistry: RegisteredMotion[] = [
     name: '对比卡片',
     category: '双层 / 对比',
     description: '上下双层数据轨',
-    component: CompareSplit,
     canvasRenderer: renderCompareSplitToCanvas,
     defaults: {
       title: '转化率',
@@ -139,7 +128,6 @@ export const motionRegistry: RegisteredMotion[] = [
     name: '人物信息',
     category: '叙事 / 人物',
     description: '逐句动态信息卡',
-    component: ProfileReveal,
     canvasRenderer: renderProfileRevealToCanvas,
     defaults: {
       category: '创作者 / 人物档案',
@@ -177,7 +165,6 @@ export const motionRegistry: RegisteredMotion[] = [
     name: '柱状对比',
     category: '数据 / 柱状',
     description: '柱状数据对比',
-    component: BarCompare,
     canvasRenderer: renderBarCompareToCanvas,
     defaults: {
       eyebrow: '04 / 数据对比',
@@ -231,7 +218,6 @@ export const motionRegistry: RegisteredMotion[] = [
     name: '环形占比',
     category: '数据 / 占比',
     description: '环形占比分析',
-    component: ShareRing,
     canvasRenderer: renderShareRingToCanvas,
     defaults: {
       eyebrow: '05 / 占比分析',
@@ -285,7 +271,6 @@ export const motionRegistry: RegisteredMotion[] = [
     name: '步骤流程',
     category: '流程 / 步骤',
     description: '步骤流程讲解',
-    component: StepFlow,
     canvasRenderer: renderStepFlowToCanvas,
     defaults: {
       eyebrow: '06 / 流程图',
@@ -338,7 +323,6 @@ export const motionRegistry: RegisteredMotion[] = [
     name: '投票卡片',
     category: '互动 / 投票',
     description: '编号投票互动卡片',
-    component: AudiencePoll,
     canvasRenderer: renderAudiencePollToCanvas,
     defaults: {
       eyebrow: '08 / LIVE POLL',

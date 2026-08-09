@@ -61,6 +61,9 @@ describe('workspace layout CSS contract', () => {
     expect(css).not.toMatch(
       /\.compare-split__panels\s*\{[^}]*grid-template-columns:\s*repeat\(2/s,
     )
+    expect(css).toMatch(
+      /\.rail-item__preview--compare-split::before\s*\{[^}]*top:\s*50%[^}]*border-top:\s*1px solid currentColor/s,
+    )
   })
 
   it('uses the right-panel gray hierarchy across the component rail', () => {

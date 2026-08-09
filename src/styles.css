@@ -711,22 +711,38 @@ a:focus-visible {
 }
 
 .rail-item__preview--compare-split::before {
-  top: 8px;
-  bottom: 8px;
-  left: 50%;
-  border-left: 1px solid currentColor;
+  top: 50%;
+  left: 7px;
+  right: 7px;
+  border-top: 1px solid currentColor;
+  color: var(--motion-accent-blue);
 }
 
 .rail-item__preview--compare-split i:first-child,
 .rail-item__preview--compare-split i:nth-child(2) {
-  top: 21px;
-  width: 16px;
-  height: 18px;
-  border-top: 5px solid currentColor;
+  left: 8px;
+  height: 4px;
+  background: currentColor;
 }
 
-.rail-item__preview--compare-split i:first-child { left: 7px; }
-.rail-item__preview--compare-split i:nth-child(2) { right: 7px; }
+.rail-item__preview--compare-split i:first-child {
+  top: 17px;
+  width: 25px;
+  opacity: .54;
+}
+
+.rail-item__preview--compare-split i:nth-child(2) {
+  top: 37px;
+  width: 34px;
+}
+
+.rail-item__preview--compare-split i:nth-child(3) {
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border-top: 1px solid var(--motion-accent-blue);
+  opacity: .64;
+}
 
 .rail-item__preview--profile-reveal::before {
   inset: 7px 20px 7px 7px;

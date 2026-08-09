@@ -728,6 +728,14 @@ describe('Workbench', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '选择组件对比卡片' }))
     expect(screen.getByText('提升 2.05 倍')).toBeInTheDocument()
+    expect(screen.getByLabelText('基准标签')).toHaveValue('优化前')
+    expect(screen.getByLabelText('基准数值')).toHaveValue('42')
+    expect(screen.getByLabelText('结果标签')).toHaveValue('优化后')
+    expect(screen.getByLabelText('结果数值')).toHaveValue('86')
+    expect(screen.getByLabelText('强调数据轨')).toHaveValue('right')
+    expect(screen.getByRole('option', { name: '强调上排' })).toHaveValue('left')
+    expect(screen.getByRole('option', { name: '强调下排' })).toHaveValue('right')
+    expect(screen.getByLabelText('纵向分割位置')).toHaveValue('50')
     expectPencilStyle()
 
     fireEvent.click(screen.getByRole('button', { name: '选择组件人物信息' }))

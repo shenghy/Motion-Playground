@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { motionRegistry, getMotionDefinition } from '../motion/registry'
-import type { MotionId, ParameterValue, ParameterValues } from '../motion/types'
+import type { MotionId, ParameterValue } from '../motion/types'
 import {
   createOverlayCard,
   MIN_CARD_DURATION,
@@ -10,7 +10,6 @@ import {
   updateCardPosition,
 } from '../timeline/project'
 import type {
-  OverlayCard,
   OverlayPosition,
   OverlayProject,
 } from '../timeline/types'
@@ -18,39 +17,9 @@ import {
   parsePersistedVideo,
   parsePersistedWorkspace,
   type PersistedVideoV1,
-  type PersistedWorkspaceV1,
   type WorkspaceStorage,
 } from '../persistence/workspaceStorage'
-import {
-  exportPngSequence,
-  type ExportProgress,
-} from '../export/exportController'
-import {
-  ExportSurface,
-  type ExportSurfaceHandle,
-} from '../export/ExportSurface'
-import {
-  supportsOverlayFileExport,
-  type OverlayFileWindow,
-} from '../export/fileSystemAccess'
-import {
-  calculateFrameCount,
-} from '../export/frameMath'
-import {
-  createExportPerformance,
-  type ExportPerformance,
-} from '../export/exportPerformance'
-import {
-  discardTransparentMov,
-  saveTransparentMov,
-} from '../export/movExportClient'
-import { renderTransparentMovRaw } from '../export/rawMovClient'
-import {
-  canUseWorkerMovExport,
-  renderTransparentMovWorker,
-  supportsWorkerMovPipeline,
-  WorkerMovPreparationError,
-} from '../export/worker/workerMovClient'
+import { ExportSurface } from '../export/ExportSurface'
 import { ComponentRail } from './ComponentRail'
 import { ExportPanel } from './ExportPanel'
 import { ParameterPanel } from './ParameterPanel'
@@ -63,112 +32,22 @@ import {
   useProjectController,
   type OverlayWorkspaceState,
 } from '../workbench/useProjectController'
-import {
-  useVideoController,
-  type VideoPreview,
-} from '../workbench/useVideoController'
+import { useVideoController, type VideoPreview } from '../workbench/useVideoController'
 import { usePersistenceController } from '../workbench/usePersistenceController'
-import { useExportController } from '../workbench/useExportController'
-
-const MOTION_NAMES = Object.fromEntries(
-  motionRegistry.map((definition) => [definition.id, definition.name]),
-) as Record<MotionId, string>
-
-const MOTION_COLORS = Object.fromEntries(
-  motionRegistry.map((definition) => [
-    definition.id,
-    definition.timelineColor,
-  ]),
-) as Record<MotionId, string>
-
-const MOTION_DEFAULTS = Object.fromEntries(
-  motionRegistry.map((definition) => [definition.id, definition.defaults]),
-) as unknown as Record<MotionId, ParameterValues>
-
-const createBrowserCardId = () => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID()
-  }
-
-  return `overlay-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-}
-
-function createUniqueCardId(cards: OverlayCard[], idFactory: () => string) {
-  const requestedId = idFactory()
-  if (
-    requestedId.trim() !== '' &&
-    !cards.some((card) => card.id === requestedId)
-  ) {
-    return requestedId
-  }
-
-  let fallbackId = createBrowserCardId()
-  while (cards.some((card) => card.id === fallbackId)) {
-    fallbackId = createBrowserCardId()
-  }
-  return fallbackId
-}
+import { useWorkbenchExport } from '../workbench/useWorkbenchExport'
+import {
+  createBrowserCardId,
+  createUniqueCardId,
+  createWorkspaceSnapshot,
+  isEditableDeleteTarget,
+  MOTION_COLORS,
+  MOTION_DEFAULTS,
+  MOTION_NAMES,
+} from '../workbench/workbenchModel'
 
 interface WorkbenchProps {
   idFactory?: () => string
   storage?: WorkspaceStorage
-}
-
-interface PendingMovJob {
-  id: string
-  fingerprint: string
-}
-
-function cloneOverlayCards(cards: OverlayCard[]) {
-  return cards.map((card) => ({
-    ...card,
-    position: { ...card.position },
-    params: { ...card.params },
-  }))
-}
-
-function exportFingerprint(cards: OverlayCard[], duration: number) {
-  return JSON.stringify({ duration, cards })
-}
-
-function isEditableDeleteTarget(target: EventTarget | null) {
-  return (
-    typeof HTMLElement !== 'undefined' &&
-    target instanceof HTMLElement &&
-    Boolean(
-      target.closest(
-        'input, textarea, select, [contenteditable="true"]',
-      ),
-    )
-  )
-}
-
-function createWorkspaceSnapshot(
-  cards: OverlayCard[],
-  parametersByMotion: Record<MotionId, ParameterValues>,
-  activeId: MotionId,
-  showSafeArea: boolean,
-  video: VideoPreview | null,
-): PersistedWorkspaceV1 {
-  return {
-    version: 1,
-    project: {
-      version: 1,
-      canvas: { width: 1920, height: 1080 },
-      cards,
-    },
-    parametersByMotion,
-    activeId,
-    showSafeArea,
-    video: video
-      ? {
-          present: true,
-          name: video.name,
-          type: video.type,
-          lastModified: video.lastModified,
-        }
-      : { present: false },
-  }
 }
 
 export function Workbench({
@@ -217,28 +96,23 @@ export function Workbench({
   const persistenceOperationRef = useRef<Promise<unknown>>(Promise.resolve())
   const clearingWorkspaceRef = useRef(false)
   const seekControllerRef = useRef<((time: number) => void) | null>(null)
-  const exportSurfaceRef = useRef<ExportSurfaceHandle>(null)
-  const exportAbortRef = useRef<AbortController | null>(null)
-  const serverExportJobRef = useRef<string | null>(null)
-  const pendingMovJobRef = useRef<PendingMovJob | null>(null)
-  const exportOperationRef = useRef(false)
+  const { cards, selectedCardId } = overlayWorkspace
   const {
     exportOperationActive,
-    setExportOperationActive,
     exportCards,
-    setExportCards,
     movAvailable,
-    setMovAvailable,
-    workerMovAvailable,
-    setWorkerMovAvailable,
     exportStatus,
-    setExportStatus,
     exportProgress,
-    setExportProgress,
     exportMessage,
-    setExportMessage,
-  } = useExportController()
-  const { cards, selectedCardId } = overlayWorkspace
+    exportSurfaceRef,
+    exportOperationRef,
+    canExport,
+    exportPng,
+    exportMov,
+    cancelExport,
+    discardPendingExport,
+    resetExportState,
+  } = useWorkbenchExport(cards, videoDuration)
   const queuePersistenceOperation = useCallback(
     <T,>(operation: () => Promise<T>) => {
       const nextOperation = persistenceOperationRef.current
@@ -277,44 +151,6 @@ export function Workbench({
     }),
     [cards],
   )
-
-  useEffect(() => {
-    let cancelled = false
-    void fetch('/__overlay_export__/capabilities', { cache: 'no-store' })
-      .then(async (response) => {
-        if (!response.ok) return { mov: false, worker: false }
-        const capability = (await response.json()) as {
-          mov?: unknown
-          rawRgba?: unknown
-          transport?: unknown
-          orderedRawProtocol?: unknown
-          workerPipeline?: unknown
-          orderedRleProtocol?: unknown
-        }
-        const mov = capability.mov === true
-          && capability.rawRgba === true
-          && capability.transport === 'websocket'
-        return {
-          mov,
-          worker: mov && supportsWorkerMovPipeline(capability),
-        }
-      })
-      .then((available) => {
-        if (!cancelled) {
-          setMovAvailable(available.mov)
-          setWorkerMovAvailable(available.worker)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setMovAvailable(false)
-          setWorkerMovAvailable(false)
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [setMovAvailable, setWorkerMovAvailable])
 
   useEffect(() => {
     if (!storage) {
@@ -734,15 +570,7 @@ export function Workbench({
     }
 
     try {
-      if (pendingMovJobRef.current) {
-        try {
-          await discardTransparentMov(pendingMovJobRef.current.id)
-        } catch {
-          // The local export service may already have cleaned this job.
-        }
-        pendingMovJobRef.current = null
-        serverExportJobRef.current = null
-      }
+      await discardPendingExport()
       if (storage) {
         await queuePersistenceOperation(() => storage.clear())
       }
@@ -777,13 +605,7 @@ export function Workbench({
     setVideoError('')
     setProjectError('')
     setStorageError('')
-    setExportStatus('idle')
-    setExportProgress({
-      completedFrames: 0,
-      totalFrames: 0,
-      performance: null,
-    })
-    setExportMessage('')
+    resetExportState()
     clearingWorkspaceRef.current = false
     setIsClearingWorkspace(false)
   }
@@ -971,297 +793,8 @@ export function Workbench({
     [],
   )
 
-  const captureExportFrame = useCallback(async (
-    time: number,
-    exportPerformance: ExportPerformance,
-  ) => {
-    const surface = exportSurfaceRef.current
-    if (!surface) throw new Error('透明导出舞台尚未准备完成')
-    await exportPerformance.measure(
-      'framePrepare',
-      () => surface.prepareFrame(time),
-    )
-    return exportPerformance.measure(
-      'frameCapture',
-      () => surface.capturePng(),
-    )
-  }, [])
-
-  const updateExportProgress = useCallback((progress: ExportProgress) => {
-    setExportStatus(progress.phase)
-    setExportProgress({
-      completedFrames: progress.completedFrames,
-      totalFrames: progress.totalFrames,
-      performance: progress.performance ?? null,
-    })
-  }, [setExportProgress, setExportStatus])
-
-  const cancelExport = useCallback(() => {
-    exportAbortRef.current?.abort()
-  }, [])
-
-  const exportPng = useCallback(async () => {
-    if (exportOperationRef.current) return
-    const fileWindow = window as unknown as OverlayFileWindow
-    if (!fileWindow.showDirectoryPicker) {
-      setExportStatus('error')
-      setExportMessage('当前浏览器不支持选择导出文件夹，请使用 Chrome 或 Edge')
-      return
-    }
-
-    exportOperationRef.current = true
-    setExportOperationActive(true)
-    setExportCards(cloneOverlayCards(cards))
-    const controller = new AbortController()
-    exportAbortRef.current = controller
-    setExportStatus('rendering')
-    setExportMessage('')
-    setExportProgress({
-      completedFrames: 0,
-      totalFrames: calculateFrameCount(videoDuration),
-      performance: null,
-    })
-
-    try {
-      const exportPerformance = createExportPerformance()
-      const surface = exportSurfaceRef.current
-      if (!surface) throw new Error('透明导出舞台尚未准备完成')
-      const result = await exportPngSequence({
-        duration: videoDuration,
-        captureFrame: (time) => captureExportFrame(time, exportPerformance),
-        chooseDirectory: () => fileWindow.showDirectoryPicker!(),
-        signal: controller.signal,
-        onProgress: updateExportProgress,
-        beginCapture: () => surface.beginCaptureSession(),
-        endCapture: () => surface.endCaptureSession(),
-        performance: exportPerformance,
-      })
-      setExportStatus(
-        result.status === 'completed' ? 'completed' : 'cancelled',
-      )
-      setExportMessage(
-        result.status === 'completed'
-          ? `PNG 序列已保存到 ${result.outputName}`
-          : `已取消，已生成的 ${result.completedFrames} 帧仍保留在目标文件夹`,
-      )
-    } catch (error) {
-      setExportStatus('error')
-      setExportMessage(
-        error instanceof Error ? error.message : 'PNG 序列导出失败',
-      )
-    } finally {
-      exportAbortRef.current = null
-      exportOperationRef.current = false
-      setExportOperationActive(false)
-    }
-  }, [
-    captureExportFrame,
-    cards,
-    setExportCards,
-    setExportMessage,
-    setExportOperationActive,
-    setExportProgress,
-    setExportStatus,
-    updateExportProgress,
-    videoDuration,
-  ])
-
-  const exportMov = useCallback(async () => {
-    if (exportOperationRef.current) return
-    const fileWindow = window as unknown as OverlayFileWindow
-    if (!fileWindow.showSaveFilePicker) {
-      setExportStatus('error')
-      setExportMessage('当前浏览器不支持保存 MOV，请使用 Chrome 或 Edge')
-      return
-    }
-
-    exportOperationRef.current = true
-    setExportOperationActive(true)
-    const snapshotCards = cloneOverlayCards(cards)
-    const snapshotDuration = videoDuration
-    const snapshotFingerprint = exportFingerprint(
-      snapshotCards,
-      snapshotDuration,
-    )
-    setExportCards(snapshotCards)
-    setExportStatus('idle')
-    setExportMessage('请选择 MOV 保存位置')
-    let controller: AbortController | null = null
-
-    try {
-      let fileHandle
-      try {
-        fileHandle = await fileWindow.showSaveFilePicker({
-          suggestedName: 'Overlay-transparent.mov',
-          types: [
-            {
-              description: '透明 QuickTime 视频',
-              accept: { 'video/quicktime': ['.mov'] },
-            },
-          ],
-        })
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          setExportStatus('cancelled')
-          setExportMessage(
-            pendingMovJobRef.current
-              ? '已编码的 MOV 仍保留，点击导出透明 MOV 可重新保存'
-              : '已取消导出',
-          )
-          return
-        }
-        setExportStatus('error')
-        setExportMessage(
-          error instanceof Error ? error.message : '无法选择 MOV 保存位置',
-        )
-        return
-      }
-
-      let pendingJob = pendingMovJobRef.current
-      if (
-        pendingJob &&
-        pendingJob.fingerprint !== snapshotFingerprint
-      ) {
-        await discardTransparentMov(pendingJob.id).catch(() => undefined)
-        pendingMovJobRef.current = null
-        serverExportJobRef.current = null
-        pendingJob = null
-      }
-
-      controller = new AbortController()
-      exportAbortRef.current = controller
-      const exportPerformance = createExportPerformance()
-      let jobId = pendingJob?.id
-      if (!jobId) {
-        setExportStatus('rendering')
-        setExportMessage('')
-        setExportProgress({
-          completedFrames: 0,
-          totalFrames: calculateFrameCount(snapshotDuration),
-          performance: null,
-        })
-        const onJobCreated = (createdJobId: string) => {
-          serverExportJobRef.current = createdJobId
-        }
-        const renderOnMainThread = () => {
-          const surface = exportSurfaceRef.current
-          if (!surface) throw new Error('透明导出舞台尚未准备完成')
-          return renderTransparentMovRaw({
-            duration: snapshotDuration,
-            renderFrame: (time) => surface.renderRgba(time),
-            signal: controller!.signal,
-            onProgress: updateExportProgress,
-            onJobCreated,
-            beginCapture: () => surface.beginCaptureSession(),
-            endCapture: () => surface.endCaptureSession(),
-            performance: exportPerformance,
-          })
-        }
-        let result
-        if (workerMovAvailable && canUseWorkerMovExport()) {
-          try {
-            result = await renderTransparentMovWorker({
-              cards: snapshotCards,
-              duration: snapshotDuration,
-              signal: controller.signal,
-              onProgress: updateExportProgress,
-              onJobCreated,
-              performance: exportPerformance,
-            })
-          } catch (error) {
-            if (!(error instanceof WorkerMovPreparationError)) throw error
-            result = await renderOnMainThread()
-          }
-        } else {
-          result = await renderOnMainThread()
-        }
-        if (result.status === 'cancelled' || !result.jobId) {
-          serverExportJobRef.current = null
-          setExportStatus('cancelled')
-          setExportMessage(`已取消，共生成 ${result.completedFrames} 帧`)
-          return
-        }
-        jobId = result.jobId
-        pendingMovJobRef.current = {
-          id: jobId,
-          fingerprint: snapshotFingerprint,
-        }
-      }
-
-      setExportStatus('saving')
-      setExportMessage('')
-      await saveTransparentMov({
-        jobId,
-        fileHandle,
-        signal: controller.signal,
-        performance: exportPerformance,
-      })
-      pendingMovJobRef.current = null
-      serverExportJobRef.current = null
-      setExportStatus('completed')
-      setExportMessage(`透明 MOV 已保存为 ${fileHandle.name}`)
-    } catch (error) {
-      setExportStatus(controller?.signal.aborted ? 'cancelled' : 'error')
-      setExportMessage(
-        pendingMovJobRef.current
-          ? 'MOV 已编码完成但保存失败，点击导出透明 MOV 可重新保存'
-          : error instanceof Error
-            ? error.message
-            : '透明 MOV 导出失败',
-      )
-    } finally {
-      exportAbortRef.current = null
-      if (!pendingMovJobRef.current) {
-        serverExportJobRef.current = null
-      }
-      exportOperationRef.current = false
-      setExportOperationActive(false)
-    }
-  }, [
-    cards,
-    setExportCards,
-    setExportMessage,
-    setExportOperationActive,
-    setExportProgress,
-    setExportStatus,
-    updateExportProgress,
-    videoDuration,
-    workerMovAvailable,
-  ])
-
-  useEffect(() => {
-    const pendingJob = pendingMovJobRef.current
-    if (
-      !pendingJob ||
-      exportOperationRef.current ||
-      pendingJob.fingerprint === exportFingerprint(cards, videoDuration)
-    ) {
-      return
-    }
-
-    pendingMovJobRef.current = null
-    serverExportJobRef.current = null
-    void discardTransparentMov(pendingJob.id).catch(() => undefined)
-    setExportStatus('idle')
-    setExportMessage('工程已修改，之前编码的 MOV 已放弃')
-  }, [
-    cards,
-    exportOperationActive,
-    setExportMessage,
-    setExportStatus,
-    videoDuration,
-  ])
-
   useEffect(
     () => () => {
-      exportAbortRef.current?.abort()
-      const jobId = serverExportJobRef.current
-      if (jobId) {
-        void fetch(
-          `/__overlay_export__/jobs/${encodeURIComponent(jobId)}`,
-          { method: 'DELETE', keepalive: true },
-        ).catch(() => undefined)
-      }
       if (videoPreviewRef.current) {
         URL.revokeObjectURL(videoPreviewRef.current.url)
       }
@@ -1271,15 +804,6 @@ export function Workbench({
     },
     [],
   )
-
-  const fileExportSupported = supportsOverlayFileExport(
-    window as unknown as OverlayFileWindow,
-  )
-  const canExport =
-    fileExportSupported &&
-    !exportOperationActive &&
-    videoDuration > 0 &&
-    cards.length > 0
 
   return (
     <div

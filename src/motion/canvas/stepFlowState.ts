@@ -1,5 +1,5 @@
 import { delayedProgress } from '../../export/frameMath'
-import { sampleCycle, samplePencilEase } from '../../export/canvas/timing'
+import { sampleOnce, samplePencilEase } from '../../export/canvas/timing'
 import { resolveFocusIndex } from '../dataMath'
 import type { StepFlowParams } from '../types'
 
@@ -22,9 +22,8 @@ export function getStepFlowState(params: StepFlowParams, localTime: number) {
   )
   const hold = Math.min(2.4, Math.max(0.7, params.stepDuration))
   const cycle = steps.length * hold + 1.1
-  const time = Math.round(sampleCycle(localTime, cycle, 0.72) * 1e6) / 1e6
+  const time = Math.round(sampleOnce(localTime, cycle) * 1e6) / 1e6
   const headerOpacity = samplePencilEase(delayedProgress(time, 0, cycle * 0.08))
-    * (time > cycle * 0.91 ? Math.max(0, (cycle - time) / (cycle * 0.09)) : 1)
   const connectorReveal = samplePencilEase(delayedProgress(time, 0, cycle * 0.9))
   const items = steps.map((label, index) => {
     const order = orderedIndexes.indexOf(index)

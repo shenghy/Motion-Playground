@@ -69,6 +69,14 @@ function firePointer(
 }
 
 describe('PreviewStage overlays', () => {
+  it('labels motion playback as one-shot', () => {
+    render(<PreviewStage {...createProps()} />)
+
+    expect(screen.getByText('单次播放')).toBeInTheDocument()
+    expect(screen.getByText('自动播放 · 单次保持')).toBeInTheDocument()
+    expect(screen.queryByText(/无限循环/)).not.toBeInTheDocument()
+  })
+
   it('reports finite media time and duration and exposes a clamped seek controller', () => {
     const onMediaTimeChange = vi.fn()
     const onMediaDurationChange = vi.fn()
@@ -174,6 +182,25 @@ describe('PreviewStage overlays', () => {
     })
     expect(activeOverlays[0]).not.toHaveStyle({ left: '20%', top: '30%' })
     expect(screen.queryByTestId('overlay-card-ended')).not.toBeInTheDocument()
+  })
+
+  it('samples overlay animation from subtitle-relative media time', () => {
+    const card = makeCard('synced', 'metric-focus', 10, 14, 0)
+    const { rerender } = render(
+      <PreviewStage
+        {...createProps({ overlayCards: [card], currentTime: 10 })}
+      />,
+    )
+
+    expect(screen.getByTestId('metric-number')).toHaveTextContent('0')
+
+    rerender(
+      <PreviewStage
+        {...createProps({ overlayCards: [card], currentTime: 12 })}
+      />,
+    )
+
+    expect(screen.getByTestId('metric-number')).toHaveTextContent('248')
   })
 
   it('uses internal media time for active cards when currentTime is uncontrolled', () => {

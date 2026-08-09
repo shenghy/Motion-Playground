@@ -36,11 +36,13 @@ describe('getStepFlowState', () => {
     expect(state.focusIndex).toBe(2)
   })
 
-  it('repeats after the active cycle and repeat delay', () => {
+  it('plays once and holds every step completed', () => {
     const cycle = 5 * 1 + 1.1
     const fiveStepParams = { ...params, step6: '', step7: '' }
-    expect(getStepFlowState(fiveStepParams, 1.7)).toEqual(
-      getStepFlowState(fiveStepParams, 1.7 + cycle + 0.72),
-    )
+    const completed = getStepFlowState(fiveStepParams, cycle + 8)
+    expect(completed.time).toBe(cycle)
+    expect(completed.headerOpacity).toBe(1)
+    expect(completed.connectorReveal).toBe(1)
+    expect(completed.items.every((item) => item.completed)).toBe(true)
   })
 })

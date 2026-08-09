@@ -1,9 +1,10 @@
-import { useRef } from 'react'
+import { useRef, type CSSProperties } from 'react'
 import { isMotionId, type MotionId } from '../motion/types'
 import { MIN_CARD_DURATION } from '../timeline/project'
 import type { OverlayCard } from '../timeline/types'
 
 const OVERLAY_MOTION_TYPE = 'application/x-overlay-motion'
+const FALLBACK_TIMELINE_COLOR = '#777A7D'
 
 interface TimelineEditorProps {
   cards: OverlayCard[]
@@ -11,6 +12,7 @@ interface TimelineEditorProps {
   currentTime: number
   selectedCardId: string | null
   motionNames: Partial<Record<MotionId, string>>
+  motionColors: Partial<Record<MotionId, string>>
   onDropMotion: (motionId: MotionId, startTime: number) => void
   onSelectCard: (cardId: string) => void
   onMoveCard: (cardId: string, startTime: number) => void
@@ -49,6 +51,7 @@ export function TimelineEditor({
   currentTime,
   selectedCardId,
   motionNames,
+  motionColors,
   onDropMotion,
   onSelectCard,
   onMoveCard,
@@ -228,7 +231,12 @@ export function TimelineEditor({
               className={`timeline-editor__card${
                 selectedCardId === card.id ? ' timeline-editor__card--selected' : ''
               }`}
-              style={{ left: `${left}%`, width: `${Math.max(0, right - left)}%` }}
+              style={{
+                left: `${left}%`,
+                width: `${Math.max(0, right - left)}%`,
+                '--timeline-card-color':
+                  motionColors[card.motionId] ?? FALLBACK_TIMELINE_COLOR,
+              } as CSSProperties}
             >
               <button
                 type="button"

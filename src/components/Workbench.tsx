@@ -73,6 +73,13 @@ const MOTION_NAMES = Object.fromEntries(
   motionRegistry.map((definition) => [definition.id, definition.name]),
 ) as Record<MotionId, string>
 
+const MOTION_COLORS = Object.fromEntries(
+  motionRegistry.map((definition) => [
+    definition.id,
+    definition.timelineColor,
+  ]),
+) as Record<MotionId, string>
+
 const MOTION_DEFAULTS = Object.fromEntries(
   motionRegistry.map((definition) => [definition.id, definition.defaults]),
 ) as unknown as Record<MotionId, ParameterValues>
@@ -1309,6 +1316,7 @@ export function Workbench({
             currentTime={videoTime}
             selectedCardId={selectedCardId}
             motionNames={MOTION_NAMES}
+            motionColors={MOTION_COLORS}
             onDropMotion={dropMotion}
             onSelectCard={selectCard}
             onMoveCard={moveCard}

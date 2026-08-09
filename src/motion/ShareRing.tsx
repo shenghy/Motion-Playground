@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { normalizeShares, resolveFocusIndex } from './dataMath'
 import { PencilTexture } from './PencilTexture'
+import { getShareRingState } from './canvas/shareRingState'
 import type { MotionComponentProps, ShareRingParams } from './types'
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -14,9 +15,8 @@ interface ShareItem {
   percentage: number
 }
 
-export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
+export function ShareRing({ params, playbackTime }: MotionComponentProps<ShareRingParams>) {
   const reduceMotion = useReducedMotion()
-  const cycle = Math.min(10, Math.max(5, params.duration))
   const sourceItems = [
     { label: params.item1Label, value: params.item1Value },
     { label: params.item2Label, value: params.item2Value },
@@ -43,16 +43,15 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
   )
   const focusItem = items[focusIndex]
   const focusPercentage = Math.round(focusItem.percentage)
+  const sampled = playbackTime === undefined ? null : getShareRingState(params, playbackTime)
 
   let accumulatedPercentage = 0
 
-  const loopTransition = (delay: number) => reduceMotion
+  const oneShotTransition = (delay: number) => reduceMotion || sampled
     ? { duration: 0 }
     : {
-        duration: cycle,
-        times: [0, delay / cycle, (delay + 0.72) / cycle, (cycle - 0.6) / cycle, 1],
-        repeat: Infinity,
-        repeatDelay: 0.75,
+        duration: delay + 0.72,
+        times: [0, delay / (delay + 0.72), 1],
         ease,
       }
 
@@ -73,11 +72,13 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
       >
         <motion.header
           className="data-card__heading"
-          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-          animate={reduceMotion
+          initial={reduceMotion || sampled ? false : { opacity: 0, y: 14 }}
+          animate={sampled
+            ? { opacity: sampled.headerOpacity, y: 14 * (1 - sampled.headerOpacity) }
+            : reduceMotion
             ? { opacity: 1, y: 0 }
-            : { opacity: [0, 0, 1, 1, 0], y: [14, 14, 0, 0, -5] }}
-          transition={loopTransition(0.16)}
+            : { opacity: [0, 0, 1], y: [14, 14, 0] }}
+          transition={oneShotTransition(0.16)}
         >
           <span>{params.eyebrow || '05 / 占比分析'}</span>
           <h2 className="motion-content-text">
@@ -96,20 +97,22 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
                 const focused = index === focusIndex
                 const finalDash = `${Math.max(0, length - segmentGap)} ${circumference}`
 
-                const drawInitial = reduceMotion
+                const reveal = sampled?.items[index].reveal
+                const sampledDash = `${Math.max(0, length * (reveal ?? 1) - segmentGap)} ${circumference}`
+                const drawInitial = reduceMotion || sampled
                   ? false
                   : { strokeDasharray: `0 ${circumference}`, opacity: 0 }
-                const drawAnimate = reduceMotion
+                const drawAnimate = sampled
+                  ? { strokeDasharray: sampledDash, opacity: reveal }
+                  : reduceMotion
                   ? { strokeDasharray: finalDash, opacity: 1 }
                   : {
                       strokeDasharray: [
                         `0 ${circumference}`,
                         `0 ${circumference}`,
                         finalDash,
-                        finalDash,
-                        `0 ${circumference}`,
                       ],
-                      opacity: [0, 0, 1, 1, 0],
+                      opacity: [0, 0, 1],
                     }
 
                 return (
@@ -125,7 +128,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
                         strokeWidth={4}
                         initial={drawInitial}
                         animate={drawAnimate}
-                        transition={loopTransition(0.58 + index * 0.2)}
+                        transition={oneShotTransition(0.58 + index * 0.2)}
                       />
                     )}
                     <motion.circle
@@ -142,7 +145,7 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
                       strokeWidth={focused ? 9 : Math.max(4, 8 - index)}
                       initial={drawInitial}
                       animate={drawAnimate}
-                      transition={loopTransition(0.5 + index * 0.2)}
+                      transition={oneShotTransition(0.5 + index * 0.2)}
                     />
                   </g>
                 )
@@ -152,14 +155,16 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
 
           <motion.div
             className="share-ring__center"
-            initial={reduceMotion ? false : { opacity: 0, scale: 0.9 }}
-            animate={reduceMotion
+            initial={reduceMotion || sampled ? false : { opacity: 0, scale: 0.9 }}
+            animate={sampled
+              ? { opacity: sampled.centerOpacity, scale: 0.9 + sampled.centerOpacity * 0.1 }
+              : reduceMotion
               ? { opacity: 1, scale: 1 }
               : {
-                  opacity: [0, 0, 1, 1, 0],
-                  scale: [0.9, 0.9, 1, 1, 0.96],
+                  opacity: [0, 0, 1],
+                  scale: [0.9, 0.9, 1],
                 }}
-            transition={loopTransition(1.55)}
+            transition={oneShotTransition(1.55)}
           >
             <strong data-testid="share-center-value">{focusPercentage}%</strong>
             <span className="motion-content-text">
@@ -172,11 +177,13 @@ export function ShareRing({ params }: MotionComponentProps<ShareRingParams>) {
           {items.map((item, index) => (
             <motion.div
               data-focused={index === focusIndex}
-              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-              animate={reduceMotion
+              initial={reduceMotion || sampled ? false : { opacity: 0, y: 8 }}
+              animate={sampled
+                ? { opacity: sampled.items[index].labelOpacity, y: 8 * (1 - sampled.items[index].labelOpacity) }
+                : reduceMotion
                 ? { opacity: 1, y: 0 }
-                : { opacity: [0, 0, 1, 1, 0], y: [8, 8, 0, 0, -3] }}
-              transition={loopTransition(1.72 + index * 0.12)}
+                : { opacity: [0, 0, 1], y: [8, 8, 0] }}
+              transition={oneShotTransition(1.72 + index * 0.12)}
               key={`${item.label}-legend`}
             >
               <span className="motion-content-text">

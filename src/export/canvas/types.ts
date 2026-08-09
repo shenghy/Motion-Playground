@@ -10,6 +10,7 @@ export interface CanvasMotionRenderInput<T> {
   ctx: CanvasRenderingContext2D
   params: T
   localTime: number
+  localDuration?: number
   resources: CanvasRenderResources
 }
 

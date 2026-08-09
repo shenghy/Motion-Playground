@@ -2,11 +2,12 @@ import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties } from 'react'
 import { resolveFocusIndex } from './dataMath'
 import { PencilTexture } from './PencilTexture'
+import { getStepFlowState } from './canvas/stepFlowState'
 import type { MotionComponentProps, StepFlowParams } from './types'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
-export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
+export function StepFlow({ params, playbackTime }: MotionComponentProps<StepFlowParams>) {
   const reduceMotion = useReducedMotion()
   const sourceSteps = [
     params.step1,
@@ -33,9 +34,10 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
   )
   const hold = Math.min(2.4, Math.max(0.7, params.stepDuration))
   const cycle = steps.length * hold + 1.1
+  const sampled = playbackTime === undefined ? null : getStepFlowState(params, playbackTime)
 
   const stepTransition = (index: number) => {
-    if (reduceMotion) return { duration: 0 }
+    if (reduceMotion || sampled) return { duration: 0 }
 
     const phase = orderedIndexes.indexOf(index)
     const start = 0.42 + phase * hold
@@ -51,8 +53,6 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
         end / cycle,
         1,
       ],
-      repeat: Infinity,
-      repeatDelay: 0.72,
       ease,
     }
   }
@@ -75,17 +75,17 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
       >
         <motion.header
           className="data-card__heading"
-          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-          animate={reduceMotion
+          initial={reduceMotion || sampled ? false : { opacity: 0, y: 14 }}
+          animate={sampled
+            ? { opacity: sampled.headerOpacity, y: 14 * (1 - sampled.headerOpacity) }
+            : reduceMotion
             ? { opacity: 1, y: 0 }
-            : { opacity: [0, 1, 1, 0], y: [14, 0, 0, -5] }}
-          transition={reduceMotion
+            : { opacity: [0, 1, 1], y: [14, 0, 0] }}
+          transition={reduceMotion || sampled
             ? { duration: 0 }
             : {
-                duration: cycle,
-                times: [0, 0.08, 0.91, 1],
-                repeat: Infinity,
-                repeatDelay: 0.72,
+                duration: cycle * 0.08,
+                times: [0, 1],
                 ease,
               }}
         >
@@ -125,20 +125,23 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                   y1={18 + segmentHeight * index}
                   y2={18 + segmentHeight * (index + 1)}
                   pathLength={1}
-                  initial={reduceMotion ? false : { pathLength: 0, opacity: 0 }}
-                  animate={reduceMotion
+                  initial={reduceMotion || sampled ? false : { pathLength: 0, opacity: 0 }}
+                  animate={sampled
+                    ? {
+                        pathLength: sampled.items[index].completed ? 1 : 0,
+                        opacity: sampled.connectorReveal * 0.78,
+                      }
+                    : reduceMotion
                     ? { pathLength: 0, opacity: 0 }
                     : {
-                        pathLength: [0, 0, 1, 1, 0],
-                        opacity: [0, 0, 0.78, 0.78, 0],
+                        pathLength: [0, 0, 1],
+                        opacity: [0, 0, 0.78],
                       }}
-                  transition={reduceMotion
+                  transition={reduceMotion || sampled
                     ? { duration: 0 }
                     : {
-                        duration: cycle,
-                        times: [0, revealAt, settleAt, 0.98, 1],
-                        repeat: Infinity,
-                        repeatDelay: 0.72,
+                        duration: cycle * settleAt,
+                        times: [0, revealAt / settleAt, 1],
                         ease,
                       }}
                 />
@@ -158,8 +161,14 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                 data-initial-focus={initialFocus}
                 data-sequence-order={sequenceOrder}
                 data-pencil-weight={initialFocus ? 'double' : 'light'}
-                initial={reduceMotion ? false : { opacity: 0.34, scale: 1 }}
-                animate={reduceMotion
+                initial={reduceMotion || sampled ? false : { opacity: 0.34, scale: 1 }}
+                animate={sampled
+                  ? {
+                      opacity: sampled.items[index].opacity,
+                      scale: sampled.items[index].scale,
+                      color: sampled.items[index].active > 0 ? '#f1f1ed' : sampled.items[index].completed ? '#557aa8' : '#676c71',
+                    }
+                  : reduceMotion
                   ? {
                       opacity: staticOpacity,
                       scale: initialFocus ? 1.1 : 1,
@@ -184,14 +193,20 @@ export function StepFlow({ params }: MotionComponentProps<StepFlowParams>) {
                   data-active-accent="animated"
                   data-testid="flow-step-number"
                   data-color-sequence="future-gray,current-blue,complete-muted-blue"
-                  initial={reduceMotion
+                  initial={reduceMotion || sampled
                     ? false
                     : {
                         color: '#72777b',
                         borderColor: '#666b70',
                         borderWidth: 2,
                       }}
-                  animate={reduceMotion
+                  animate={sampled
+                    ? {
+                        color: sampled.items[index].active > 0 ? '#2f67b2' : sampled.items[index].completed ? '#557aa8' : '#72777b',
+                        borderColor: sampled.items[index].active > 0 ? '#2f67b2' : sampled.items[index].completed ? '#41658e' : '#666b70',
+                        borderWidth: sampled.items[index].active > 0 ? 4 : 2,
+                      }
+                    : reduceMotion
                     ? {
                         color: initialFocus ? '#2f67b2' : '#72777b',
                         borderColor: initialFocus ? '#2f67b2' : '#666b70',

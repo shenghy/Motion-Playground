@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties } from 'react'
 import { clampDataValue, resolveFocusIndex } from './dataMath'
 import { PencilTexture } from './PencilTexture'
+import { getBarCompareState } from './canvas/barCompareState'
 import type { BarCompareParams, MotionComponentProps } from './types'
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -11,9 +12,8 @@ interface BarItem {
   value: number
 }
 
-export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
+export function BarCompare({ params, playbackTime }: MotionComponentProps<BarCompareParams>) {
   const reduceMotion = useReducedMotion()
-  const cycle = Math.min(10, Math.max(4.8, params.duration))
   const items: BarItem[] = [
     { label: params.item1Label, value: params.item1Value },
     { label: params.item2Label, value: params.item2Value },
@@ -36,14 +36,13 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
   const values = safeItems.map((item) => item.value)
   const focusIndex = resolveFocusIndex(values, params.focusIndex)
   const maximum = Math.max(...values, 1)
+  const sampled = playbackTime === undefined ? null : getBarCompareState(params, playbackTime)
 
-  const loopTransition = (delay: number) => reduceMotion
+  const oneShotTransition = (delay: number) => reduceMotion || sampled
     ? { duration: 0 }
     : {
-        duration: cycle,
-        times: [0, delay / cycle, (delay + 0.65) / cycle, (cycle - 0.55) / cycle, 1],
-        repeat: Infinity,
-        repeatDelay: 0.7,
+        duration: delay + 0.65,
+        times: [0, delay / (delay + 0.65), 1],
         ease,
       }
 
@@ -64,11 +63,13 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
       >
         <motion.header
           className="data-card__heading"
-          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-          animate={reduceMotion
+          initial={reduceMotion || sampled ? false : { opacity: 0, y: 14 }}
+          animate={sampled
+            ? { opacity: sampled.headerOpacity, y: 14 * (1 - sampled.headerOpacity) }
+            : reduceMotion
             ? { opacity: 1, y: 0 }
-            : { opacity: [0, 0, 1, 1, 0], y: [14, 14, 0, 0, -5] }}
-          transition={loopTransition(0.18)}
+            : { opacity: [0, 0, 1], y: [14, 14, 0] }}
+          transition={oneShotTransition(0.18)}
         >
           <span>{params.eyebrow || '04 / 数据对比'}</span>
           <h2 className="motion-content-text">
@@ -80,9 +81,9 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
           <motion.div
             className="bar-compare__baseline"
             aria-hidden="true"
-            initial={reduceMotion ? false : { scaleX: 0 }}
-            animate={reduceMotion ? { scaleX: 1 } : { scaleX: [0, 0, 1, 1, 0] }}
-            transition={loopTransition(0.48)}
+            initial={reduceMotion || sampled ? false : { scaleX: 0 }}
+            animate={sampled ? { scaleX: sampled.baselineReveal } : reduceMotion ? { scaleX: 1 } : { scaleX: [0, 0, 1] }}
+            transition={oneShotTransition(0.48)}
           />
 
           {safeItems.map((item, index) => {
@@ -100,14 +101,16 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
                 <motion.div
                   className="bar-compare__column"
                   style={{ '--bar-height': `${height}%` } as CSSProperties}
-                  initial={reduceMotion ? false : { scaleY: 0, opacity: 0 }}
-                  animate={reduceMotion
+                  initial={reduceMotion || sampled ? false : { scaleY: 0, opacity: 0 }}
+                  animate={sampled
+                    ? { scaleY: sampled.items[index].barReveal, opacity: sampled.items[index].barReveal }
+                    : reduceMotion
                     ? { scaleY: 1, opacity: 1 }
                     : {
-                        scaleY: [0, 0, 1, 1, 0],
-                        opacity: [0, 0, 1, 1, 0],
+                        scaleY: [0, 0, 1],
+                        opacity: [0, 0, 1],
                       }}
-                  transition={loopTransition(0.72 + index * 0.14)}
+                  transition={oneShotTransition(0.72 + index * 0.14)}
                 >
                   <strong>
                     {item.value}
@@ -116,11 +119,13 @@ export function BarCompare({ params }: MotionComponentProps<BarCompareParams>) {
                 </motion.div>
                 <motion.span
                   className="bar-compare__label motion-content-text"
-                  initial={reduceMotion ? false : { opacity: 0 }}
-                  animate={reduceMotion
+                  initial={reduceMotion || sampled ? false : { opacity: 0 }}
+                  animate={sampled
+                    ? { opacity: sampled.items[index].labelOpacity }
+                    : reduceMotion
                     ? { opacity: 1 }
-                    : { opacity: [0, 0, 1, 1, 0] }}
-                  transition={loopTransition(1.04 + index * 0.14)}
+                    : { opacity: [0, 0, 1] }}
+                  transition={oneShotTransition(1.04 + index * 0.14)}
                 >
                   {item.label}
                 </motion.span>

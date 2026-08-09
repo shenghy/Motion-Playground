@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { PencilTexture } from './PencilTexture'
+import { getProfileRevealState } from './canvas/profileRevealState'
 import type { MotionComponentProps, ProfileRevealParams } from './types'
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -9,11 +10,13 @@ interface Fact {
   note: string
 }
 
-export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealParams>) {
+export function ProfileReveal({ params, playbackTime }: MotionComponentProps<ProfileRevealParams>) {
   const reduceMotion = useReducedMotion()
-  const cycle = Math.min(10, Math.max(5.2, params.duration))
+  const sampled = playbackTime === undefined
+    ? null
+    : getProfileRevealState(params, playbackTime)
 
-  const reveal = (start: number, distance = 18) => {
+  const reveal = (start: number, distance = 18, sampledLayer?: { opacity: number; y: number }) => {
     if (reduceMotion) {
       return {
         initial: false as const,
@@ -22,20 +25,23 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
       }
     }
 
-    const enterEnd = Math.min(0.82, (start + 0.38) / cycle)
-    const exitStart = Math.max(enterEnd + 0.04, (cycle - 0.58) / cycle)
+    if (sampledLayer) {
+      return {
+        initial: false as const,
+        animate: { opacity: sampledLayer.opacity, y: sampledLayer.y },
+        transition: { duration: 0 },
+      }
+    }
 
     return {
       initial: { opacity: 0, y: distance },
       animate: {
-        opacity: [0, 0, 1, 1, 0],
-        y: [distance, distance, 0, 0, -6],
+        opacity: [0, 0, 1],
+        y: [distance, distance, 0],
       },
       transition: {
-        duration: cycle,
-        times: [0, start / cycle, enterEnd, exitStart, 1],
-        repeat: Infinity,
-        repeatDelay: 0.72,
+        duration: Math.max(0.01, start + 0.38),
+        times: [0, start / (start + 0.38), 1],
         ease,
       },
     }
@@ -61,9 +67,9 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
         data-outer-frame="none"
         data-zone="left-primary"
         data-pencil-layout="field-note"
-        {...reveal(0.08, 0)}
+        {...reveal(0.08, 0, sampled?.card)}
       >
-        <motion.header className="profile-reveal__identity" {...reveal(0.38)}>
+        <motion.header className="profile-reveal__identity" {...reveal(0.38, 18, sampled?.identity)}>
           <i aria-hidden="true" />
           <div>
             <strong>{params.category || '人物 / 档案'}</strong>
@@ -71,7 +77,7 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
           </div>
         </motion.header>
 
-        <motion.div className="profile-reveal__title" {...reveal(0.86)}>
+        <motion.div className="profile-reveal__title" {...reveal(0.86, 18, sampled?.title)}>
           <span>{params.overline || '人物故事'}</span>
           <h2 className="motion-content-text">
             {params.title || '未命名人物'}
@@ -83,17 +89,19 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
             <motion.div
               className="profile-reveal__fact"
               key={`${index}-${fact.text}`}
-              {...reveal(1.58 + index * 0.68)}
+              {...reveal(1.58 + index * 0.68, 18, sampled?.facts[index])}
             >
               <motion.b
                 className="profile-reveal__check"
                 data-testid="profile-check"
                 aria-hidden="true"
-                initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
-                animate={{ opacity: 1, scale: 1, rotate: -2 }}
+                initial={sampled ? false : { opacity: 0, scale: 0.7, rotate: -8 }}
+                animate={sampled
+                  ? { opacity: sampled.facts[index].opacity, scale: 0.7 + sampled.facts[index].opacity * 0.3, rotate: -2 }
+                  : { opacity: 1, scale: 1, rotate: -2 }}
                 transition={{
                   duration: reduceMotion ? 0 : 0.35,
-                  delay: reduceMotion ? 0 : 1.72 + index * 0.68,
+                  delay: reduceMotion || sampled ? 0 : 1.72 + index * 0.68,
                   ease,
                 }}
               >
@@ -109,7 +117,7 @@ export function ProfileReveal({ params }: MotionComponentProps<ProfileRevealPara
           ))}
         </div>
 
-        <motion.footer className="profile-reveal__card-footer" {...reveal(3.7, 8)}>
+        <motion.footer className="profile-reveal__card-footer" {...reveal(3.7, 8, sampled?.footer)}>
           <span>叙事 / 03</span>
           <i aria-hidden="true" />
           <span>自动呈现</span>

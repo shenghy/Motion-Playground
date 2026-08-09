@@ -28,6 +28,11 @@ const motionNames = {
   'metric-focus': '核心指标',
 }
 
+const motionColors = {
+  'metric-focus': '#4D8FD8',
+  'compare-split': '#D39A43',
+}
+
 function createProps(
   overrides: Partial<React.ComponentProps<typeof TimelineEditor>> = {},
 ) {
@@ -37,6 +42,7 @@ function createProps(
     currentTime: 4,
     selectedCardId: null,
     motionNames,
+    motionColors,
     onDropMotion: vi.fn(),
     onSelectCard: vi.fn(),
     onMoveCard: vi.fn(),
@@ -175,6 +181,32 @@ describe('TimelineEditor', () => {
     })
     expect(firstCard).not.toContainElement(startHandle)
     expect(firstCard.parentElement).toBe(startHandle.parentElement)
+  })
+
+  it('sets each timeline card color without changing its timing geometry', () => {
+    const { container } = render(<TimelineEditor {...createProps()} />)
+    const clips = container.querySelectorAll('.timeline-editor__card')
+
+    expect(clips[0]).toHaveStyle({
+      left: '10%',
+      width: '20%',
+      '--timeline-card-color': '#4D8FD8',
+    })
+    expect(clips[1]).toHaveStyle({
+      left: '50%',
+      width: '30%',
+      '--timeline-card-color': '#D39A43',
+    })
+  })
+
+  it('uses neutral gray when a motion color is unavailable', () => {
+    const { container } = render(
+      <TimelineEditor {...createProps({ motionColors: {} })} />,
+    )
+
+    expect(container.querySelector('.timeline-editor__card')).toHaveStyle({
+      '--timeline-card-color': '#777A7D',
+    })
   })
 
   it('selects a card by click or keyboard and seeks on empty-track click', () => {

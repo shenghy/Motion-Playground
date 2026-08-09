@@ -1,4 +1,5 @@
 import type { MotionId, ParameterValues } from '../../motion/types'
+import { getCardPlaybackTime } from '../../motion/playbackTiming'
 import type { OverlayCard } from '../../timeline/types'
 import {
   EXPORT_HEIGHT,
@@ -95,7 +96,13 @@ export function createCanvasExportSession({
           renderer({
             ctx,
             params: card.params,
-            localTime: playback.localTime,
+            localTime: getCardPlaybackTime(
+              card.motionId,
+              card.params,
+              playback.localTime,
+              card.end - card.start,
+            ),
+            localDuration: card.end - card.start,
             resources,
           })
         } finally {

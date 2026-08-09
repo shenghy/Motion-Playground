@@ -47,16 +47,9 @@ export function samplePencilEase(progress: number) {
   return clamp01(cubic(t, Y1, Y2))
 }
 
-export function sampleCycle(
-  time: number,
-  duration: number,
-  repeatDelay: number,
-) {
+export function sampleOnce(time: number, duration: number) {
   const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0
   const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0
-  const safeDelay = Number.isFinite(repeatDelay) ? Math.max(0, repeatDelay) : 0
   if (safeDuration === 0) return 0
-  const period = safeDuration + safeDelay
-  if (period === 0) return 0
-  return Math.min(safeDuration, safeTime % period)
+  return Math.min(safeDuration, safeTime)
 }

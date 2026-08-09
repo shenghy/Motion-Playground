@@ -37,7 +37,7 @@ afterAll(() => {
 })
 
 describe('AudiencePoll without reduced motion', () => {
-  it('applies explicit sampled styles in the stable and full-exit phases', () => {
+  it('applies explicit sampled styles and holds the completed phase', () => {
     const { rerender } = render(<AudiencePoll params={params} playbackTime={3.4} />)
     const primary = screen.getByTestId('audience-poll-primary')
 
@@ -48,11 +48,11 @@ describe('AudiencePoll without reduced motion', () => {
     expect(within(primary).getByText(params.callToAction)).toHaveStyle({ opacity: 1 })
 
     rerender(<AudiencePoll params={params} playbackTime={6.2} />)
-    expect(screen.getByTestId('audience-poll-panel')).toHaveStyle({ opacity: 0 })
+    expect(screen.getByTestId('audience-poll-panel')).toHaveStyle({ opacity: 1 })
     for (const option of within(primary).getAllByRole('listitem')) {
-      expect(option).toHaveStyle({ opacity: 0 })
+      expect(option).toHaveStyle({ opacity: 1 })
     }
-    expect(within(primary).getByText(params.callToAction)).toHaveStyle({ opacity: 0 })
+    expect(within(primary).getByText(params.callToAction)).toHaveStyle({ opacity: 1 })
   })
 
   it('preserves a sole edited option and renders the normalized placeholder', () => {

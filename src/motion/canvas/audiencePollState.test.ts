@@ -47,23 +47,25 @@ describe('getAudiencePollState', () => {
     expect(state.options).toHaveLength(2)
   })
 
-  it('reveals header, options in sequence, then the call to action before a full exit', () => {
+  it('reveals header, options in sequence, then the call to action', () => {
     const entrance = getAudiencePollState(params, 0.3)
     const sequence = getAudiencePollState(params, 1.4)
     const stable = getAudiencePollState(params, 3.4)
-    const exit = getAudiencePollState(params, 6)
 
     expect(entrance.header.opacity).toBeGreaterThan(entrance.options[0].opacity)
     expect(sequence.options[0].opacity).toBeGreaterThan(sequence.options[2].opacity)
     expect(sequence.options.filter((option) => option.current)).toHaveLength(1)
     expect(stable.cta.opacity).toBeGreaterThan(0.9)
-    expect(exit.header.opacity).toBeLessThan(stable.header.opacity)
-    expect(exit.options.every((option) => option.opacity < stable.options[0].opacity)).toBe(true)
-    expect(exit.cta.opacity).toBeLessThan(stable.cta.opacity)
   })
 
-  it('sets the shared panel opacity to zero at the full cycle exit', () => {
-    expect(getAudiencePollState(params, 6.2).panelOpacity).toBe(0)
+  it('plays once and holds the complete poll visible', () => {
+    const completed = getAudiencePollState(params, 12)
+    expect(completed.time).toBe(6.2)
+    expect(completed.panelOpacity).toBe(1)
+    expect(completed.header.opacity).toBe(1)
+    expect(completed.title.opacity).toBe(1)
+    expect(completed.options.every((option) => option.opacity === 1)).toBe(true)
+    expect(completed.cta.opacity).toBe(1)
   })
 
   it('runs one restrained CTA pulse and then remains at rest', () => {

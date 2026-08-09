@@ -16,9 +16,12 @@ describe('getShareRingState', () => {
     expect(state.focusPercentage).toBe(25)
   })
 
-  it('repeats after the active cycle and repeat delay', () => {
-    expect(getShareRingState(params, 1.2)).toEqual(
-      getShareRingState(params, 1.2 + 6 + 0.75),
-    )
+  it('plays once and holds the complete ring', () => {
+    const completed = getShareRingState(params, 12)
+    expect(completed.time).toBe(6)
+    expect(completed.headerOpacity).toBe(1)
+    expect(completed.centerOpacity).toBe(1)
+    expect(completed.resultOpacity).toBe(1)
+    expect(completed.items.every((item) => item.reveal === 1)).toBe(true)
   })
 })

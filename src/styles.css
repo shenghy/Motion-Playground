@@ -417,7 +417,7 @@ a:focus-visible {
   inset: 0 7px;
   min-width: 0;
   overflow: hidden;
-  border: 2px solid #777a7d;
+  border: 2px solid var(--timeline-card-color, #777a7d);
   border-radius: 2px 0 3px 1px;
   color: var(--paper);
   background:
@@ -426,9 +426,21 @@ a:focus-visible {
       transparent 0 8px,
       rgba(236, 236, 231, .035) 9px
     ),
-    #17191b;
+    color-mix(
+      in srgb,
+      var(--timeline-card-color, #777a7d) 18%,
+      #17191b
+    );
   box-shadow: 1px 1px 0 rgba(236, 236, 231, .15);
   cursor: grab;
+}
+
+.timeline-editor__card-body::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--timeline-card-color, #777a7d);
 }
 
 .timeline-editor__card-body:active {
@@ -3683,15 +3695,22 @@ a:focus-visible {
   box-shadow: none;
 }
 
-.metric-focus__frame[data-metric-layout='axis-reading'] {
+.metric-focus > .canvas-grid,
+.metric-focus > .pencil-texture {
+  right: auto;
+  width: 38%;
+}
+
+.metric-focus__frame[data-metric-layout='data-rail'] {
   left: 6.35%;
-  top: 17%;
-  bottom: calc(var(--subtitle-safe-bottom) + 5%);
-  width: 52.5%;
+  top: 19%;
+  bottom: calc(var(--subtitle-safe-bottom) + 7%);
+  width: 31.65%;
   display: block;
   padding: 0;
   background: none;
   backdrop-filter: none;
+  overflow: hidden;
 }
 
 .metric-focus__english {
@@ -3702,55 +3721,71 @@ a:focus-visible {
   text-transform: uppercase;
 }
 
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__value {
-  margin: 4.3cqw 0 2.3cqw;
-  align-items: flex-start;
+.metric-focus__value-rail {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  margin: 2.25cqw 0 1.35cqw;
+  padding-bottom: 1.05cqw;
+  border-bottom: 1px solid rgba(47, 103, 178, .72);
 }
 
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__number {
+.metric-focus__frame[data-metric-layout='data-rail'] .metric-focus__value {
+  align-items: baseline;
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.metric-focus__frame[data-metric-layout='data-rail'] .metric-focus__number {
   color: var(--pencil-silver);
-  font-size: 9.15cqw;
+  font-size: var(--metric-number-size, 6.8cqw);
   font-weight: 680;
+  line-height: .82;
 }
 
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__prefix,
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__suffix {
+.metric-focus__frame[data-metric-layout='data-rail'] .metric-focus__prefix,
+.metric-focus__frame[data-metric-layout='data-rail'] .metric-focus__suffix {
+  margin-top: 0;
   color: var(--motion-accent-blue);
+  font-size: var(--metric-affix-size, 1.45cqw);
+  line-height: 1;
+  letter-spacing: 0;
 }
 
-.metric-focus__axis {
+.metric-focus__frame[data-metric-layout='data-rail'] .metric-focus__prefix {
+  margin-right: .28cqw;
+}
+
+.metric-focus__frame[data-metric-layout='data-rail'] .metric-focus__suffix {
+  margin-left: .34cqw;
+}
+
+.metric-focus__single-bar-track {
   position: relative;
-  width: 92%;
-  height: .12cqw;
-  background: linear-gradient(90deg, #68717c, rgba(104, 113, 124, 0));
-  transform-origin: left center;
+  flex: 0 0 1.15cqw;
+  height: 4.7cqw;
+  margin-left: 1.05cqw;
+  overflow: hidden;
+  border: 1px solid rgba(67, 119, 171, .72);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 .52cqw,
+    rgba(85, 122, 168, .18) .54cqw .58cqw
+  );
 }
 
-.metric-focus__axis i {
+.metric-focus__single-bar-track i {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 42%;
-  background: var(--motion-accent-blue);
+  inset: .18cqw;
+  background: linear-gradient(180deg, #79b5f3, var(--motion-accent-blue));
+  box-shadow: 0 0 .7cqw rgba(47, 103, 178, .5);
+  transform-origin: center bottom;
 }
 
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__ticks {
-  width: 86%;
-  margin-top: .52cqw;
-  opacity: 1;
-}
-
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__ticks i {
-  background: var(--motion-accent-blue-muted);
-}
-
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__ticks i:nth-child(5n + 1) {
-  height: 1cqw;
-  background: var(--motion-accent-blue);
-}
-
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__meta {
+.metric-focus__frame[data-metric-layout='data-rail'] .metric-focus__meta {
   width: auto;
-  margin-top: 1.6cqw;
+  margin-top: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -3759,7 +3794,7 @@ a:focus-visible {
   letter-spacing: .08em;
 }
 
-.metric-focus__frame[data-metric-layout='axis-reading'] .metric-focus__meta strong {
+.metric-focus__frame[data-metric-layout='data-rail'] .metric-focus__meta strong {
   color: var(--motion-accent-blue-muted);
   font: 550 .68cqw/1 var(--mono);
   letter-spacing: .12em;

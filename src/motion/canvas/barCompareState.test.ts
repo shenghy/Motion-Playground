@@ -17,9 +17,12 @@ describe('getBarCompareState', () => {
     expect(state.focusIndex).toBe(1)
   })
 
-  it('repeats after the active cycle and repeat delay', () => {
-    expect(getBarCompareState(params, 0.9)).toEqual(
-      getBarCompareState(params, 0.9 + 5.8 + 0.7),
-    )
+  it('plays once and holds the complete chart', () => {
+    const completed = getBarCompareState(params, 12)
+    expect(completed.time).toBe(5.8)
+    expect(completed.headerOpacity).toBe(1)
+    expect(completed.baselineReveal).toBe(1)
+    expect(completed.resultOpacity).toBe(1)
+    expect(completed.items.every((item) => item.barReveal === 1)).toBe(true)
   })
 })

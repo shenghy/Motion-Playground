@@ -1,5 +1,5 @@
 import { delayedProgress } from '../../export/frameMath'
-import { sampleCycle, samplePencilEase } from '../../export/canvas/timing'
+import { sampleOnce, samplePencilEase } from '../../export/canvas/timing'
 import type { CompareSplitParams } from '../types'
 import { formatCountUp } from '../useCountUp'
 
@@ -25,20 +25,16 @@ export function getCompareSplitState(
 ) {
   const duration = clampDuration(params.duration)
   const cycle = duration + 1.8
-  const time = Math.round(sampleCycle(localTime, cycle, 0.55) * 1e6) / 1e6
+  const time = Math.round(sampleOnce(localTime, cycle) * 1e6) / 1e6
   const verticalSplit = clampSplit(params.split)
-  const exitStart = cycle - 0.48
-  const panelOpacity = time <= exitStart
-    ? 1
-    : Math.max(0, (cycle - time) / 0.48)
   const reveal = (start: number, span: number) => (
-    samplePencilEase(delayedProgress(time, start, span)) * panelOpacity
+    samplePencilEase(delayedProgress(time, start, span))
   )
 
   return {
     cycle,
     time,
-    panelOpacity,
+    panelOpacity: 1,
     verticalSplit,
     headerOpacity: reveal(0.08, 0.34),
     upperOpacity: reveal(0.28, 0.36),

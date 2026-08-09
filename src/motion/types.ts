@@ -166,6 +166,7 @@ export type Control =
 export interface MotionComponentProps<T extends ParameterValues> {
   params: T
   playbackTime?: number
+  playbackDuration?: number
 }
 
 export interface MotionDefinition<T extends ParameterValues = ParameterValues> {
@@ -174,6 +175,7 @@ export interface MotionDefinition<T extends ParameterValues = ParameterValues> {
   name: string
   category: string
   description: string
+  timelineColor: `#${string}`
   defaults: T
   controls: Control[]
   component: ComponentType<MotionComponentProps<T>>

@@ -36,6 +36,7 @@ interface TextOptions {
   maxWidth: number
   alpha?: number
   align?: CanvasTextAlign
+  baseline?: CanvasTextBaseline
   filter?: string
 }
 
@@ -148,7 +149,7 @@ export function drawText(
     ctx.globalAlpha = safeAlpha(options.alpha ?? 1)
     ctx.fillStyle = options.color
     ctx.textAlign = options.align ?? 'start'
-    ctx.textBaseline = 'top'
+    ctx.textBaseline = options.baseline ?? 'top'
     ctx.filter = options.filter ?? 'none'
     shrinkFontToWidth(ctx, options.font, options.text, options.maxWidth)
     ctx.fillText(options.text, options.x, options.y, options.maxWidth)

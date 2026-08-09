@@ -22,13 +22,13 @@ describe('getNarrativeState', () => {
     )
   })
 
-  it('fades all layers near the cycle end', () => {
-    const held = getNarrativeState(params, 3)
-    const exiting = getNarrativeState(params, 5.05)
+  it('plays once and holds every layer visible after completion', () => {
+    const completed = getNarrativeState(params, 12)
 
-    expect(exiting.line1.opacity).toBeLessThan(held.line1.opacity)
-    expect(exiting.explanation.opacity).toBeLessThan(
-      held.explanation.opacity,
-    )
+    expect(completed.time).toBe(5.2)
+    expect(completed.line1.opacity).toBe(1)
+    expect(completed.line2.opacity).toBe(1)
+    expect(completed.ruleProgress).toBe(1)
+    expect(completed.explanation.opacity).toBe(1)
   })
 })

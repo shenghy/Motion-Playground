@@ -42,6 +42,26 @@ function canvasFixture() {
 }
 
 describe('persistent canvas export session', () => {
+  it('passes one-shot local time and card duration to the renderer', async () => {
+    const { canvas } = canvasFixture()
+    const samples: Array<{ localTime: number; localDuration: number }> = []
+    const renderer: CanvasMotionRenderer<Record<string, string | number>> = ({
+      localTime,
+      localDuration,
+    }) => samples.push({ localTime, localDuration: localDuration ?? Number.NaN })
+    const session = createCanvasExportSession({
+      canvas,
+      cards: [card('timed', 10, 14, 0)],
+      resolveRenderer: () => renderer,
+      fontReady: vi.fn(async () => undefined),
+    })
+
+    await session.begin()
+    session.renderFrame(11.5)
+
+    expect(samples).toEqual([{ localTime: 1.5, localDuration: 4 }])
+  })
+
   it('clears, filters, stably sorts, and positions active cards', async () => {
     const { canvas, ctx } = canvasFixture()
     const renderOrder: string[] = []

@@ -96,7 +96,7 @@ describe('audience poll canvas renderer', () => {
     expect(ctx.lineTo).toHaveBeenCalledWith(702, expect.any(Number))
   })
 
-  it('matches the open React panel with exit-driven top and left rules only', () => {
+  it('matches the open React panel and holds top and left rules after completion', () => {
     const stable = createContext()
     renderAudiencePollToCanvas({ ctx: stable.ctx, params, localTime: 3.4, resources: {
       width: 1920, height: 1080, displayFont: 'Syne Variable',
@@ -109,12 +109,12 @@ describe('audience poll canvas renderer', () => {
     expect(stable.ctx.moveTo).toHaveBeenCalledWith(122, 119)
     expect(stable.ctx.lineTo).toHaveBeenCalledWith(122, 898)
 
-    const exited = createContext()
-    renderAudiencePollToCanvas({ ctx: exited.ctx, params, localTime: 6.2, resources: {
+    const completed = createContext()
+    renderAudiencePollToCanvas({ ctx: completed.ctx, params, localTime: 6.2, resources: {
       width: 1920, height: 1080, displayFont: 'Syne Variable',
       monoFont: 'IBM Plex Mono', contentFont: 'Noto Sans SC Variable',
     } })
-    expect(exited.strokeAlphas.slice(0, 2)).toEqual([0, 0])
+    expect(completed.strokeAlphas.slice(0, 2)).toEqual([1, 1])
   })
 
   it('maps the React percentage and cqw geometry at 1920 by 1080', () => {

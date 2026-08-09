@@ -47,17 +47,6 @@ export function getCardPlaybackState(
   }
 }
 
-export function loopTime(time: number, duration: number) {
-  if (
-    !Number.isFinite(time) ||
-    !Number.isFinite(duration) ||
-    duration <= 0
-  ) {
-    return 0
-  }
-  return ((Math.max(0, time) % duration) + duration) % duration
-}
-
 export function delayedProgress(
   time: number,
   delay: number,

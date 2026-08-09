@@ -40,6 +40,7 @@ type RegisteredMotion =
 export const motionRegistry: RegisteredMotion[] = [
   {
     id: 'narrative',
+    timelineColor: '#8B7BD8',
     index: '01',
     name: '叙述',
     category: '文字 / 叙述',
@@ -61,6 +62,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'metric-focus',
+    timelineColor: '#4D8FD8',
     index: '02',
     name: '核心指标',
     category: '数据 / 指标',
@@ -90,6 +92,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'compare-split',
+    timelineColor: '#D39A43',
     index: '03',
     name: '对比卡片',
     category: '双层 / 对比',
@@ -131,6 +134,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'profile-reveal',
+    timelineColor: '#C86D91',
     index: '04',
     name: '人物信息',
     category: '叙事 / 人物',
@@ -163,11 +167,12 @@ export const motionRegistry: RegisteredMotion[] = [
       { type: 'text', key: 'fact3', label: '信息三', maxLength: 16 },
       { type: 'text', key: 'fact3Note', label: '信息三注释', maxLength: 20 },
       { type: 'text', key: 'status', label: '状态文字', maxLength: 24 },
-      { type: 'number', key: 'duration', label: '循环时长', min: 5.2, max: 10, step: 0.2, suffix: '秒' },
+      { type: 'number', key: 'duration', label: '播放时长', min: 5.2, max: 10, step: 0.2, suffix: '秒' },
     ],
   },
   {
     id: 'bar-compare',
+    timelineColor: '#4FA878',
     index: '05',
     name: '柱状对比',
     category: '数据 / 柱状',
@@ -216,11 +221,12 @@ export const motionRegistry: RegisteredMotion[] = [
       },
       { type: 'text', key: 'resultLabel', label: '结论标签', maxLength: 12 },
       { type: 'text', key: 'resultNote', label: '结论说明', maxLength: 18 },
-      { type: 'number', key: 'duration', label: '循环时长', min: 4.8, max: 10, step: 0.2, suffix: '秒' },
+      { type: 'number', key: 'duration', label: '播放时长', min: 4.8, max: 10, step: 0.2, suffix: '秒' },
     ],
   },
   {
     id: 'share-ring',
+    timelineColor: '#3AA6AD',
     index: '06',
     name: '环形占比',
     category: '数据 / 占比',
@@ -269,11 +275,12 @@ export const motionRegistry: RegisteredMotion[] = [
       { type: 'text', key: 'centerLabel', label: '中心标签', maxLength: 12 },
       { type: 'text', key: 'resultLabel', label: '结论标签', maxLength: 12 },
       { type: 'text', key: 'resultNote', label: '结论说明', maxLength: 18 },
-      { type: 'number', key: 'duration', label: '循环时长', min: 5, max: 10, step: 0.2, suffix: '秒' },
+      { type: 'number', key: 'duration', label: '播放时长', min: 5, max: 10, step: 0.2, suffix: '秒' },
     ],
   },
   {
     id: 'step-flow',
+    timelineColor: '#CA7045',
     index: '07',
     name: '步骤流程',
     category: '流程 / 步骤',
@@ -326,6 +333,7 @@ export const motionRegistry: RegisteredMotion[] = [
   },
   {
     id: 'audience-poll',
+    timelineColor: '#91A84F',
     index: '08',
     name: '投票卡片',
     category: '互动 / 投票',
@@ -350,7 +358,7 @@ export const motionRegistry: RegisteredMotion[] = [
       { type: 'text', key: 'option3', label: '选项三', maxLength: 16 },
       { type: 'text', key: 'option4', label: '选项四', maxLength: 16 },
       { type: 'text', key: 'callToAction', label: '互动引导', maxLength: 32 },
-      { type: 'number', key: 'duration', label: '循环时长', min: 4.8, max: 10, step: 0.2, suffix: '秒' },
+      { type: 'number', key: 'duration', label: '播放时长', min: 4.8, max: 10, step: 0.2, suffix: '秒' },
     ],
   },
 ]

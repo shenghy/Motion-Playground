@@ -1,5 +1,5 @@
 import { delayedProgress } from '../../export/frameMath'
-import { sampleCycle, samplePencilEase } from '../../export/canvas/timing'
+import { sampleOnce, samplePencilEase } from '../../export/canvas/timing'
 import type { AudiencePollParams } from '../types'
 
 const FALLBACK_OPTIONS = ['选项一', '选项二'] as const
@@ -20,19 +20,11 @@ function resolveOptions(params: AudiencePollParams) {
   return [...FALLBACK_OPTIONS]
 }
 
-function exitOpacity(time: number, cycle: number) {
-  const exitDuration = 0.55
-  const exitStart = cycle - exitDuration
-  if (time <= exitStart) return 1
-  return Math.max(0, (cycle - time) / exitDuration)
-}
-
-function layer(time: number, cycle: number, start: number, duration: number) {
+function layer(time: number, start: number, duration: number) {
   const entered = samplePencilEase(delayedProgress(time, start, duration))
-  const exit = exitOpacity(time, cycle)
   return {
-    opacity: entered * exit,
-    y: 14 * (1 - entered) - 4 * (1 - exit),
+    opacity: entered,
+    y: 14 * (1 - entered),
   }
 }
 
@@ -41,7 +33,7 @@ export function getAudiencePollState(
   localTime: number,
 ) {
   const cycle = clampDuration(params.duration)
-  const time = Math.round(sampleCycle(localTime, cycle, 0.72) * 1e6) / 1e6
+  const time = Math.round(sampleOnce(localTime, cycle) * 1e6) / 1e6
   const labels = resolveOptions(params)
   const optionStart = 0.86
   const optionStagger = 0.34
@@ -50,7 +42,7 @@ export function getAudiencePollState(
     Math.min(labels.length - 1, Math.floor((time - optionStart) / optionStagger)),
   )
   const options = labels.map((label, index) => {
-    const sampled = layer(time, cycle, optionStart + index * optionStagger, 0.34)
+    const sampled = layer(time, optionStart + index * optionStagger, 0.34)
     return {
       ...sampled,
       label,
@@ -58,7 +50,7 @@ export function getAudiencePollState(
     }
   })
   const ctaStart = optionStart + labels.length * optionStagger + 0.18
-  const cta = layer(time, cycle, ctaStart, 0.4)
+  const cta = layer(time, ctaStart, 0.4)
   const pulseDuration = 0.8
   const pulseElapsed = time - ctaStart
   const pulse = cta.opacity > 0 && pulseElapsed > 0 && pulseElapsed < pulseDuration
@@ -68,9 +60,9 @@ export function getAudiencePollState(
   return {
     cycle,
     time,
-    panelOpacity: exitOpacity(time, cycle),
-    header: layer(time, cycle, 0.1, 0.38),
-    title: layer(time, cycle, 0.34, 0.44),
+    panelOpacity: 1,
+    header: layer(time, 0.1, 0.38),
+    title: layer(time, 0.34, 0.44),
     options,
     cta: { ...cta, scale: pulse },
   }

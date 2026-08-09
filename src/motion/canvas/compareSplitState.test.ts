@@ -40,10 +40,14 @@ describe('getCompareSplitState', () => {
     expect(getCompareSplitState(base, 2.5).lowerHighlight).toBe(0)
   })
 
-  it('fades the complete panel at exit and restarts after the repeat delay', () => {
-    expect(getCompareSplitState(base, 3.1).panelOpacity).toBeLessThan(1)
-    expect(getCompareSplitState(base, 3.3).panelOpacity).toBe(0)
-    expect(getCompareSplitState(base, 3.9).panelOpacity).toBeGreaterThan(0)
+  it('plays once and holds the completed comparison', () => {
+    const completed = getCompareSplitState(base, 12)
+    expect(completed.time).toBe(3.3)
+    expect(completed.panelOpacity).toBe(1)
+    expect(completed.headerOpacity).toBe(1)
+    expect(completed.resultOpacity).toBe(1)
+    expect(completed.upperValue).toBe('42')
+    expect(completed.lowerValue).toBe('86')
   })
 
   it('falls back from non-finite timing inputs', () => {

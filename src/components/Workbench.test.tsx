@@ -1507,6 +1507,11 @@ describe('Workbench', () => {
       ).toBeInTheDocument(),
     )
     expect(
+      screen.getByRole('button', {
+        name: '选择对比卡片片段，可用左右方向键微调时间',
+      }).parentElement,
+    ).toHaveStyle({ '--timeline-card-color': '#D39A43' })
+    expect(
       screen.queryByRole('button', {
         name: '选择核心指标片段，可用左右方向键微调时间',
       }),

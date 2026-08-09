@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getMotionDefinition } from '../motion/registry'
+import { getCardPlaybackTime } from '../motion/playbackTiming'
 import { getActiveCards, updateCardPosition } from '../timeline/project'
 import type { OverlayCard, OverlayPosition } from '../timeline/types'
 import { VideoPlaybackControls } from './VideoPlaybackControls'
@@ -57,10 +58,21 @@ const createPlaybackState = (source?: string): PlaybackState => ({
   duration: 0,
 })
 
-function renderMotion(id: MotionId, params: ParameterValues) {
+function renderMotion(
+  id: MotionId,
+  params: ParameterValues,
+  playbackTime?: number,
+  playbackDuration?: number,
+) {
   const definition = getMotionDefinition(id) as unknown as MotionDefinition
   const MotionComponent = definition.component
-  return <MotionComponent params={params} />
+  return (
+    <MotionComponent
+      params={params}
+      playbackTime={playbackTime}
+      playbackDuration={playbackDuration}
+    />
+  )
 }
 
 function finiteMediaValue(value: number) {
@@ -255,7 +267,7 @@ export function PreviewStage({
         <div className="stage-heading__meta">
           <span>1920 × 1080</span>
           <span>60 帧/秒</span>
-          <span className="loop-status"><i /> 循环</span>
+          <span className="loop-status"><i /> 单次播放</span>
         </div>
       </div>
 
@@ -412,7 +424,17 @@ export function PreviewStage({
                     }}
                     onPointerDown={(event) => startPositionGesture(event, card)}
                   >
-                    {renderMotion(card.motionId, card.params)}
+                    {renderMotion(
+                      card.motionId,
+                      card.params,
+                      getCardPlaybackTime(
+                        card.motionId,
+                        card.params,
+                        effectiveTime - card.start,
+                        card.end - card.start,
+                      ),
+                      card.end - card.start,
+                    )}
                   </div>
                 )
               })}
@@ -452,7 +474,7 @@ export function PreviewStage({
 
       <div className="stage-footer">
         <span>色彩 / 黑白灰</span>
-        <span>自动播放 · 无限循环</span>
+        <span>自动播放 · 单次保持</span>
         <span>缩放 / 适应画布</span>
       </div>
     </main>

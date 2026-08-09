@@ -43,6 +43,11 @@ export function getMetricFocusState(
     ),
     eyebrow: enter(time, 0.12, entranceDuration, { y: 18 }),
     value: enter(time, 0.2, entranceDuration, { scale: 0.94, blur: 12 }),
+    bar: {
+      reveal: samplePencilEase(
+        delayedProgress(time, 0.28, entranceDuration),
+      ),
+    },
     meta: enter(time, 0.42, entranceDuration, { y: 18 }),
     pencilLine: {
       reveal: samplePencilEase(delayedProgress(time, 0.48, entranceDuration)),

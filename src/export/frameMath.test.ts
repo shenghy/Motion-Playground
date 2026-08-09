@@ -6,7 +6,6 @@ import {
   easeOutQuart,
   getCardPlaybackState,
   interpolateKeyframes,
-  loopTime,
 } from './frameMath'
 
 describe('transparent export frame math', () => {
@@ -31,8 +30,7 @@ describe('transparent export frame math', () => {
     })
   })
 
-  it('calculates deterministic easing, delay, loop and keyframe values', () => {
-    expect(loopTime(6.5, 6)).toBeCloseTo(0.5)
+  it('calculates deterministic easing, delay and keyframe values', () => {
     expect(delayedProgress(0.5, 0.2, 0.6)).toBeCloseTo(0.5)
     expect(easeOutQuart(0)).toBe(0)
     expect(easeOutQuart(1)).toBe(1)

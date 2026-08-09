@@ -1,5 +1,5 @@
 import { delayedProgress } from '../../export/frameMath'
-import { sampleCycle, samplePencilEase } from '../../export/canvas/timing'
+import { sampleOnce, samplePencilEase } from '../../export/canvas/timing'
 import { normalizeShares, resolveFocusIndex } from '../dataMath'
 import type { ShareRingParams } from '../types'
 
@@ -9,7 +9,7 @@ function progress(time: number, delay: number, duration = 0.72) {
 
 export function getShareRingState(params: ShareRingParams, localTime: number) {
   const cycle = Math.min(10, Math.max(5, params.duration))
-  const time = Math.round(sampleCycle(localTime, cycle, 0.75) * 1e6) / 1e6
+  const time = Math.round(sampleOnce(localTime, cycle) * 1e6) / 1e6
   const source = [
     { label: params.item1Label, value: params.item1Value },
     { label: params.item2Label, value: params.item2Value },
@@ -22,7 +22,6 @@ export function getShareRingState(params: ShareRingParams, localTime: number) {
   ]
   const percentages = normalizeShares(safeItems.map((item) => item.value))
   const focusIndex = resolveFocusIndex(safeItems.map((item) => item.value), params.focusIndex)
-  const exit = time >= cycle - 0.6 ? Math.max(0, (cycle - time) / 0.6) : 1
   let offset = 0
   const items = safeItems.map((item, index) => {
     const percentage = percentages[index]
@@ -31,8 +30,8 @@ export function getShareRingState(params: ShareRingParams, localTime: number) {
       percentage,
       offset,
       focused: index === focusIndex,
-      reveal: progress(time, 0.5 + index * 0.2) * exit,
-      labelOpacity: progress(time, 1.72 + index * 0.12) * exit,
+      reveal: progress(time, 0.5 + index * 0.2),
+      labelOpacity: progress(time, 1.72 + index * 0.12),
     }
     offset += percentage
     return result
@@ -42,9 +41,9 @@ export function getShareRingState(params: ShareRingParams, localTime: number) {
     time,
     focusIndex,
     focusPercentage: Math.round(items[focusIndex].percentage),
-    headerOpacity: progress(time, 0.16) * exit,
-    centerOpacity: progress(time, 1.55) * exit,
-    resultOpacity: progress(time, 2.35) * exit,
+    headerOpacity: progress(time, 0.16),
+    centerOpacity: progress(time, 1.55),
+    resultOpacity: progress(time, 2.35),
     items,
   }
 }

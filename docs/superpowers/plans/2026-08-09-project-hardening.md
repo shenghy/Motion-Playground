@@ -75,4 +75,3 @@
 - [ ] Run the real ROI FFmpeg integration test and a short browser benchmark.
 - [ ] Run `git diff --check master...HEAD`, self-review the full diff, fix findings, and repeat affected checks.
 - [ ] Push `codex/project-hardening` to GitHub.
-

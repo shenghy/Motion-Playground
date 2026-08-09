@@ -22,4 +22,3 @@
 - ROI 极端参数生成器有单元测试，真实浏览器门禁覆盖默认/最小/最大与位置偏移。
 - `package.json` 不再包含 `latest`，`npm ci` 可重建环境。
 - Windows CI 配置、README、全量测试、视觉测试、Lint、构建和真实 FFmpeg 集成测试全部通过。
-

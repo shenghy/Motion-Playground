@@ -8,8 +8,6 @@ import {
 import type { MetricFocusParams } from '../types'
 import {
   getMetricFocusTypography,
-  METRIC_BAR_GAP,
-  METRIC_BAR_WIDTH,
   METRIC_CONTENT_X,
   METRIC_PREFIX_GAP,
   METRIC_SAFE_EDGE,
@@ -17,9 +15,6 @@ import {
   METRIC_SUFFIX_GAP,
 } from '../metricFocusLayout'
 import { getMetricFocusState } from './metricFocusState'
-
-const BAR_HEIGHT = 112
-const BAR_BOTTOM = 444
 
 function textWidth(
   ctx: CanvasRenderingContext2D,
@@ -79,7 +74,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
   const prefixFont = `600 ${typography.affixFontSize}px ${resources.displayFont}`
   const numberFont = `680 ${typography.numberFontSize}px ${resources.displayFont}`
   const suffixFont = `600 ${typography.affixFontSize}px ${resources.displayFont}`
-  const baseline = 420
+  const baseline = 432
   const prefixWidth = textWidth(ctx, params.prefix, prefixFont)
   const numberX = METRIC_CONTENT_X + (
     params.prefix ? prefixWidth + METRIC_PREFIX_GAP : 0
@@ -88,8 +83,6 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
   const suffixX = numberX + numberWidth + (
     params.suffix ? METRIC_SUFFIX_GAP : 0
   )
-  const suffixWidth = textWidth(ctx, params.suffix, suffixFont)
-  const barX = suffixX + suffixWidth + METRIC_BAR_GAP
   const valueTextStyle = {
     alpha: state.value.opacity,
     baseline: 'alphabetic' as const,
@@ -122,30 +115,16 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     y: baseline,
     font: suffixFont,
     color: CANVAS_COLORS.accentBlue,
-    maxWidth: Math.max(0, barX - suffixX - 12),
+    maxWidth: Math.max(0, METRIC_SAFE_RIGHT - suffixX),
     ...valueTextStyle,
   })
   ctx.restore()
 
-  ctx.save()
-  ctx.strokeStyle = CANVAS_COLORS.accentBlue
-  ctx.lineWidth = 2
-  ctx.strokeRect(barX, BAR_BOTTOM - BAR_HEIGHT, METRIC_BAR_WIDTH, BAR_HEIGHT)
-  const visibleHeight = (BAR_HEIGHT - 6) * state.bar.reveal
-  ctx.fillStyle = CANVAS_COLORS.accentBlue
-  ctx.fillRect(
-    barX + 3,
-    BAR_BOTTOM - 3 - visibleHeight,
-    METRIC_BAR_WIDTH - 6,
-    visibleHeight,
-  )
-  ctx.restore()
-
   drawPencilLine(ctx, {
     x1: METRIC_CONTENT_X,
-    y1: 514,
+    y1: 500,
     x2: METRIC_SAFE_RIGHT - 28,
-    y2: 514,
+    y2: 500,
     color: CANVAS_COLORS.accentBlue,
     width: 2,
     alpha: state.pencilLine.reveal,
@@ -154,8 +133,8 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
   drawText(ctx, {
     text: params.description || '暂无说明',
     x: METRIC_CONTENT_X,
-    y: 570 + state.meta.y,
-    font: `500 30px ${resources.contentFont}`,
+    y: 546 + state.meta.y,
+    font: `500 32px ${resources.contentFont}`,
     color: '#c8cdd2',
     maxWidth: METRIC_SAFE_RIGHT - METRIC_CONTENT_X,
     alpha: state.meta.opacity,
@@ -163,8 +142,8 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
   drawText(ctx, {
     text: params.trend || '趋势稳定',
     x: METRIC_CONTENT_X,
-    y: 616 + state.meta.y,
-    font: `550 18px ${resources.monoFont}`,
+    y: 596 + state.meta.y,
+    font: `550 19px ${resources.monoFont}`,
     color: CANVAS_COLORS.accentBlueMuted,
     maxWidth: METRIC_SAFE_RIGHT - METRIC_CONTENT_X,
     alpha: state.meta.opacity,

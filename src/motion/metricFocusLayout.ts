@@ -1,13 +1,11 @@
 export const METRIC_SAFE_EDGE = 1920 * 0.38
 export const METRIC_SAFE_RIGHT = METRIC_SAFE_EDGE - 1
 export const METRIC_CONTENT_X = 122
-export const METRIC_BAR_WIDTH = 24
-export const METRIC_BAR_GAP = 28
 export const METRIC_PREFIX_GAP = 8
 export const METRIC_SUFFIX_GAP = 10
 
-const NUMBER_FONT_SIZE = 132
-const AFFIX_FONT_SIZE = 34
+const NUMBER_FONT_SIZE = 156
+const AFFIX_FONT_SIZE = 36
 const CONSERVATIVE_NUMBER_GLYPH_WIDTH = 0.88
 const CANVAS_CQW_IN_PIXELS = 19.2
 
@@ -24,8 +22,6 @@ export function getMetricFocusTypography(
     + (suffix ? METRIC_SUFFIX_GAP : 0)
   const availableGlyphWidth = METRIC_SAFE_RIGHT
     - METRIC_CONTENT_X
-    - METRIC_BAR_WIDTH
-    - METRIC_BAR_GAP
     - textGaps
   const estimatedGlyphWidth = number.length
     * NUMBER_FONT_SIZE

@@ -118,7 +118,6 @@ describe('metric focus canvas renderer', () => {
       .map(([, x, , maxWidth]) => Number(x) + Number(maxWidth))
 
     expect(lineEndpoints.every(([x]) => Number(x) <= safeRight)).toBe(true)
-    expect(rectangleRightEdges.length).toBeGreaterThan(0)
     expect(rectangleRightEdges.every((right) => right <= safeRight)).toBe(true)
     expect(strokedRectangleRightEdges.every((right) => right <= safeRight)).toBe(true)
     expect(textRightEdges.every((right) => right <= safeRight)).toBe(true)
@@ -224,27 +223,22 @@ describe('metric focus canvas renderer', () => {
     expect(numberFontAt(0)).toBe(numberFontAt(2))
   })
 
-  it('grows one decorative bar from zero to its full height', () => {
-    const renderAt = (localTime: number) => {
-      const ctx = createContext()
-      renderMetricFocusToCanvas({
-        ctx,
-        params,
-        localTime,
-        resources: {
-          width: 1920,
-          height: 1080,
-          displayFont: 'Syne Variable',
-          monoFont: 'IBM Plex Mono',
-          contentFont: 'Noto Sans SC Variable',
-        },
-      })
-      return vi.mocked(ctx.fillRect).mock.calls
-    }
+  it('renders a number poster without bar rectangles', () => {
+    const ctx = createContext()
+    renderMetricFocusToCanvas({
+      ctx,
+      params,
+      localTime: 8,
+      resources: {
+        width: 1920,
+        height: 1080,
+        displayFont: 'Syne Variable',
+        monoFont: 'IBM Plex Mono',
+        contentFont: 'Noto Sans SC Variable',
+      },
+    })
 
-    const initialHeights = renderAt(0).map(([, , , height]) => Number(height))
-    const completedHeights = renderAt(8).map(([, , , height]) => Number(height))
-    expect(initialHeights.every((height) => height === 0)).toBe(true)
-    expect(completedHeights.some((height) => height > 0)).toBe(true)
+    expect(ctx.fillRect).not.toHaveBeenCalled()
+    expect(ctx.strokeRect).not.toHaveBeenCalled()
   })
 })

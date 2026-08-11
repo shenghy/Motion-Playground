@@ -5,6 +5,13 @@ import { renderNarrativeToCanvas } from './narrativeRenderer'
 function createContext() {
   const filters: string[] = []
   const textColors: string[] = []
+  const textDraws: Array<{
+    text: string
+    font: string
+    x: number
+    y: number
+    maxWidth: number
+  }> = []
   const context = {
     save: vi.fn(),
     restore: vi.fn(),
@@ -12,7 +19,10 @@ function createContext() {
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     stroke: vi.fn(),
-    fillText: vi.fn(() => textColors.push(String(context.fillStyle))),
+    fillText: vi.fn((text: string, x: number, y: number, maxWidth: number) => {
+      textColors.push(String(context.fillStyle))
+      textDraws.push({ text, font: context.font, x, y, maxWidth })
+    }),
     setLineDash: vi.fn(),
     measureText: vi.fn((text: string) => ({ width: text.length * 20 })),
     globalAlpha: 1,
@@ -32,6 +42,7 @@ function createContext() {
     ctx: context as unknown as CanvasRenderingContext2D,
     filters,
     textColors,
+    textDraws,
   }
 }
 
@@ -88,5 +99,36 @@ describe('narrative canvas renderer', () => {
 
     expect(filters.some((filter) => /^blur\((?!0(?:\.0+)?px)/.test(filter)))
       .toBe(true)
+  })
+
+  it('draws long explanation copy as at most two uncompressed 30px lines', () => {
+    const { ctx, textDraws } = createContext()
+    ctx.measureText = vi.fn((text: string) => ({
+      width: Array.from(text).length * 30,
+    })) as unknown as CanvasRenderingContext2D['measureText']
+    const explanation = '让系统处理重复步骤人只负责判断与创造让内容更加清楚'
+
+    renderNarrativeToCanvas({
+      ctx,
+      params: { ...params, explanation },
+      localTime: 2,
+      resources: {
+        width: 1920,
+        height: 1080,
+        displayFont: 'Syne Variable',
+        monoFont: 'IBM Plex Mono',
+        contentFont: 'Noto Sans SC Variable',
+      },
+    })
+
+    const explanationDraws = textDraws.filter(({ text }) => (
+      explanation.includes(text)
+    ))
+    expect(explanationDraws).toHaveLength(2)
+    expect(explanationDraws.map(({ text }) => text).join('')).toBe(explanation)
+    expect(explanationDraws.every(({ font }) => font.includes('30px'))).toBe(true)
+    expect(explanationDraws.every(({ text, x, y }) => (
+      x + ctx.measureText(text).width <= 792 && y + 30 <= 590
+    ))).toBe(true)
   })
 })

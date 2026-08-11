@@ -6,6 +6,7 @@ import {
 } from '../../export/canvas/primitives'
 import type { NarrativeParams } from '../types'
 import { getNarrativeState } from './narrativeState'
+import { layoutNarrativeExplanation } from './narrativeTextLayout'
 
 export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
   ctx,
@@ -17,6 +18,13 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
   const line1 = params.line1 || '当前内容'
   const line2 = params.line2 || '正在讲述'
   const explanation = params.explanation || '补充当前视频内容的简短解释。'
+  const explanationFont = `400 30px ${resources.monoFont}`
+  const explanationLines = layoutNarrativeExplanation(
+    ctx,
+    explanation,
+    explanationFont,
+    660,
+  )
 
   drawText(ctx, {
     text: 'NARRATIVE / 01',
@@ -56,13 +64,15 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
     width: 2,
     alpha: state.ruleProgress,
   })
-  drawText(ctx, {
-    text: explanation,
-    x: 132,
-    y: 510 + state.explanation.y,
-    font: `400 22px ${resources.monoFont}`,
-    color: CANVAS_COLORS.muted,
-    maxWidth: 660,
-    alpha: state.explanation.opacity,
+  explanationLines.forEach((text, index) => {
+    drawText(ctx, {
+      text,
+      x: 132,
+      y: 510 + state.explanation.y + index * 44,
+      font: explanationFont,
+      color: CANVAS_COLORS.muted,
+      maxWidth: 660,
+      alpha: state.explanation.opacity,
+    })
   })
 }

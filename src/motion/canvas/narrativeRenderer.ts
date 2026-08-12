@@ -8,6 +8,13 @@ import type { NarrativeParams } from '../types'
 import { getNarrativeState } from './narrativeState'
 import { layoutNarrativeExplanation } from './narrativeTextLayout'
 
+const HEADLINE_SHADOW = {
+  color: 'rgba(38, 40, 43, 0.8)',
+  blur: 10,
+  offsetX: 4,
+  offsetY: 5,
+} as const
+
 export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
   ctx,
   params,
@@ -44,6 +51,7 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
     maxWidth: 720,
     alpha: state.line1.opacity,
     filter: `blur(${state.line1.blur}px)`,
+    shadow: HEADLINE_SHADOW,
   })
   drawText(ctx, {
     text: line2,
@@ -54,6 +62,7 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
     maxWidth: 720,
     alpha: state.line2.opacity,
     filter: `blur(${state.line2.blur}px)`,
+    shadow: HEADLINE_SHADOW,
   })
   drawPencilLine(ctx, {
     x1: 132,

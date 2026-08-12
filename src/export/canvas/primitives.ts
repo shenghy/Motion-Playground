@@ -27,6 +27,13 @@ interface PanelOptions {
   lineWidth?: number
 }
 
+interface TextShadowOptions {
+  color: string
+  blur: number
+  offsetX: number
+  offsetY: number
+}
+
 interface TextOptions {
   text: string
   x: number
@@ -38,6 +45,7 @@ interface TextOptions {
   align?: CanvasTextAlign
   baseline?: CanvasTextBaseline
   filter?: string
+  shadow?: TextShadowOptions
 }
 
 interface PencilLineOptions {
@@ -151,6 +159,12 @@ export function drawText(
     ctx.textAlign = options.align ?? 'start'
     ctx.textBaseline = options.baseline ?? 'top'
     ctx.filter = options.filter ?? 'none'
+    if (options.shadow) {
+      ctx.shadowColor = options.shadow.color
+      ctx.shadowBlur = options.shadow.blur
+      ctx.shadowOffsetX = options.shadow.offsetX
+      ctx.shadowOffsetY = options.shadow.offsetY
+    }
     shrinkFontToWidth(ctx, options.font, options.text, options.maxWidth)
     ctx.fillText(options.text, options.x, options.y, options.maxWidth)
   } finally {

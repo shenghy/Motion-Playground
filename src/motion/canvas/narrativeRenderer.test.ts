@@ -11,17 +11,39 @@ function createContext() {
     x: number
     y: number
     maxWidth: number
+    shadowColor: string
+    shadowBlur: number
+    shadowOffsetX: number
+    shadowOffsetY: number
   }> = []
+  const states: Array<Record<string, unknown>> = []
   const context = {
-    save: vi.fn(),
-    restore: vi.fn(),
+    save: vi.fn(() => {
+      states.push({
+        shadowColor: context.shadowColor,
+        shadowBlur: context.shadowBlur,
+        shadowOffsetX: context.shadowOffsetX,
+        shadowOffsetY: context.shadowOffsetY,
+      })
+    }),
+    restore: vi.fn(() => Object.assign(context, states.pop())),
     beginPath: vi.fn(),
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     stroke: vi.fn(),
     fillText: vi.fn((text: string, x: number, y: number, maxWidth: number) => {
       textColors.push(String(context.fillStyle))
-      textDraws.push({ text, font: context.font, x, y, maxWidth })
+      textDraws.push({
+        text,
+        font: context.font,
+        x,
+        y,
+        maxWidth,
+        shadowColor: context.shadowColor,
+        shadowBlur: context.shadowBlur,
+        shadowOffsetX: context.shadowOffsetX,
+        shadowOffsetY: context.shadowOffsetY,
+      })
     }),
     setLineDash: vi.fn(),
     measureText: vi.fn((text: string) => ({ width: text.length * 20 })),
@@ -32,6 +54,10 @@ function createContext() {
     font: '10px sans-serif',
     textAlign: 'start',
     textBaseline: 'alphabetic',
+    shadowColor: 'rgba(0, 0, 0, 0)',
+    shadowBlur: 0,
+    shadowOffsetX: 0,
+    shadowOffsetY: 0,
   }
   Object.defineProperty(context, 'filter', {
     configurable: true,
@@ -99,6 +125,44 @@ describe('narrative canvas renderer', () => {
 
     expect(filters.some((filter) => /^blur\((?!0(?:\.0+)?px)/.test(filter)))
       .toBe(true)
+  })
+
+  it('adds the approved shadow only to the two white headline lines', () => {
+    const { ctx, textDraws } = createContext()
+
+    renderNarrativeToCanvas({
+      ctx,
+      params,
+      localTime: 2,
+      resources: {
+        width: 1920,
+        height: 1080,
+        displayFont: 'Syne Variable',
+        monoFont: 'IBM Plex Mono',
+        contentFont: 'Noto Sans SC Variable',
+      },
+    })
+
+    const headlineDraws = textDraws.filter(({ text }) => (
+      text === params.line1 || text === params.line2
+    ))
+    const otherDraws = textDraws.filter(({ text }) => (
+      text !== params.line1 && text !== params.line2
+    ))
+
+    expect(headlineDraws).toHaveLength(2)
+    expect(headlineDraws.every((draw) => (
+      draw.shadowColor === 'rgba(38, 40, 43, 0.8)'
+        && draw.shadowBlur === 10
+        && draw.shadowOffsetX === 4
+        && draw.shadowOffsetY === 5
+    ))).toBe(true)
+    expect(otherDraws.every((draw) => (
+      draw.shadowColor === 'rgba(0, 0, 0, 0)'
+        && draw.shadowBlur === 0
+        && draw.shadowOffsetX === 0
+        && draw.shadowOffsetY === 0
+    ))).toBe(true)
   })
 
   it('draws long explanation copy as at most two uncompressed 30px lines', () => {

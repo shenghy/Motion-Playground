@@ -15,6 +15,13 @@ const HEADLINE_SHADOW = {
   offsetY: 5,
 } as const
 
+const EXPLANATION_SHADOW = {
+  color: 'rgba(38, 40, 43, 0.8)',
+  blur: 6,
+  offsetX: 2,
+  offsetY: 3,
+} as const
+
 export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
   ctx,
   params,
@@ -82,6 +89,7 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
       color: CANVAS_COLORS.muted,
       maxWidth: 660,
       alpha: state.explanation.opacity,
+      shadow: EXPLANATION_SHADOW,
     })
   })
 }

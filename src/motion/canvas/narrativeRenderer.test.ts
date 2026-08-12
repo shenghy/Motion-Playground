@@ -127,7 +127,7 @@ describe('narrative canvas renderer', () => {
       .toBe(true)
   })
 
-  it('adds the approved shadow only to the two white headline lines', () => {
+  it('uses strong headline shadows and lighter explanation shadows', () => {
     const { ctx, textDraws } = createContext()
 
     renderNarrativeToCanvas({
@@ -146,8 +146,13 @@ describe('narrative canvas renderer', () => {
     const headlineDraws = textDraws.filter(({ text }) => (
       text === params.line1 || text === params.line2
     ))
-    const otherDraws = textDraws.filter(({ text }) => (
-      text !== params.line1 && text !== params.line2
+    const explanationDraws = textDraws.filter(({ text }) => (
+      params.explanation?.includes(text)
+    ))
+    const neutralDraws = textDraws.filter(({ text }) => (
+      text !== params.line1
+        && text !== params.line2
+        && !params.explanation?.includes(text)
     ))
 
     expect(headlineDraws).toHaveLength(2)
@@ -157,7 +162,14 @@ describe('narrative canvas renderer', () => {
         && draw.shadowOffsetX === 4
         && draw.shadowOffsetY === 5
     ))).toBe(true)
-    expect(otherDraws.every((draw) => (
+    expect(explanationDraws.length).toBeGreaterThan(0)
+    expect(explanationDraws.every((draw) => (
+      draw.shadowColor === 'rgba(38, 40, 43, 0.8)'
+        && draw.shadowBlur === 6
+        && draw.shadowOffsetX === 2
+        && draw.shadowOffsetY === 3
+    ))).toBe(true)
+    expect(neutralDraws.every((draw) => (
       draw.shadowColor === 'rgba(0, 0, 0, 0)'
         && draw.shadowBlur === 0
         && draw.shadowOffsetX === 0

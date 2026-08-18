@@ -69,6 +69,18 @@ function firePointer(
 }
 
 describe('PreviewStage overlays', () => {
+  it('marks a video-backed stage for original-color rendering', () => {
+    const { rerender } = render(
+      <PreviewStage {...createProps({ videoUrl: 'blob:original-color' })} />,
+    )
+
+    expect(screen.getByTestId('preview-stage')).toHaveClass('preview-canvas--video')
+
+    rerender(<PreviewStage {...createProps()} />)
+
+    expect(screen.getByTestId('preview-stage')).not.toHaveClass('preview-canvas--video')
+  })
+
   it('labels motion playback as one-shot', () => {
     render(<PreviewStage {...createProps()} />)
 

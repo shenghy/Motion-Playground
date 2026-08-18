@@ -14,6 +14,7 @@ interface ParameterPanelProps {
   onChange: (key: string, value: ParameterValue) => void
   onReset: () => void
   onReplay: () => void
+  propertiesLocked?: boolean
   showSafeArea?: boolean
   onToggleSafeArea?: () => void
   videoFileName?: string
@@ -46,6 +47,7 @@ export function ParameterPanel({
   onChange,
   onReset,
   onReplay,
+  propertiesLocked = false,
   showSafeArea = true,
   onToggleSafeArea,
   videoFileName,
@@ -106,6 +108,26 @@ export function ParameterPanel({
             aria-label={control.label}
             maxLength={control.maxLength}
             value={String(value ?? '')}
+            disabled={propertiesLocked}
+            onChange={(event) =>
+              onChange(control.key, event.target.value.slice(0, control.maxLength))
+            }
+          />
+          <small>{String(value ?? '').length}/{control.maxLength}</small>
+        </label>
+      )
+    }
+
+    if (control.type === 'textarea') {
+      return (
+        <label className="control-field" key={control.key}>
+          <span>{control.label}</span>
+          <textarea
+            aria-label={control.label}
+            maxLength={control.maxLength}
+            rows={control.rows}
+            value={String(value ?? '')}
+            disabled={propertiesLocked}
             onChange={(event) =>
               onChange(control.key, event.target.value.slice(0, control.maxLength))
             }
@@ -131,6 +153,7 @@ export function ParameterPanel({
             max={control.max}
             step={control.step}
             value={numericValue}
+            disabled={propertiesLocked}
             onChange={(event) =>
               onChange(
                 control.key,
@@ -152,6 +175,7 @@ export function ParameterPanel({
         <select
           aria-label={control.label}
           value={String(value)}
+          disabled={propertiesLocked}
           onChange={(event) => onChange(control.key, event.target.value)}
         >
           {control.options.map((option) => (
@@ -212,6 +236,11 @@ export function ParameterPanel({
               <span>当前卡片</span>
               <small>调整画面内容与动效参数</small>
             </div>
+            {propertiesLocked && (
+              <p className="parameter-lock-hint" role="status">
+                尚未选择卡片。点击预览舞台或时间轴中的卡片后，即可编辑它的属性。
+              </p>
+            )}
             {onToggleSafeArea && (
               <div className="preview-setting">
                 <div>
@@ -232,10 +261,20 @@ export function ParameterPanel({
             )}
             {renderControls()}
             <div className="panel-actions">
-              <button className="button button--secondary" type="button" onClick={onReset}>
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={onReset}
+                disabled={propertiesLocked}
+              >
                 <span aria-hidden="true">↺</span> 恢复默认
               </button>
-              <button className="button button--primary" type="button" onClick={onReplay}>
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={onReplay}
+                disabled={propertiesLocked}
+              >
                 <span aria-hidden="true">▶</span> 重新播放
               </button>
             </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { exportPngSequence, type ExportProgress } from '../export/exportController'
+import { createExportCompleteChime } from '../export/exportCompleteChime'
 import { createExportPerformance, type ExportPerformance } from '../export/exportPerformance'
 import type { ExportSurfaceHandle } from '../export/ExportSurface'
 import { supportsOverlayFileExport, type OverlayFileWindow } from '../export/fileSystemAccess'
@@ -170,6 +171,7 @@ export function useWorkbenchExport(cards: OverlayCard[], videoDuration: number) 
       setExportMessage('当前浏览器不支持保存 MOV，请使用 Chrome 或 Edge')
       return
     }
+    const completionChime = createExportCompleteChime()
     exportOperationRef.current = true
     setExportOperationActive(true)
     const snapshotCards = cloneOverlayCards(cards)
@@ -274,12 +276,14 @@ export function useWorkbenchExport(cards: OverlayCard[], videoDuration: number) 
       serverExportJobRef.current = null
       setExportStatus('completed')
       setExportMessage(`透明 MOV 已保存为 ${fileHandle.name}`)
+      await completionChime.play()
     } catch (error) {
       setExportStatus(controller?.signal.aborted ? 'cancelled' : 'error')
       setExportMessage(pendingMovJobRef.current
         ? 'MOV 已编码完成但保存失败，点击导出透明 MOV 可重新保存'
         : error instanceof Error ? error.message : '透明 MOV 导出失败')
     } finally {
+      await completionChime.dispose()
       exportAbortRef.current = null
       if (!pendingMovJobRef.current) serverExportJobRef.current = null
       exportOperationRef.current = false

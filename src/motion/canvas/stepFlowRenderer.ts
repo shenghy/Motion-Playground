@@ -12,9 +12,9 @@ export const renderStepFlowToCanvas: CanvasMotionRenderer<StepFlowParams> = ({ c
   drawPencilLine(ctx, { x1: 156, y1: 265, x2: 700, y2: 265, color: 'rgba(241,238,229,.36)', width: 2, alpha: state.headerOpacity })
 
   const firstY = 330
-  const lastY = 820
   const x = 166
-  const gap = (lastY - firstY) / Math.max(1, state.items.length - 1)
+  const gap = (820 - firstY) / 6
+  const lastY = firstY + gap * Math.max(0, state.items.length - 1)
   drawPencilLine(ctx, {
     x1: x,
     y1: firstY,

@@ -9,7 +9,7 @@ const params = {
 }
 
 describe('getStepFlowState', () => {
-  it('supports seven steps and wraps focus order from step six', () => {
+  it('starts existing seven-step cards from step one even when they saved another focus', () => {
     const sevenStepParams = {
       ...params,
       step6: 'Six',
@@ -20,20 +20,21 @@ describe('getStepFlowState', () => {
     const state = getStepFlowState(sevenStepParams, 0)
 
     expect(state.steps).toHaveLength(7)
-    expect(state.orderedIndexes).toEqual([5, 6, 0, 1, 2, 3, 4])
+    expect(state.focusIndex).toBe(0)
+    expect(state.orderedIndexes).toEqual([0, 1, 2, 3, 4, 5, 6])
   })
 
   it('retains a completed state after the focus moves forward', () => {
     const state = getStepFlowState(params, 1.65)
 
-    expect(state.items[2]).toMatchObject({ completed: true })
-    expect(state.items[3]).toMatchObject({ completed: false })
+    expect(state.items[0]).toMatchObject({ completed: true })
+    expect(state.items[1]).toMatchObject({ completed: false })
   })
 
-  it('cycles in focus-step order', () => {
+  it('keeps filtered step cards in first-to-last order', () => {
     const state = getStepFlowState({ ...params, step6: '', step7: '' }, 0)
-    expect(state.orderedIndexes).toEqual([2, 3, 4, 0, 1])
-    expect(state.focusIndex).toBe(2)
+    expect(state.orderedIndexes).toEqual([0, 1, 2, 3, 4])
+    expect(state.focusIndex).toBe(0)
   })
 
   it('plays once and holds every step completed', () => {

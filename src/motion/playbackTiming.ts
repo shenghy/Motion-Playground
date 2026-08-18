@@ -10,6 +10,9 @@ export function getNominalPlaybackDuration(
   motionId: MotionId,
   params: ParameterValues,
 ) {
+  if (motionId === 'prompt-display') {
+    return 6 + finitePositive(params.holdDuration) + finitePositive(params.exitDuration)
+  }
   if (motionId === 'compare-split') {
     const duration = finitePositive(params.duration)
     return duration === 0 ? 0 : Math.max(duration + 0.5, 1.92)
@@ -48,6 +51,9 @@ export function getCardPlaybackTime(
   localTime: number,
   cardDuration: number,
 ) {
+  if (motionId === 'prompt-display') {
+    return Number.isFinite(localTime) ? Math.max(0, localTime) : 0
+  }
   return fitPlaybackTimeToCard(
     localTime,
     cardDuration,

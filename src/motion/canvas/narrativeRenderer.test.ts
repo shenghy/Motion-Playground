@@ -177,6 +177,34 @@ describe('narrative canvas renderer', () => {
     ))).toBe(true)
   })
 
+  it('keeps two English headlines on separate lines', () => {
+    const { ctx, textDraws } = createContext()
+    const englishParams = {
+      ...params,
+      line1: 'BUILD SMARTER AGENTS',
+      line2: 'SHIP RELIABLE AI',
+    }
+
+    renderNarrativeToCanvas({
+      ctx,
+      params: englishParams,
+      localTime: 2,
+      resources: {
+        width: 1920,
+        height: 1080,
+        displayFont: 'Syne Variable',
+        monoFont: 'IBM Plex Mono',
+        contentFont: 'Noto Sans SC Variable',
+      },
+    })
+
+    const headlineDraws = textDraws.filter(({ text }) => (
+      text === englishParams.line1 || text === englishParams.line2
+    ))
+    expect(headlineDraws).toHaveLength(2)
+    expect(headlineDraws[1].y - headlineDraws[0].y).toBeGreaterThanOrEqual(112)
+  })
+
   it('draws long explanation copy as at most two uncompressed 30px lines', () => {
     const { ctx, textDraws } = createContext()
     ctx.measureText = vi.fn((text: string) => ({

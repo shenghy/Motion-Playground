@@ -29,6 +29,19 @@ const defaultsByMotion: Record<MotionId, ParameterValues> = {
     callToAction: '把编号打在弹幕或评论区，告诉我你的选择',
     duration: 6.2,
   },
+  'prompt-display': {
+    eyebrow: 'AI PROMPT / 01',
+    prompt: '默认提示词',
+    keywords: '',
+    holdDuration: 2,
+    exitDuration: 0.18,
+  },
+  'diary-date': {
+    eyebrow: 'AI DIARY / 04',
+    dateText: '2026年8月18日',
+    note: 'AI 日记 · 第四期',
+    duration: 4.2,
+  },
 }
 
 function makeCard(overrides: Partial<OverlayCard> = {}): OverlayCard {
@@ -273,6 +286,36 @@ describe('parseOverlayProject', () => {
     expect(parseOverlayProject(text, defaultsByMotion).cards[0].params).toEqual(
       pollParams,
     )
+  })
+
+  it('round-trips the complete prompt display JSON contract', () => {
+    const promptParams = {
+      eyebrow: 'AI PROMPT / 01',
+      prompt: '请生成电影级写实的数据中心画面。',
+      keywords: '电影级写实|数据中心画面',
+      holdDuration: 2,
+      exitDuration: 0.18,
+    }
+    const text = JSON.stringify({
+      version: 1,
+      canvas: { width: 1920, height: 1080 },
+      cards: [{
+        id: 'prompt-round-trip',
+        motionId: 'prompt-display',
+        start: 1,
+        end: 9.18,
+        position: { x: 0, y: 0 },
+        zIndex: 0,
+        params: promptParams,
+      }],
+    })
+
+    expect(parseOverlayProject(text, defaultsByMotion).cards[0]).toMatchObject({
+      motionId: 'prompt-display',
+      start: 1,
+      end: 9.18,
+      params: promptParams,
+    })
   })
 
   it('accepts a decimal minimum-duration range from 0.1 to 0.3', () => {

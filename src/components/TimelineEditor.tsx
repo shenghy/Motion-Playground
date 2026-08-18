@@ -1,10 +1,19 @@
-import { useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { isMotionId, type MotionId } from '../motion/types'
 import { MIN_CARD_DURATION } from '../timeline/project'
 import type { OverlayCard } from '../timeline/types'
 
 const OVERLAY_MOTION_TYPE = 'application/x-overlay-motion'
 const FALLBACK_TIMELINE_COLOR = '#777A7D'
+const WHEEL_ZOOM_FACTOR = 0.8
+const MIN_VIEW_SPAN = 1
+const MAX_TICK_COUNT = 12
+const TICK_STEPS = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800]
+
+interface TimelineView {
+  start: number
+  span: number
+}
 
 interface TimelineEditorProps {
   cards: OverlayCard[]
@@ -37,12 +46,65 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum)
 }
 
-function percentage(time: number, duration: number) {
-  if (!Number.isFinite(time) || !Number.isFinite(duration) || duration <= 0) {
+function normalizeView(view: TimelineView | null, duration: number): TimelineView {
+  if (
+    !view ||
+    !Number.isFinite(view.start) ||
+    !Number.isFinite(view.span) ||
+    view.span >= duration
+  ) {
+    return { start: 0, span: duration }
+  }
+
+  const span = Math.max(view.span, Math.min(MIN_VIEW_SPAN, duration))
+  return { span, start: clamp(view.start, 0, duration - span) }
+}
+
+function percentage(time: number, view: TimelineView) {
+  if (!Number.isFinite(time) || !Number.isFinite(view.span) || view.span <= 0) {
     return 0
   }
 
-  return clamp((time / duration) * 100, 0, 100)
+  return clamp(((time - view.start) / view.span) * 100, 0, 100)
+}
+
+function getTickStep(span: number) {
+  for (const step of TICK_STEPS) {
+    if (span / step <= MAX_TICK_COUNT) {
+      return step
+    }
+  }
+
+  return TICK_STEPS[TICK_STEPS.length - 1] ?? 1
+}
+
+function formatTimeLabel(time: number, step: number) {
+  if (time < 60) {
+    const decimals = step < 1 || !Number.isInteger(time) ? 1 : 0
+    return `${time.toFixed(decimals)}s`
+  }
+
+  const minutes = Math.floor(time / 60)
+  const seconds = Math.round(time % 60)
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
+function getTimelineTicks(view: TimelineView) {
+  const step = getTickStep(view.span)
+  const ticks: { key: string; position: number; label: string }[] = []
+  const first = Math.ceil(view.start / step) * step
+  const last = view.start + view.span
+
+  for (let time = first; time <= last + step / 1000; time += step) {
+    const safeTime = Math.round(time * 1000) / 1000
+    ticks.push({
+      key: safeTime.toFixed(3),
+      position: percentage(safeTime, view),
+      label: formatTimeLabel(safeTime, step),
+    })
+  }
+
+  return ticks
 }
 
 export function TimelineEditor({
@@ -60,10 +122,97 @@ export function TimelineEditor({
   onDeleteCard,
 }: TimelineEditorProps) {
   const trackRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
   const pointerGestureRef = useRef<PointerGesture | null>(null)
+  const [viewState, setViewState] = useState<{
+    forDuration: number
+    view: TimelineView | null
+  }>({ forDuration: Number.NaN, view: null })
   const selectedCard = cards.find((card) => card.id === selectedCardId)
   const hasUsableDuration =
     Number.isFinite(duration) && duration >= MIN_CARD_DURATION
+  const requestedView =
+    viewState.forDuration === duration ? viewState.view : null
+  const view = hasUsableDuration
+    ? normalizeView(requestedView, duration)
+    : { start: 0, span: 0 }
+  const isZoomed = hasUsableDuration && view.span < duration - 1e-6
+  const ticks = hasUsableDuration ? getTimelineTicks(view) : []
+
+  const applyView = (next: TimelineView | null) => {
+    setViewState({ forDuration: duration, view: next })
+  }
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) {
+      return
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      const track = trackRef.current
+      if (!track || !hasUsableDuration) {
+        return
+      }
+
+      const bounds = track.getBoundingClientRect()
+      if (!Number.isFinite(bounds.width) || bounds.width <= 0) {
+        return
+      }
+
+      event.preventDefault()
+      setViewState((current) => {
+        const previous =
+          current.forDuration === duration ? current.view : null
+        const base = normalizeView(previous, duration)
+        const horizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+
+        if (horizontal || event.shiftKey) {
+          const panDelta = horizontal ? event.deltaX : event.deltaY
+          const offset = (panDelta / bounds.width) * base.span
+          return {
+            forDuration: duration,
+            view: {
+              span: base.span,
+              start: clamp(base.start + offset, 0, duration - base.span),
+            },
+          }
+        }
+
+        const zoomIn = event.deltaY < 0
+        const pointerRatio = clamp(
+          (event.clientX - bounds.left) / bounds.width,
+          0,
+          1,
+        )
+        const anchorTime = base.start + pointerRatio * base.span
+        const nextSpan = clamp(
+          base.span * (zoomIn ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR),
+          Math.min(MIN_VIEW_SPAN, duration),
+          duration,
+        )
+
+        if (nextSpan >= duration) {
+          return { forDuration: duration, view: null }
+        }
+
+        return {
+          forDuration: duration,
+          view: {
+            span: nextSpan,
+            start: clamp(
+              anchorTime - pointerRatio * nextSpan,
+              0,
+              duration - nextSpan,
+            ),
+          },
+        }
+      })
+    }
+
+    viewport.addEventListener('wheel', handleWheel, { passive: false })
+    return () => viewport.removeEventListener('wheel', handleWheel)
+  }, [duration, hasUsableDuration])
 
   const timeAtClientX = (clientX: number) => {
     const track = trackRef.current
@@ -76,7 +225,11 @@ export function TimelineEditor({
       return null
     }
 
-    return clamp(((clientX - bounds.left) / bounds.width) * duration, 0, duration)
+    return clamp(
+      ((clientX - bounds.left) / bounds.width) * view.span + view.start,
+      0,
+      duration,
+    )
   }
 
   const startPointerGesture = (
@@ -113,7 +266,7 @@ export function TimelineEditor({
     }
 
     const deltaTime =
-      ((event.clientX - gesture.initialClientX) / bounds.width) * duration
+      ((event.clientX - gesture.initialClientX) / bounds.width) * view.span
     const targetTime = clamp(gesture.initialTime + deltaTime, 0, duration)
 
     if (gesture.mode === 'move') {
@@ -154,16 +307,57 @@ export function TimelineEditor({
     <section className="timeline-editor" aria-label="叠加动效时间轴">
       <header className="timeline-editor__header">
         <h2>动效时间轴</h2>
-        {selectedCard ? (
-          <button
-            type="button"
-            className="timeline-editor__delete"
-            onClick={() => onDeleteCard(selectedCard.id)}
-          >
-            删除选中片段
-          </button>
-        ) : null}
+        <div className="timeline-editor__header-actions">
+          {isZoomed ? (
+            <>
+              <span
+                className="timeline-editor__zoom-label"
+                data-testid="timeline-zoom-label"
+              >
+                {formatTimeLabel(view.start, view.span)} –{' '}
+                {formatTimeLabel(view.start + view.span, view.span)}
+              </span>
+              <button
+                type="button"
+                className="timeline-editor__zoom-reset"
+                onClick={() => applyView(null)}
+              >
+                重置缩放
+              </button>
+            </>
+          ) : null}
+          {selectedCard ? (
+            <button
+              type="button"
+              className="timeline-editor__delete"
+              onClick={() => onDeleteCard(selectedCard.id)}
+            >
+              删除选中片段
+            </button>
+          ) : null}
+        </div>
       </header>
+
+      <div
+        ref={viewportRef}
+        className="timeline-editor__viewport"
+        title="滚轮缩放时间刻度 · Shift+滚轮平移"
+      >
+        <div
+          className="timeline-editor__ruler"
+          data-testid="timeline-ruler"
+          aria-hidden="true"
+        >
+          {ticks.map((tick) => (
+            <div
+              key={tick.key}
+              className="timeline-editor__tick"
+              style={{ left: `${tick.position}%` }}
+            >
+              <span>{tick.label}</span>
+            </div>
+          ))}
+        </div>
 
       {!hasUsableDuration ? (
         <p className="timeline-editor__status" role="status" aria-live="polite">
@@ -222,8 +416,8 @@ export function TimelineEditor({
       >
         {cards.map((card) => {
           const motionName = motionNames[card.motionId] ?? card.motionId
-          const left = percentage(card.start, duration)
-          const right = percentage(card.end, duration)
+          const left = percentage(card.start, view)
+          const right = percentage(card.end, view)
 
           return (
             <div
@@ -315,9 +509,10 @@ export function TimelineEditor({
         <div
           className="timeline-editor__playhead"
           data-testid="timeline-playhead"
-          style={{ left: `${percentage(currentTime, duration)}%` }}
+          style={{ left: `${percentage(currentTime, view)}%` }}
           aria-hidden="true"
         />
+      </div>
       </div>
     </section>
   )

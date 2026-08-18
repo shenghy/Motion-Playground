@@ -45,6 +45,45 @@ const params: StepFlowParams = {
 }
 
 describe('step flow canvas renderer', () => {
+  it('keeps fewer than seven steps in the leading seven-step slots', () => {
+    const ctx = createContext()
+    const fiveStepParams = { ...params, step6: '', step7: '' }
+
+    renderStepFlowToCanvas({
+      ctx,
+      params: fiveStepParams,
+      localTime: 1.65,
+      resources: {
+        width: 1920,
+        height: 1080,
+        displayFont: 'Syne Variable',
+        monoFont: 'IBM Plex Mono',
+        contentFont: 'Noto Sans SC Variable',
+      },
+    })
+
+    const labels = new Set([
+      fiveStepParams.step1,
+      fiveStepParams.step2,
+      fiveStepParams.step3,
+      fiveStepParams.step4,
+      fiveStepParams.step5,
+    ])
+    const labelYs = vi.mocked(ctx.fillText).mock.calls
+      .filter(([value]) => labels.has(value))
+      .map(([, , y]) => Number(y))
+    const sevenStepGap = (820 - 330) / 6
+
+    expect(labelYs).toHaveLength(5)
+    labelYs.forEach((y, index) => {
+      expect(y).toBeCloseTo(330 + index * sevenStepGap - 16, 5)
+    })
+    expect(ctx.lineTo).toHaveBeenCalledWith(
+      166,
+      330 + 4 * sevenStepGap,
+    )
+  })
+
   it('does not draw a completed connector while the current step is still active', () => {
     const ctx = createContext()
 

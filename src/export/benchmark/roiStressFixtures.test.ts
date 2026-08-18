@@ -17,7 +17,7 @@ describe('ROI stress fixtures', () => {
       for (const sample of motionSamples) {
         for (const control of definition.controls) {
           const value = sample.card.params[control.key]
-          if (control.type === 'text') {
+          if (control.type === 'text' || control.type === 'textarea') {
             expect(typeof value).toBe('string')
             expect(String(value).length).toBeLessThanOrEqual(control.maxLength)
           } else if (control.type === 'number') {
@@ -35,7 +35,9 @@ describe('ROI stress fixtures', () => {
       expect(maximum).toBeDefined()
       for (const control of definition.controls) {
         const value = maximum?.card.params[control.key]
-        if (control.type === 'text') expect(String(value)).toHaveLength(control.maxLength)
+        if (control.type === 'text' || control.type === 'textarea') {
+          expect(String(value)).toHaveLength(control.maxLength)
+        }
         if (control.type === 'number') expect(value).toBe(control.max)
         if (control.type === 'select') {
           expect(value).toBe(control.options.at(-1)?.value)

@@ -23,7 +23,7 @@ function extremeParameters(
 ): ParameterValues {
   const params: ParameterValues = { ...definition.defaults }
   for (const control of definition.controls) {
-    if (control.type === 'text') {
+    if (control.type === 'text' || control.type === 'textarea') {
       params[control.key] = profile === 'minimum'
         ? ''
         : '测'.repeat(control.maxLength)

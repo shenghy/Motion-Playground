@@ -254,6 +254,53 @@ describe('Workbench', () => {
     )
   })
 
+  it('locks card properties until a card is selected, then edits reach the card', async () => {
+    const metricDefaults = persistedParameters['metric-focus']
+    const workspace = persistedWorkspace({
+      project: {
+        version: 1,
+        canvas: { width: 1920, height: 1080 },
+        cards: [
+          {
+            id: 'restored-card',
+            motionId: 'metric-focus',
+            start: 0,
+            end: 3,
+            position: { x: 0, y: 0 },
+            zIndex: 0,
+            params: { ...metricDefaults, value: 777 },
+          },
+        ],
+      },
+    })
+    const { storage } = createStorageDouble({ workspace, video: null })
+    render(<Workbench storage={storage} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('overlay-card-restored-card')).toBeInTheDocument()
+    })
+
+    expect(screen.getByLabelText('核心数值')).toBeDisabled()
+    expect(screen.getByText(/尚未选择卡片/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('overlay-card-restored-card'))
+
+    expect(screen.getByLabelText('核心数值')).toBeEnabled()
+    expect(screen.queryByText(/尚未选择卡片/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('核心数值')).toHaveValue('777')
+
+    fireEvent.change(screen.getByLabelText('核心数值'), {
+      target: { value: '320' },
+    })
+
+    await waitFor(
+      () => expect(storage.saveWorkspace).toHaveBeenCalled(),
+      { timeout: 1500 },
+    )
+    const savedWorkspace = vi.mocked(storage.saveWorkspace).mock.calls.at(-1)![0]
+    expect(savedWorkspace.project.cards[0].params.value).toBe(320)
+  })
+
   it('hydrates a seven-motion legacy workspace and autosaves current poll defaults', async () => {
     const legacyMotionIds = [
       'narrative',

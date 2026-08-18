@@ -6,15 +6,19 @@ import { renderProfileRevealToCanvas } from './canvas/profileRevealRenderer'
 import { renderShareRingToCanvas } from './canvas/shareRingRenderer'
 import { renderStepFlowToCanvas } from './canvas/stepFlowRenderer'
 import { renderAudiencePollToCanvas } from './canvas/audiencePollRenderer'
+import { renderPromptDisplayToCanvas } from './canvas/promptDisplayRenderer'
+import { renderDiaryDateToCanvas } from './canvas/diaryDateRenderer'
 import type {
   AudiencePollParams,
   BarCompareParams,
   CompareSplitParams,
+  DiaryDateParams,
   MetricFocusParams,
   MotionDefinition,
   MotionId,
   NarrativeParams,
   ProfileRevealParams,
+  PromptDisplayParams,
   ShareRingParams,
   StepFlowParams,
 } from './types'
@@ -29,6 +33,8 @@ const MOTION_CANVAS_BOUNDS = {
   'share-ring': { x: 54, y: 126, width: 664, height: 774 },
   'step-flow': { x: 98, y: 86, width: 658, height: 808 },
   'audience-poll': { x: 97, y: 94, width: 659, height: 828 },
+  'prompt-display': { x: 54, y: 90, width: 702, height: 830 },
+  'diary-date': { x: 72, y: 150, width: 850, height: 330 },
 } satisfies Record<MotionId, CanvasFrameRect>
 
 type RegisteredMotion =
@@ -40,6 +46,8 @@ type RegisteredMotion =
   | MotionDefinition<ShareRingParams>
   | MotionDefinition<StepFlowParams>
   | MotionDefinition<AudiencePollParams>
+  | MotionDefinition<PromptDisplayParams>
+  | MotionDefinition<DiaryDateParams>
 
 export const motionRegistry: RegisteredMotion[] = [
   {
@@ -301,7 +309,7 @@ export const motionRegistry: RegisteredMotion[] = [
       step5: '修正问题',
       step6: '最终确认',
       step7: '正式发布',
-      focusStep: '3',
+      focusStep: '1',
       statusLabel: '当前步骤',
       statusNote: '构建 / 进行中',
       stepDuration: 1.1,
@@ -316,20 +324,6 @@ export const motionRegistry: RegisteredMotion[] = [
       { type: 'text', key: 'step5', label: '步骤五', maxLength: 12 },
       { type: 'text', key: 'step6', label: '步骤六', maxLength: 12 },
       { type: 'text', key: 'step7', label: '步骤七', maxLength: 12 },
-      {
-        type: 'select',
-        key: 'focusStep',
-        label: '初始焦点',
-        options: [
-          { label: '步骤一', value: '1' },
-          { label: '步骤二', value: '2' },
-          { label: '步骤三', value: '3' },
-          { label: '步骤四', value: '4' },
-          { label: '步骤五', value: '5' },
-          { label: '步骤六', value: '6' },
-          { label: '步骤七', value: '7' },
-        ],
-      },
       { type: 'text', key: 'statusLabel', label: '状态标签', maxLength: 12 },
       { type: 'text', key: 'statusNote', label: '状态说明', maxLength: 18 },
       { type: 'number', key: 'stepDuration', label: '单步停留', min: 0.7, max: 2.4, step: 0.1, suffix: '秒' },
@@ -363,6 +357,52 @@ export const motionRegistry: RegisteredMotion[] = [
       { type: 'text', key: 'option4', label: '选项四', maxLength: 16 },
       { type: 'text', key: 'callToAction', label: '互动引导', maxLength: 32 },
       { type: 'number', key: 'duration', label: '播放时长', min: 4.8, max: 10, step: 0.2, suffix: '秒' },
+    ],
+  },
+  {
+    id: 'prompt-display',
+    timelineColor: '#4F9BC6',
+    index: '09',
+    name: '提示词展示',
+    category: '文字 / AI 提示词',
+    description: '大字打字、重点词标蓝与自动上滚',
+    canvasRenderer: renderPromptDisplayToCanvas,
+    canvasBounds: MOTION_CANVAS_BOUNDS['prompt-display'],
+    defaults: {
+      eyebrow: 'AI PROMPT / 01',
+      prompt: '请生成一张电影级写实的数据中心画面，突出冷暖光线对比。',
+      keywords: '电影级写实|冷暖光线对比',
+      holdDuration: 2,
+      exitDuration: 0.18,
+    },
+    controls: [
+      { type: 'text', key: 'eyebrow', label: '卡片眉题', maxLength: 24 },
+      { type: 'textarea', key: 'prompt', label: '完整提示词', maxLength: 2000, rows: 8 },
+      { type: 'textarea', key: 'keywords', label: '蓝色重点词（用 | 分隔）', maxLength: 500, rows: 4 },
+      { type: 'number', key: 'holdDuration', label: '完整停留', min: 1, max: 3, step: 1, suffix: '秒' },
+      { type: 'number', key: 'exitDuration', label: '退出淡出', min: 0.1, max: 0.3, step: 0.01, suffix: '秒' },
+    ],
+  },
+  {
+    id: 'diary-date',
+    timelineColor: '#D8656B',
+    index: '10',
+    name: '日记日期',
+    category: '文字 / 日记',
+    description: '日期大字与视频期数',
+    canvasRenderer: renderDiaryDateToCanvas,
+    canvasBounds: MOTION_CANVAS_BOUNDS['diary-date'],
+    defaults: {
+      eyebrow: 'AI DIARY / 04',
+      dateText: '2026年8月18日',
+      note: 'AI 日记 · 第四期',
+      duration: 4.2,
+    },
+    controls: [
+      { type: 'text', key: 'eyebrow', label: '卡片眉题', maxLength: 24 },
+      { type: 'text', key: 'dateText', label: '日期大字', maxLength: 16 },
+      { type: 'text', key: 'note', label: '期数小字', maxLength: 32 },
+      { type: 'number', key: 'duration', label: '动画时长', min: 3.2, max: 8, step: 0.2, suffix: '秒' },
     ],
   },
 ]

@@ -33,8 +33,8 @@ describe('ComponentRail', () => {
 
     const choices = screen.getAllByRole('button', { name: /^选择组件/ })
     expect(choices[0]).toHaveAccessibleName('选择组件叙述')
-    expect(screen.getByText('8 个组件')).toBeInTheDocument()
-    expect(choices.at(-1)).toHaveAccessibleName('选择组件投票卡片')
+    expect(screen.getByText(`${motionRegistry.length} 个组件`)).toBeInTheDocument()
+    expect(choices.at(-1)).toHaveAccessibleName('选择组件日记日期')
   })
 
   it('keeps each accessible motion button draggable with a copy payload', () => {

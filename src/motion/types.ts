@@ -12,6 +12,8 @@ export const MOTION_IDS = [
   'share-ring',
   'step-flow',
   'audience-poll',
+  'prompt-display',
+  'diary-date',
 ] as const
 
 export type MotionId = (typeof MOTION_IDS)[number]
@@ -132,6 +134,21 @@ export interface AudiencePollParams extends ParameterValues {
   duration: number
 }
 
+export interface PromptDisplayParams extends ParameterValues {
+  eyebrow: string
+  prompt: string
+  keywords: string
+  holdDuration: number
+  exitDuration: number
+}
+
+export interface DiaryDateParams extends ParameterValues {
+  eyebrow: string
+  dateText: string
+  note: string
+  duration: number
+}
+
 export type MotionParams =
   | NarrativeParams
   | MetricFocusParams
@@ -141,6 +158,8 @@ export type MotionParams =
   | ShareRingParams
   | StepFlowParams
   | AudiencePollParams
+  | PromptDisplayParams
+  | DiaryDateParams
 
 export type Control =
   | {
@@ -148,6 +167,13 @@ export type Control =
       key: string
       label: string
       maxLength: number
+    }
+  | {
+      type: 'textarea'
+      key: string
+      label: string
+      maxLength: number
+      rows: number
     }
   | {
       type: 'number'

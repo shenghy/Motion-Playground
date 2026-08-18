@@ -6,6 +6,7 @@ import type { Control } from '../motion/types'
 const controls: Control[] = [
   { type: 'number', key: 'value', label: '核心数值', min: 0, max: 999, step: 1 },
   { type: 'text', key: 'label', label: '指标名称', maxLength: 24 },
+  { type: 'textarea', key: 'prompt', label: '完整提示词', maxLength: 12, rows: 4 },
   {
     type: 'select',
     key: 'align',
@@ -34,6 +35,26 @@ describe('ParameterPanel', () => {
     expect(onChange).toHaveBeenCalledWith('value', 320)
   })
 
+  it('emits bounded multiline prompt changes', () => {
+    const onChange = vi.fn()
+    render(
+      <ParameterPanel
+        controls={controls}
+        values={{ value: 248, label: 'GROWTH', prompt: '', align: 'left' }}
+        onChange={onChange}
+        onReset={vi.fn()}
+        onReplay={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('完整提示词'), {
+      target: { value: '生成电影级写实画面并突出蓝色重点词' },
+    })
+
+    expect(onChange).toHaveBeenCalledWith('prompt', '生成电影级写实画面并突出')
+    expect(screen.getByLabelText('完整提示词')).toHaveAttribute('rows', '4')
+  })
+
   it('exposes reset and replay actions', () => {
     const onReset = vi.fn()
     const onReplay = vi.fn()
@@ -51,6 +72,27 @@ describe('ParameterPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '重新播放' }))
     expect(onReset).toHaveBeenCalledOnce()
     expect(onReplay).toHaveBeenCalledOnce()
+  })
+
+  it('locks property controls while no card is selected', () => {
+    render(
+      <ParameterPanel
+        controls={controls}
+        values={{ value: 248, label: 'GROWTH', prompt: '', align: 'left' }}
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+        onReplay={vi.fn()}
+        propertiesLocked
+      />,
+    )
+
+    expect(screen.getByText(/尚未选择卡片/)).toBeInTheDocument()
+    expect(screen.getByLabelText('核心数值')).toBeDisabled()
+    expect(screen.getByLabelText('指标名称')).toBeDisabled()
+    expect(screen.getByLabelText('完整提示词')).toBeDisabled()
+    expect(screen.getByLabelText('文本对齐')).toBeDisabled()
+    expect(screen.getByRole('button', { name: '恢复默认' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '重新播放' })).toBeDisabled()
   })
 
   it('groups properties, transfer tools, and workspace actions into tabs', () => {

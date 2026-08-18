@@ -1,6 +1,5 @@
 import { delayedProgress } from '../../export/frameMath'
 import { sampleOnce, samplePencilEase } from '../../export/canvas/timing'
-import { resolveFocusIndex } from '../dataMath'
 import type { StepFlowParams } from '../types'
 
 export function getStepFlowState(params: StepFlowParams, localTime: number) {
@@ -15,11 +14,8 @@ export function getStepFlowState(params: StepFlowParams, localTime: number) {
   ]
     .map((step) => step.trim()).filter(Boolean).slice(0, 7)
   const steps = source.length >= 3 ? source : ['明确目标', '执行方案', '验证结果']
-  const focusIndex = resolveFocusIndex(steps.map(() => 1), params.focusStep)
-  const orderedIndexes = Array.from(
-    { length: steps.length },
-    (_, offset) => (focusIndex + offset) % steps.length,
-  )
+  const focusIndex = 0
+  const orderedIndexes = Array.from({ length: steps.length }, (_, index) => index)
   const hold = Math.min(2.4, Math.max(0.7, params.stepDuration))
   const cycle = steps.length * hold + 1.1
   const time = Math.round(sampleOnce(localTime, cycle) * 1e6) / 1e6

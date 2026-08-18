@@ -22,6 +22,9 @@ const EXPLANATION_SHADOW = {
   offsetY: 3,
 } as const
 
+const HEADLINE_FIRST_Y = 240
+const HEADLINE_LINE_HEIGHT = 120
+
 export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
   ctx,
   params,
@@ -52,7 +55,7 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
   drawText(ctx, {
     text: line1,
     x: 132,
-    y: 250 + state.line1.y,
+    y: HEADLINE_FIRST_Y + state.line1.y,
     font: `650 90px ${resources.displayFont}`,
     color: CANVAS_COLORS.paper,
     maxWidth: 720,
@@ -63,7 +66,7 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
   drawText(ctx, {
     text: line2,
     x: 132,
-    y: 350 + state.line2.y,
+    y: HEADLINE_FIRST_Y + HEADLINE_LINE_HEIGHT + state.line2.y,
     font: `650 90px ${resources.displayFont}`,
     color: CANVAS_COLORS.paper,
     maxWidth: 720,
@@ -86,7 +89,7 @@ export const renderNarrativeToCanvas: CanvasMotionRenderer<NarrativeParams> = ({
       x: 132,
       y: 510 + state.explanation.y + index * 44,
       font: explanationFont,
-      color: CANVAS_COLORS.muted,
+      color: CANVAS_COLORS.paper,
       maxWidth: 660,
       alpha: state.explanation.opacity,
       shadow: EXPLANATION_SHADOW,

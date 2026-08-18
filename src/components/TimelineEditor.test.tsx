@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import type { OverlayCard } from '../timeline/types'
 import { TimelineEditor } from './TimelineEditor'
@@ -105,6 +105,35 @@ function firePointer(
   fireEvent(target, event)
 }
 
+function fireWheel(
+  target: HTMLElement,
+  options: {
+    deltaX?: number
+    deltaY?: number
+    clientX?: number
+    shiftKey?: boolean
+  } = {},
+) {
+  const event = new WheelEvent('wheel', {
+    bubbles: true,
+    cancelable: true,
+    deltaX: options.deltaX ?? 0,
+    deltaY: options.deltaY ?? 0,
+    clientX: options.clientX ?? 0,
+    shiftKey: options.shiftKey ?? false,
+  })
+  let dispatched = true
+  act(() => {
+    dispatched = target.dispatchEvent(event)
+  })
+  return dispatched
+}
+
+function getClip(motionLabel: string) {
+  const body = screen.getByRole('button', { name: motionLabel })
+  return body.parentElement as HTMLElement
+}
+
 describe('TimelineEditor', () => {
   it('accepts motion drops at a clamped track time and allows copy drag-over', () => {
     const props = createProps()
@@ -181,6 +210,116 @@ describe('TimelineEditor', () => {
     })
     expect(firstCard).not.toContainElement(startHandle)
     expect(firstCard.parentElement).toBe(startHandle.parentElement)
+  })
+
+  it('renders adaptive ruler ticks for the visible time range', () => {
+    render(<TimelineEditor {...createProps()} />)
+
+    const ruler = screen.getByTestId('timeline-ruler')
+    const ticks = ruler.querySelectorAll('.timeline-editor__tick')
+
+    expect(ticks).toHaveLength(11)
+    expect(ticks[0]).toHaveTextContent('0s')
+    expect(ticks[10]).toHaveTextContent('10s')
+  })
+
+  it('zooms the time scale around the cursor with the mouse wheel', () => {
+    const props = createProps()
+    render(<TimelineEditor {...props} />)
+    const track = screen.getByTestId('timeline-track')
+    mockTrackRect(track)
+
+    // clientX 300 → 轨道中点；放大后视窗 1s–9s
+    const dispatched = fireWheel(track, { deltaY: -120, clientX: 300 })
+    expect(dispatched).toBe(false)
+
+    const clip = getClip('选择核心指标片段，可用左右方向键微调时间')
+    expect(clip).toHaveStyle({ left: '0%', width: '25%' })
+    expect(screen.getByTestId('timeline-playhead')).toHaveStyle({ left: '37.5%' })
+    expect(screen.getByTestId('timeline-zoom-label')).toHaveTextContent('1s – 9s')
+
+    const ticks = screen
+      .getByTestId('timeline-ruler')
+      .querySelectorAll('.timeline-editor__tick')
+    expect(ticks).toHaveLength(9)
+    expect(ticks[0]).toHaveTextContent('1s')
+    expect(ticks[8]).toHaveTextContent('9s')
+
+    // 缩放后点击空轨道按视窗映射时间：轨道 1/4 处 → 1 + 0.25×8 = 3s
+    fireEvent.click(track, { clientX: 200 })
+    expect(props.onSeek).toHaveBeenCalledWith(3)
+  })
+
+  it('keeps the full range when zooming out beyond the whole video', () => {
+    render(<TimelineEditor {...createProps()} />)
+    const track = screen.getByTestId('timeline-track')
+    mockTrackRect(track)
+
+    fireWheel(track, { deltaY: 120, clientX: 300 })
+
+    const clip = getClip('选择核心指标片段，可用左右方向键微调时间')
+    expect(clip).toHaveStyle({ left: '10%', width: '20%' })
+    expect(
+      screen.queryByTestId('timeline-zoom-label'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('limits zoom-in to a one-second window', () => {
+    render(<TimelineEditor {...createProps()} />)
+    const track = screen.getByTestId('timeline-track')
+    mockTrackRect(track)
+
+    for (let index = 0; index < 12; index += 1) {
+      fireWheel(track, { deltaY: -120, clientX: 300 })
+    }
+
+    expect(screen.getByTestId('timeline-zoom-label')).toHaveTextContent(
+      '4.5s – 5.5s',
+    )
+  })
+
+  it('pans the zoomed view with shift-wheel and horizontal wheel', () => {
+    render(<TimelineEditor {...createProps()} />)
+    const track = screen.getByTestId('timeline-track')
+    mockTrackRect(track)
+
+    fireWheel(track, { deltaY: -120, clientX: 300 })
+    // 视窗 1s–9s；Shift+滚轮上移 -200px → 偏移 -4s → 起点 0s（视窗 0s–8s）
+    fireWheel(track, { deltaY: -200, clientX: 0, shiftKey: true })
+    // 横向滚轮 +200px → 偏移 +4s → 起点钳制到 2s（视窗 2s–10s）
+    fireWheel(track, { deltaX: 200, clientX: 0 })
+
+    const clip = getClip('选择核心指标片段，可用左右方向键微调时间')
+    expect(clip).toHaveStyle({ left: '0%', width: '12.5%' })
+    expect(screen.getByTestId('timeline-playhead')).toHaveStyle({ left: '25%' })
+    expect(screen.getByTestId('timeline-zoom-label')).toHaveTextContent(
+      '2s – 10s',
+    )
+  })
+
+  it('resets the zoom via the button or when the video duration changes', () => {
+    const props = createProps()
+    const { rerender } = render(<TimelineEditor {...props} />)
+    const track = screen.getByTestId('timeline-track')
+    mockTrackRect(track)
+
+    fireWheel(track, { deltaY: -120, clientX: 300 })
+    expect(screen.getByTestId('timeline-zoom-label')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '重置缩放' }))
+    const clip = getClip('选择核心指标片段，可用左右方向键微调时间')
+    expect(clip).toHaveStyle({ left: '10%', width: '20%' })
+    expect(
+      screen.queryByTestId('timeline-zoom-label'),
+    ).not.toBeInTheDocument()
+
+    fireWheel(track, { deltaY: -120, clientX: 300 })
+    rerender(<TimelineEditor {...createProps({ duration: 20 })} />)
+
+    expect(
+      screen.queryByTestId('timeline-zoom-label'),
+    ).not.toBeInTheDocument()
+    expect(clip).toHaveStyle({ left: '5%', width: '10%' })
   })
 
   it('sets each timeline card color without changing its timing geometry', () => {

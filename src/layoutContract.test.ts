@@ -14,6 +14,15 @@ function getPercent(rule: string, property: string) {
 }
 
 describe('workspace layout CSS contract', () => {
+  it('shows source videos without dimming filters or a gray stage mask', () => {
+    expect(css).toMatch(
+      /\.presenter-background--video\s*\{[^}]*filter:\s*none/s,
+    )
+    expect(css).toMatch(
+      /\.preview-canvas--video::after\s*\{[^}]*content:\s*none/s,
+    )
+  })
+
   it('widens the right panel and hides rail scrollbars while retaining vertical scrolling', () => {
     expect(css).toContain('clamp(420px, 30vw, 470px)')
     expect(css).toMatch(/\.rail-list\s*\{[^}]*overflow-x:\s*hidden/s)
@@ -47,7 +56,7 @@ describe('workspace layout CSS contract', () => {
       expect(safeLine - (left + width)).toBeCloseTo(0.85, 5)
     }
     expect(css).toMatch(
-      /\.step-flow__steps\s*\{[^}]*grid-template-rows:\s*repeat\(var\(--step-count\),\s*minmax\(0,\s*1fr\)\)/s,
+      /\.step-flow__steps\s*\{[^}]*grid-template-rows:\s*repeat\(7,\s*minmax\(0,\s*1fr\)\)/s,
     )
     expect(css).toMatch(
       /\.step-flow__card\[data-pencil-layout='drawn-path'\]\s*\{[^}]*bottom:\s*calc\(var\(--subtitle-safe-bottom\)\s*\+\s*3%\)/s,

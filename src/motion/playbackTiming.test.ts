@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { fitPlaybackTimeToCard, getNominalPlaybackDuration } from './playbackTiming'
+import {
+  fitPlaybackTimeToCard,
+  getCardPlaybackTime,
+  getNominalPlaybackDuration,
+} from './playbackTiming'
 
 describe('subtitle card playback timing', () => {
   it('compresses a long animation into the first 80 percent of a short card', () => {
@@ -23,5 +27,17 @@ describe('subtitle card playback timing', () => {
 
     expect(nominal).toBe(2)
     expect(fitPlaybackTimeToCard(1.6, 2, nominal)).toBe(2)
+  })
+
+  it('uses a useful rail-preview duration for prompt display', () => {
+    expect(getNominalPlaybackDuration('prompt-display', {
+      holdDuration: 2,
+      exitDuration: 0.18,
+    })).toBeCloseTo(8.18)
+  })
+
+  it('preserves exact subtitle-local time for prompt display cards', () => {
+    expect(getCardPlaybackTime('prompt-display', {}, 7.25, 12)).toBe(7.25)
+    expect(getCardPlaybackTime('prompt-display', {}, -1, 12)).toBe(0)
   })
 })

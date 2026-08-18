@@ -20,6 +20,8 @@ const samples = {
   'share-ring': [0.3, 1.6, 3.4, 5.8],
   'step-flow': [0.3, 1.8, 3.8, 6],
   'audience-poll': [0.3, 1.4, 3.4, 6],
+  'prompt-display': [0.2, 3, 6.1, 8.1],
+  'diary-date': [0.3, 1.6, 3.2, 4.1],
 } satisfies Record<MotionId, [number, number, number, number]>
 
 const phases = ['entrance', 'expansion', 'stable', 'exit'] as const

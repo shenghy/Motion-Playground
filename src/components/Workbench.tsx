@@ -143,6 +143,7 @@ export function Workbench({
     [cards, selectedCardId],
   )
   const activeParameters = selectedCard?.params ?? parameters[activeId]
+  const propertiesLocked = cards.length > 0 && !selectedCard
   const overlayProject = useMemo<OverlayProject>(
     () => ({
       version: 1,
@@ -885,6 +886,7 @@ export function Workbench({
           onChange={updateParameter}
           onReset={resetParameters}
           onReplay={replay}
+          propertiesLocked={propertiesLocked}
           showSafeArea={showSafeArea}
           onToggleSafeArea={() => {
             if (!clearingWorkspaceRef.current) {

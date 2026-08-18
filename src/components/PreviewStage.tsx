@@ -281,7 +281,7 @@ export function PreviewStage({
         </div>
         <div
           ref={stageRef}
-          className="preview-canvas"
+          className={`preview-canvas${videoUrl ? ' preview-canvas--video' : ''}`}
           data-testid="preview-stage"
           data-playback-key={playbackKey}
           onPointerMove={handlePositionMove}

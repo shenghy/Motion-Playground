@@ -31,6 +31,19 @@ const defaultsByMotion: Record<MotionId, ParameterValues> = {
     callToAction: '把编号打在弹幕或评论区，告诉我你的选择',
     duration: 6.2,
   },
+  'prompt-display': {
+    eyebrow: 'AI PROMPT / 01',
+    prompt: '默认提示词',
+    keywords: '',
+    holdDuration: 2,
+    exitDuration: 0.18,
+  },
+  'diary-date': {
+    eyebrow: 'AI DIARY / 04',
+    dateText: '2026年8月18日',
+    note: 'AI 日记 · 第四期',
+    duration: 4.2,
+  },
 }
 
 const project: OverlayProject = {

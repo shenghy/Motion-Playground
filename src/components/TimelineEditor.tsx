@@ -431,6 +431,21 @@ export function TimelineEditor({
           clearPointerGesture(event.pointerId)
         }}
       >
+        {rowCount > 1 ? (
+          <div className="timeline-editor__row-guides" aria-hidden="true">
+            {Array.from({ length: rowCount - 1 }, (_, guideIndex) => (
+              <div
+                key={guideIndex}
+                className="timeline-editor__row-guide"
+                style={{
+                  top: `${
+                    CARD_TOP_BASE + CARD_HEIGHT + 7 + guideIndex * CARD_ROW_STRIDE
+                  }px`,
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
         {cards.map((card) => {
           const motionName = motionNames[card.motionId] ?? card.motionId
           const left = percentage(card.start, view)

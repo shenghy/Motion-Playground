@@ -246,6 +246,12 @@ describe('TimelineEditor', () => {
     expect(clips[0]).toHaveStyle({ left: '10%', top: '27px' })
     expect(clips[1]).toHaveStyle({ left: '30%', top: '83px' })
     expect(screen.getByTestId('timeline-track')).toHaveStyle({ height: '140px' })
+    // 多轨时渲染行间分隔虚线，让「两层轨道」一眼可辨
+    const guides = Array.from(
+      screen.getByTestId('timeline-track').querySelectorAll('.timeline-editor__row-guide'),
+    )
+    expect(guides).toHaveLength(1)
+    expect(guides[0]).toHaveStyle({ top: '76px' })
   })
 
   it('keeps non-overlapping cards on the same row at the base track height', () => {
@@ -257,6 +263,10 @@ describe('TimelineEditor', () => {
     expect(clips[0]).toHaveStyle({ top: '27px' })
     expect(clips[1]).toHaveStyle({ top: '27px' })
     expect(screen.getByTestId('timeline-track')).toHaveStyle({ height: '84px' })
+    // 单轨不渲染行分隔线
+    expect(
+      screen.getByTestId('timeline-track').querySelectorAll('.timeline-editor__row-guide'),
+    ).toHaveLength(0)
   })
 
   it('renders adaptive ruler ticks for the visible time range', () => {

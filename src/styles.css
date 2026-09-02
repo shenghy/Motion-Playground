@@ -457,6 +457,19 @@ a:focus-visible {
   pointer-events: none;
 }
 
+.timeline-editor__row-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.timeline-editor__row-guide {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed rgba(236, 236, 231, .16);
+}
+
 .timeline-editor__card,
 .timeline-editor__playhead {
   position: absolute;

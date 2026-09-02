@@ -34,9 +34,9 @@ const LEVEL1_SPACING = 108
 const LEVEL2_SPACING = 92
 
 /** 已讲分支的弱化透明度（聚焦式讲解） */
-const DIM_ALPHA = 0.4
+const DIM_ALPHA = 0.55
 /** 当前分支祖先链的保留透明度 */
-const ANCESTOR_ALPHA = 0.9
+const ANCESTOR_ALPHA = 0.95
 
 // ---------- 树结构 ----------
 interface MindNode {
@@ -265,8 +265,8 @@ export const renderMindMapToCanvas: CanvasMotionRenderer<FullscreenParams> = ({
     const color = isActive
       ? CANVAS_COLORS.accent
       : isAncestor
-        ? 'rgba(255,255,255,.92)'
-        : 'rgba(255,255,255,.48)'
+        ? CANVAS_COLORS.paper
+        : 'rgba(255,255,255,.58)'
     const alpha = isActive ? 1 : isAncestor ? ANCESTOR_ALPHA : DIM_ALPHA
     const lineWidth = isActive ? 4.5 : 2.6 - node.level * 0.4
     const from = node.parent

@@ -1,11 +1,18 @@
 export const CANVAS_COLORS = {
-  paper: '#f1eee5',
+  /** 白色：描述性文字（标题、正文、注释） */
+  paper: '#FFFFFF',
   ink: '#050606',
-  muted: '#8c9196',
-  line: 'rgba(241,238,229,.42)',
-  signal: '#b7ccc8',
-  accentBlue: '#2f67b2',
-  accentBlueMuted: 'rgba(47,103,178,.42)',
+  /** 白色降透明度：次要文字（眉题、标签、说明） */
+  muted: 'rgba(255,255,255,.72)',
+  line: 'rgba(255,255,255,.42)',
+  /** 深蓝：卡片底板 / 主题色 */
+  surface: 'rgba(30,64,175,.88)',
+  /** 更深的蓝：底板上的嵌套元素（如步骤方块） */
+  surfaceDeep: '#16307A',
+  /** 橙色：强调重点（核心数字、关键词、焦点项） */
+  accent: '#FF6A00',
+  accentMuted: 'rgba(255,106,0,.45)',
+  accentFaint: 'rgba(255,106,0,.14)',
 } as const
 
 interface GridOptions {
@@ -14,6 +21,13 @@ interface GridOptions {
   step: number
   alpha?: number
   color?: string
+}
+
+interface PanelShadowOptions {
+  color?: string
+  blur?: number
+  offsetX?: number
+  offsetY?: number
 }
 
 interface PanelOptions {
@@ -25,6 +39,10 @@ interface PanelOptions {
   fill?: string
   stroke?: string | null
   lineWidth?: number
+  /** 圆角半径；运行环境不支持 roundRect 时自动回退直角 */
+  radius?: number
+  /** 投影；开启后填充绘制阴影（描边不投影） */
+  shadow?: PanelShadowOptions | null
 }
 
 interface TextShadowOptions {
@@ -70,7 +88,8 @@ interface HatchFillOptions {
   alpha?: number
 }
 
-function safeAlpha(value = 1) {
+/** 把任意数值收敛到合法的 globalAlpha 区间 [0, 1] */
+export function safeAlpha(value = 1) {
   if (!Number.isFinite(value)) return 1
   return Math.min(1, Math.max(0, value))
 }
@@ -113,19 +132,56 @@ export function drawGrid(
   }
 }
 
+/** 卡片底板统一圆角半径 */
+export const CARD_PANEL_RADIUS = 18
+
+/** 卡片底板统一投影参数（1920×1080 画布） */
+export const CARD_PANEL_SHADOW = {
+  color: 'rgba(0,0,0,.38)',
+  blur: 44,
+  offsetX: 0,
+  offsetY: 20,
+} as const
+
+function clearShadow(ctx: CanvasRenderingContext2D) {
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
+}
+
 export function drawPanel(
   ctx: CanvasRenderingContext2D,
   options: PanelOptions,
 ) {
+  const radius = Math.max(0, options.radius ?? 0)
+  const canRound = radius > 0 && typeof ctx.roundRect === 'function'
   ctx.save()
   try {
     ctx.globalAlpha = safeAlpha(options.alpha ?? 1)
-    ctx.fillStyle = options.fill ?? 'rgba(5,6,7,.72)'
-    ctx.fillRect(options.x, options.y, options.width, options.height)
+    if (options.shadow) {
+      ctx.shadowColor = options.shadow.color ?? CARD_PANEL_SHADOW.color
+      ctx.shadowBlur = options.shadow.blur ?? CARD_PANEL_SHADOW.blur
+      ctx.shadowOffsetX = options.shadow.offsetX ?? CARD_PANEL_SHADOW.offsetX
+      ctx.shadowOffsetY = options.shadow.offsetY ?? CARD_PANEL_SHADOW.offsetY
+    }
+    ctx.fillStyle = options.fill ?? CANVAS_COLORS.surface
+    if (canRound) {
+      ctx.beginPath()
+      ctx.roundRect(options.x, options.y, options.width, options.height, radius)
+      ctx.fill()
+    } else {
+      ctx.fillRect(options.x, options.y, options.width, options.height)
+    }
+    clearShadow(ctx)
     if (options.stroke !== null) {
       ctx.strokeStyle = options.stroke ?? CANVAS_COLORS.line
       ctx.lineWidth = options.lineWidth ?? 1
-      ctx.strokeRect(options.x, options.y, options.width, options.height)
+      if (canRound) {
+        ctx.stroke()
+      } else {
+        ctx.strokeRect(options.x, options.y, options.width, options.height)
+      }
     }
   } finally {
     ctx.restore()

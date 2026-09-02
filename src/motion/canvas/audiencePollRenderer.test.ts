@@ -104,10 +104,10 @@ describe('audience poll canvas renderer', () => {
     } })
 
     expect(stable.ctx.strokeRect).not.toHaveBeenCalledWith(122, 119, 610, 779)
-    expect(stable.ctx.moveTo).toHaveBeenCalledWith(122, 119)
-    expect(stable.ctx.lineTo).toHaveBeenCalledWith(732, 119)
-    expect(stable.ctx.moveTo).toHaveBeenCalledWith(122, 119)
-    expect(stable.ctx.lineTo).toHaveBeenCalledWith(122, 898)
+    expect(stable.ctx.moveTo).toHaveBeenCalledWith(140, 119)
+    expect(stable.ctx.lineTo).toHaveBeenCalledWith(714, 119)
+    expect(stable.ctx.moveTo).toHaveBeenCalledWith(122, 137)
+    expect(stable.ctx.lineTo).toHaveBeenCalledWith(122, 880)
 
     const completed = createContext()
     renderAudiencePollToCanvas({ ctx: completed.ctx, params, localTime: 6.2, resources: {
@@ -125,8 +125,8 @@ describe('audience poll canvas renderer', () => {
     } })
 
     expect(ctx.fillRect).toHaveBeenCalledWith(122, 119, 610, 779)
-    expect(ctx.lineTo).toHaveBeenCalledWith(732, 119)
-    expect(ctx.lineTo).toHaveBeenCalledWith(122, 898)
+    expect(ctx.lineTo).toHaveBeenCalledWith(714, 119)
+    expect(ctx.lineTo).toHaveBeenCalledWith(122, 880)
     expect(textDraws.find(({ text }) => text === params.eyebrow)).toMatchObject({
       x: 152, y: 152, maxWidth: 550, font: '400 15px IBM Plex Mono',
     })

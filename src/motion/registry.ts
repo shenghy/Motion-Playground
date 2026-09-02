@@ -63,12 +63,14 @@ export const motionRegistry: RegisteredMotion[] = [
       line1: '把复杂的工作',
       line2: '交给自动化',
       explanation: '让系统处理重复步骤，人只负责判断与创造。',
+      keywords: '自动化|重复步骤',
       duration: 5.2,
     },
     controls: [
       { type: 'text', key: 'line1', label: '第一排大字', maxLength: 12 },
       { type: 'text', key: 'line2', label: '第二排大字', maxLength: 12 },
       { type: 'text', key: 'explanation', label: '小字解释', maxLength: 32 },
+      { type: 'text', key: 'keywords', label: '橙色重点词（用 | 分隔）', maxLength: 40 },
       { type: 'number', key: 'duration', label: '动画时长', min: 3.2, max: 8, step: 0.2, suffix: '秒' },
     ],
   },
@@ -365,7 +367,7 @@ export const motionRegistry: RegisteredMotion[] = [
     index: '09',
     name: '提示词展示',
     category: '文字 / AI 提示词',
-    description: '大字打字、重点词标蓝与自动上滚',
+    description: '大字打字、重点词标橙与自动上滚',
     canvasRenderer: renderPromptDisplayToCanvas,
     canvasBounds: MOTION_CANVAS_BOUNDS['prompt-display'],
     defaults: {
@@ -378,7 +380,7 @@ export const motionRegistry: RegisteredMotion[] = [
     controls: [
       { type: 'text', key: 'eyebrow', label: '卡片眉题', maxLength: 24 },
       { type: 'textarea', key: 'prompt', label: '完整提示词', maxLength: 2000, rows: 8 },
-      { type: 'textarea', key: 'keywords', label: '蓝色重点词（用 | 分隔）', maxLength: 500, rows: 4 },
+      { type: 'textarea', key: 'keywords', label: '橙色重点词（用 | 分隔）', maxLength: 500, rows: 4 },
       { type: 'number', key: 'holdDuration', label: '完整停留', min: 1, max: 3, step: 1, suffix: '秒' },
       { type: 'number', key: 'exitDuration', label: '退出淡出', min: 0.1, max: 0.3, step: 0.01, suffix: '秒' },
     ],

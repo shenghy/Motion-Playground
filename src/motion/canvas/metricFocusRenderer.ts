@@ -1,7 +1,9 @@
 import type { CanvasMotionRenderer } from '../../export/canvas/types'
 import {
   CANVAS_COLORS,
+  CARD_PANEL_RADIUS,
   drawGrid,
+  drawPanel,
   drawPencilLine,
   drawText,
 } from '../../export/canvas/primitives'
@@ -25,6 +27,8 @@ function textWidth(
   return ctx.measureText(text).width
 }
 
+const METRIC_PANEL = { x: 56, y: 48, width: 672, height: 606 } as const
+
 export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> = ({
   ctx,
   params,
@@ -32,6 +36,8 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
   resources,
 }) => {
   const state = getMetricFocusState(params, localTime)
+
+  drawPanel(ctx, { ...METRIC_PANEL, fill: CANVAS_COLORS.surface, stroke: null, alpha: state.eyebrow.opacity, radius: CARD_PANEL_RADIUS, shadow: {} })
 
   drawGrid(ctx, {
     width: METRIC_SAFE_EDGE - 0.5,
@@ -44,7 +50,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     x: 92,
     y: 70,
     font: `500 12px ${resources.monoFont}`,
-    color: '#595d62',
+    color: CANVAS_COLORS.muted,
     maxWidth: 260,
   })
 
@@ -53,7 +59,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     x: METRIC_CONTENT_X,
     y: 198 + state.eyebrow.y,
     font: `650 20px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.muted,
     maxWidth: METRIC_SAFE_RIGHT - METRIC_CONTENT_X,
     alpha: state.eyebrow.opacity,
   })
@@ -96,7 +102,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     x: METRIC_CONTENT_X,
     y: baseline,
     font: prefixFont,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.paper,
     maxWidth: Math.max(0, numberX - METRIC_CONTENT_X),
     ...valueTextStyle,
   })
@@ -105,7 +111,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     x: numberX,
     y: baseline,
     font: numberFont,
-    color: CANVAS_COLORS.paper,
+    color: CANVAS_COLORS.accent,
     maxWidth: Math.max(0, suffixX - numberX),
     ...valueTextStyle,
   })
@@ -114,7 +120,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     x: suffixX,
     y: baseline,
     font: suffixFont,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.paper,
     maxWidth: Math.max(0, METRIC_SAFE_RIGHT - suffixX),
     ...valueTextStyle,
   })
@@ -125,7 +131,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     y1: 500,
     x2: METRIC_SAFE_RIGHT - 28,
     y2: 500,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.accent,
     width: 2,
     alpha: state.pencilLine.reveal,
   })
@@ -135,7 +141,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     x: METRIC_CONTENT_X,
     y: 546 + state.meta.y,
     font: `500 32px ${resources.contentFont}`,
-    color: '#c8cdd2',
+    color: CANVAS_COLORS.paper,
     maxWidth: METRIC_SAFE_RIGHT - METRIC_CONTENT_X,
     alpha: state.meta.opacity,
   })
@@ -144,7 +150,7 @@ export const renderMetricFocusToCanvas: CanvasMotionRenderer<MetricFocusParams> 
     x: METRIC_CONTENT_X,
     y: 596 + state.meta.y,
     font: `550 19px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlueMuted,
+    color: CANVAS_COLORS.accentMuted,
     maxWidth: METRIC_SAFE_RIGHT - METRIC_CONTENT_X,
     alpha: state.meta.opacity,
   })

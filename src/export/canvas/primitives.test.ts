@@ -61,9 +61,11 @@ function recordingContext() {
 }
 
 describe('canvas drawing primitives', () => {
-  it('exposes the canonical deep-blue motion accent palette', () => {
-    expect(CANVAS_COLORS.accentBlue).toBe('#2f67b2')
-    expect(CANVAS_COLORS.accentBlueMuted).toBe('rgba(47,103,178,.42)')
+  it('exposes the canonical white / deep-blue / orange motion palette', () => {
+    expect(CANVAS_COLORS.paper).toBe('#FFFFFF')
+    expect(CANVAS_COLORS.surface).toBe('rgba(30,64,175,.88)')
+    expect(CANVAS_COLORS.accent).toBe('#FF6A00')
+    expect(CANVAS_COLORS.accentMuted).toBe('rgba(255,106,0,.45)')
   })
 
   it.each([

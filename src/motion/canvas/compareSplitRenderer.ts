@@ -1,6 +1,7 @@
 import type { CanvasMotionRenderer } from '../../export/canvas/types'
 import {
   CANVAS_COLORS,
+  CARD_PANEL_RADIUS,
   drawGrid,
   drawPanel,
   drawPencilLine,
@@ -47,17 +48,19 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
     y: panel.y,
     width: panel.width,
     height: panel.height,
-    fill: 'rgba(5,6,6,.72)',
+    fill: CANVAS_COLORS.surface,
     stroke: null,
     alpha: state.panelOpacity,
+    radius: CARD_PANEL_RADIUS,
+    shadow: {},
   })
   drawPencilLine(ctx, {
-    x1: panel.x, y1: panel.y, x2: panel.x + panel.width, y2: panel.y,
-    color: 'rgba(241,238,229,.32)', alpha: state.panelOpacity,
+    x1: panel.x + CARD_PANEL_RADIUS, y1: panel.y, x2: panel.x + panel.width - CARD_PANEL_RADIUS, y2: panel.y,
+    color: 'rgba(255,255,255,.32)', alpha: state.panelOpacity,
   })
   drawPencilLine(ctx, {
-    x1: panel.x, y1: panel.y, x2: panel.x, y2: panel.y + panel.height,
-    color: 'rgba(241,238,229,.28)', width: 2, alpha: state.panelOpacity,
+    x1: panel.x, y1: panel.y + CARD_PANEL_RADIUS, x2: panel.x, y2: panel.y + panel.height - CARD_PANEL_RADIUS,
+    color: 'rgba(255,255,255,.28)', width: 2, alpha: state.panelOpacity,
   })
 
   withLetterSpacing(ctx, '2.9px', () => drawText(ctx, {
@@ -65,7 +68,7 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
     x: content.x,
     y: 147,
     font: `500 12px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.muted,
     maxWidth: content.width,
     alpha: state.headerOpacity,
   }))
@@ -80,11 +83,11 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
   }))
   drawPencilLine(ctx, {
     x1: content.x, y1: headerDividerY, x2: contentRight, y2: headerDividerY,
-    color: 'rgba(241,238,229,.32)', alpha: state.headerOpacity,
+    color: 'rgba(255,255,255,.32)', alpha: state.headerOpacity,
   })
   drawPencilLine(ctx, {
     x1: content.x, y1: headerDividerY + 3, x2: contentRight, y2: headerDividerY + 3,
-    color: 'rgba(241,238,229,.18)', alpha: state.headerOpacity,
+    color: 'rgba(255,255,255,.18)', alpha: state.headerOpacity,
   })
 
   const drawTrack = ({
@@ -116,7 +119,7 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
         y: startY,
         width: content.width,
         height: endY - startY,
-        fill: `rgba(47,103,178,${highlight * 0.16})`,
+        fill: `rgba(255,106,0,${highlight * 0.16})`,
         stroke: null,
         alpha: opacity,
       })
@@ -126,7 +129,7 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
       x: content.x,
       y: startY + 20,
       font: `500 11px ${resources.monoFont}`,
-      color: emphasized ? CANVAS_COLORS.accentBlue : '#737a7f',
+      color: emphasized ? CANVAS_COLORS.accent : CANVAS_COLORS.muted,
       maxWidth: content.width,
       alpha: opacity,
     }))
@@ -135,7 +138,7 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
       x: content.x,
       y: readingY + 16,
       font: `500 20px ${resources.contentFont}`,
-      color: '#9ba1a4',
+      color: CANVAS_COLORS.muted,
       maxWidth: 242,
       alpha: opacity,
     }))
@@ -144,7 +147,7 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
       x: content.x + 290,
       y: readingY,
       font: `650 70px ${resources.displayFont}`,
-      color: emphasized ? CANVAS_COLORS.paper : '#a8adae',
+      color: emphasized ? CANVAS_COLORS.accent : 'rgba(255,255,255,.6)',
       maxWidth: 190,
       alpha: opacity,
     })
@@ -153,20 +156,20 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
       x: content.x + 498,
       y: readingY + 46,
       font: `500 22px ${resources.contentFont}`,
-      color: emphasized ? CANVAS_COLORS.accentBlue : '#81888c',
+      color: emphasized ? CANVAS_COLORS.accent : CANVAS_COLORS.muted,
       maxWidth: 52,
       alpha: opacity,
     })
     drawPencilLine(ctx, {
       x1: content.x, y1: meterY, x2: contentRight, y2: meterY,
-      color: 'rgba(241,238,229,.12)', width: 3, alpha: opacity,
+      color: 'rgba(255,255,255,.18)', width: 3, alpha: opacity,
     })
     drawPencilLine(ctx, {
       x1: content.x,
       y1: meterY,
       x2: content.x + content.width * meterScale(rawValue),
       y2: meterY,
-      color: emphasized ? CANVAS_COLORS.accentBlue : '#8e9598',
+      color: emphasized ? CANVAS_COLORS.accent : 'rgba(255,255,255,.4)',
       width: emphasized ? 4 : 3,
       alpha: opacity,
     })
@@ -187,7 +190,7 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
     + (trackLayout.dividerY - tracks.topY) * state.scanProgress
   drawPencilLine(ctx, {
     x1: content.x, y1: scanY, x2: contentRight, y2: scanY,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.accent,
     width: 3,
     alpha: state.scanProgress,
   })
@@ -206,7 +209,7 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
 
   drawPencilLine(ctx, {
     x1: content.x, y1: conclusionDividerY, x2: contentRight, y2: conclusionDividerY,
-    color: CANVAS_COLORS.accentBlueMuted,
+    color: CANVAS_COLORS.accentMuted,
     alpha: state.resultOpacity,
   })
   withLetterSpacing(ctx, '1.3px', () => drawText(ctx, {
@@ -214,7 +217,7 @@ export const renderCompareSplitToCanvas: CanvasMotionRenderer<CompareSplitParams
     x: content.x,
     y: conclusionTextY,
     font: `500 11px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.muted,
     maxWidth: 126,
     alpha: state.resultOpacity,
   }))

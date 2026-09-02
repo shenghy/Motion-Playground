@@ -1,6 +1,7 @@
 import type { CanvasMotionRenderer } from '../../export/canvas/types'
 import {
   CANVAS_COLORS,
+  CARD_PANEL_RADIUS,
   drawPanel,
   drawPencilLine,
   drawText,
@@ -38,17 +39,19 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
 
   drawPanel(ctx, {
     x: panel.x, y: panel.y, width: panel.width, height: panel.height,
-    fill: 'rgba(5,6,7,.66)', stroke: null,
+    fill: CANVAS_COLORS.surface, stroke: null,
+    alpha: state.panelOpacity,
+    radius: CARD_PANEL_RADIUS,
+    shadow: {},
+  })
+  drawPencilLine(ctx, {
+    x1: panel.x + CARD_PANEL_RADIUS, y1: panel.y, x2: panel.x + panel.width - CARD_PANEL_RADIUS, y2: panel.y,
+    color: 'rgba(255,255,255,.38)', width: 1,
     alpha: state.panelOpacity,
   })
   drawPencilLine(ctx, {
-    x1: panel.x, y1: panel.y, x2: panel.x + panel.width, y2: panel.y,
-    color: 'rgba(241,238,229,.38)', width: 1,
-    alpha: state.panelOpacity,
-  })
-  drawPencilLine(ctx, {
-    x1: panel.x, y1: panel.y, x2: panel.x, y2: panel.endY,
-    color: 'rgba(241,238,229,.38)', width: 2,
+    x1: panel.x, y1: panel.y + CARD_PANEL_RADIUS, x2: panel.x, y2: panel.endY - CARD_PANEL_RADIUS,
+    color: 'rgba(255,255,255,.38)', width: 2,
     alpha: state.panelOpacity,
   })
   withLetterSpacing(ctx, audiencePollTypography.eyebrowLetterSpacing, () => {
@@ -57,7 +60,7 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
       x: content.x,
       y: eyebrow.y + state.header.y,
       font: `${audiencePollTypography.eyebrowFontWeight} ${eyebrow.fontSize}px ${resources.monoFont}`,
-      color: CANVAS_COLORS.accentBlue,
+      color: CANVAS_COLORS.muted,
       maxWidth: content.width,
       alpha: state.header.opacity,
     })
@@ -80,11 +83,11 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
   const dividerY = title.y + titleLines.length * title.lineHeight + title.dividerGap
   drawPencilLine(ctx, {
     x1: content.x, y1: dividerY, x2: content.right, y2: dividerY,
-    color: CANVAS_COLORS.accentBlueMuted, width: 1, alpha: state.title.opacity,
+    color: 'rgba(255,255,255,.35)', width: 1, alpha: state.title.opacity,
   })
   drawPencilLine(ctx, {
     x1: content.x, y1: dividerY + 2, x2: content.right, y2: dividerY + 2,
-    color: CANVAS_COLORS.accentBlueMuted, width: 1, alpha: state.title.opacity,
+    color: 'rgba(255,255,255,.35)', width: 1, alpha: state.title.opacity,
   })
 
   state.options.forEach((option, index) => {
@@ -92,10 +95,11 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
       + index * (options.height + options.gap) + option.y
     drawPanel(ctx, {
       x: content.x, y, width: content.width, height: options.height,
-      fill: option.current ? 'rgba(47,103,178,.13)' : 'rgba(5,6,7,.28)',
-      stroke: option.current ? CANVAS_COLORS.accentBlue : 'rgba(241,238,229,.28)',
+      fill: option.current ? CANVAS_COLORS.accentFaint : 'rgba(255,255,255,.08)',
+      stroke: option.current ? CANVAS_COLORS.accent : 'rgba(255,255,255,.28)',
       lineWidth: option.current ? 3 : 1,
       alpha: option.opacity,
+      radius: 10,
     })
     withLetterSpacing(ctx, audiencePollTypography.numberLetterSpacing, () => {
       drawText(ctx, {
@@ -103,7 +107,7 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
         x: content.x + options.numberXOffset,
         y: y + 21,
         font: `${audiencePollTypography.numberFontWeight} ${options.numberFontSize}px ${resources.monoFont}`,
-        color: option.current ? CANVAS_COLORS.accentBlue : CANVAS_COLORS.muted,
+        color: option.current ? CANVAS_COLORS.accent : CANVAS_COLORS.muted,
         maxWidth: 34,
         alpha: option.opacity,
       })
@@ -123,7 +127,7 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
 
   drawPencilLine(ctx, {
     x1: content.x, y1: cta.separatorY, x2: content.right, y2: cta.separatorY,
-    color: 'rgba(241,238,229,.28)', width: 1, alpha: state.cta.opacity,
+    color: 'rgba(255,255,255,.28)', width: 1, alpha: state.cta.opacity,
   })
   const ctaTextY = cta.textY + state.cta.y
   ctx.save()
@@ -137,7 +141,7 @@ export const renderAudiencePollToCanvas: CanvasMotionRenderer<AudiencePollParams
         x: content.x,
         y: ctaTextY,
         font: `${audiencePollTypography.contentFontWeight} ${cta.fontSize}px ${resources.contentFont}`,
-        color: '#b7bdc2',
+        color: CANVAS_COLORS.paper,
         maxWidth: content.width,
         alpha: state.cta.opacity,
       })

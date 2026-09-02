@@ -1,6 +1,8 @@
 import type { CanvasMotionRenderer } from '../../export/canvas/types'
 import {
   CANVAS_COLORS,
+  CARD_PANEL_RADIUS,
+  drawPanel,
   drawPencilLine,
   drawText,
 } from '../../export/canvas/primitives'
@@ -25,6 +27,7 @@ const RULE_X = 132
 const RULE_Y = 212
 const DATE_Y = 330
 const NOTE_Y = 424
+const DIARY_PANEL = { x: 96, y: 152, width: 776, height: 352 } as const
 
 export const renderDiaryDateToCanvas: CanvasMotionRenderer<DiaryDateParams> = ({
   ctx,
@@ -37,12 +40,14 @@ export const renderDiaryDateToCanvas: CanvasMotionRenderer<DiaryDateParams> = ({
   const dateText = params.dateText || '2026年1月1日'
   const note = params.note || 'AI 日记 · 第一期'
 
+  drawPanel(ctx, { ...DIARY_PANEL, fill: CANVAS_COLORS.surface, stroke: null, alpha: state.eyebrow.opacity, radius: CARD_PANEL_RADIUS, shadow: {} })
+
   drawText(ctx, {
     text: eyebrow,
     x: 132,
     y: 188,
     font: `600 13px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.muted,
     maxWidth: 650,
     alpha: state.eyebrow.opacity,
   })
@@ -51,7 +56,7 @@ export const renderDiaryDateToCanvas: CanvasMotionRenderer<DiaryDateParams> = ({
     y1: RULE_Y,
     x2: RULE_X + 64 * state.ruleProgress,
     y2: RULE_Y,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.accent,
     width: 3,
     alpha: state.ruleProgress,
   })

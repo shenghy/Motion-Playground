@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { CompareSplitParams } from '../types'
+import { CARD_PANEL_RADIUS } from '../../export/canvas/primitives'
 import { COMPARE_SPLIT_LAYOUT, getCompareSplitTrackLayout } from './compareSplitLayout'
 import { renderCompareSplitToCanvas } from './compareSplitRenderer'
 
@@ -57,10 +58,11 @@ function render(overrides: Partial<CompareSplitParams> = {}) {
 
 describe('compare split canvas renderer', () => {
   it('uses one safe panel and keeps every text box before the presenter line', () => {
-    const { fillRect, fillText } = render()
+    const { context, fillText } = render()
     const { panel, safeLineX } = COMPARE_SPLIT_LAYOUT
 
-    expect(fillRect).toHaveBeenCalledWith(panel.x, panel.y, panel.width, panel.height)
+    expect(context.roundRect).toHaveBeenCalledTimes(1)
+    expect(context.roundRect).toHaveBeenCalledWith(panel.x, panel.y, panel.width, panel.height, CARD_PANEL_RADIUS)
     expect(fillText.mock.calls.map(([text]) => text)).toEqual(expect.arrayContaining([
       '优化前',
       '优化后',

@@ -6,6 +6,7 @@ const params: NarrativeParams = {
   line1: '第一排',
   line2: '第二排',
   explanation: '解释',
+  keywords: '',
   duration: 5.2,
 }
 

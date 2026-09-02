@@ -77,7 +77,7 @@ const params: PromptDisplayParams = {
 }
 
 describe('prompt display canvas renderer', () => {
-  it('draws large clipped text with blue keyword emphasis in the left safe area', () => {
+  it('draws large clipped text with orange keyword emphasis in the left safe area', () => {
     const { ctx, records } = recordingContext()
 
     renderPromptDisplayToCanvas({
@@ -100,7 +100,7 @@ describe('prompt display canvas renderer', () => {
     const bodyRecords = records.filter(({ font }) => /\b42px\b/.test(font))
     expect(bodyRecords.length).toBeGreaterThan(0)
     expect(Math.min(...bodyRecords.map(({ y }) => y))).toBe(204)
-    expect(records.filter(({ color }) => color === CANVAS_COLORS.accentBlue)
+    expect(records.filter(({ color }) => color === CANVAS_COLORS.accent)
       .map(({ text }) => text).join(''))
       .toContain('电影级写实')
     expect(records.every(({ x }) => x <= 690)).toBe(true)

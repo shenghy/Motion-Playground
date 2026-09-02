@@ -29,6 +29,8 @@ export interface NarrativeParams extends ParameterValues {
   line1: string
   line2: string
   explanation: string
+  /** 橙色重点词，多个用 | 分隔；命中 line1/line2/explanation 中的片段会高亮。旧项目缺失时退化为纯白文字 */
+  keywords: string
   duration: number
 }
 

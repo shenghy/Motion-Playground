@@ -1,6 +1,7 @@
 import type { CanvasMotionRenderer } from '../../export/canvas/types'
 import {
   CANVAS_COLORS,
+  CARD_PANEL_RADIUS,
   drawPanel,
   drawPencilLine,
   drawText,
@@ -53,25 +54,27 @@ export const renderPromptDisplayToCanvas: CanvasMotionRenderer<PromptDisplayPara
 
   drawPanel(ctx, {
     ...PANEL,
-    fill: 'rgba(5,10,18,.78)',
+    fill: CANVAS_COLORS.surface,
     stroke: null,
     alpha: state.opacity,
+    radius: CARD_PANEL_RADIUS,
+    shadow: {},
   })
   drawPencilLine(ctx, {
-    x1: PANEL.x,
+    x1: PANEL.x + CARD_PANEL_RADIUS,
     y1: PANEL.y,
-    x2: PANEL.x + PANEL.width,
+    x2: PANEL.x + PANEL.width - CARD_PANEL_RADIUS,
     y2: PANEL.y,
-    color: 'rgba(99,179,255,.34)',
+    color: 'rgba(255,255,255,.3)',
     width: 1,
     alpha: state.opacity,
   })
   drawPencilLine(ctx, {
     x1: PANEL.x,
-    y1: PANEL.y,
+    y1: PANEL.y + CARD_PANEL_RADIUS,
     x2: PANEL.x,
-    y2: PANEL.y + PANEL.height,
-    color: CANVAS_COLORS.accentBlue,
+    y2: PANEL.y + PANEL.height - CARD_PANEL_RADIUS,
+    color: CANVAS_COLORS.accent,
     width: 2,
     alpha: state.opacity,
   })
@@ -80,7 +83,7 @@ export const renderPromptDisplayToCanvas: CanvasMotionRenderer<PromptDisplayPara
     x: CONTENT.x,
     y: 150 + 8 * (1 - state.entranceProgress),
     font: `600 16px ${resources.monoFont}`,
-    color: CANVAS_COLORS.accentBlue,
+    color: CANVAS_COLORS.muted,
     maxWidth: CONTENT.width,
     alpha: state.opacity * state.entranceProgress,
   })
@@ -105,10 +108,10 @@ export const renderPromptDisplayToCanvas: CanvasMotionRenderer<PromptDisplayPara
       for (const glyph of line.glyphs) {
         if (glyph.revealIndex >= state.visibleGlyphs) break
         ctx.fillStyle = glyph.highlighted
-          ? CANVAS_COLORS.accentBlue
+          ? CANVAS_COLORS.accent
           : CANVAS_COLORS.paper
         ctx.filter = glyph.highlighted
-          ? 'drop-shadow(0 0 5px rgba(70,157,255,.58))'
+          ? 'drop-shadow(0 0 5px rgba(255,106,0,.55))'
           : 'none'
         ctx.fillText(glyph.text, x, y)
         x += glyph.width
@@ -119,7 +122,7 @@ export const renderPromptDisplayToCanvas: CanvasMotionRenderer<PromptDisplayPara
 
     if (state.cursorVisible) {
       ctx.filter = 'none'
-      ctx.fillStyle = CANVAS_COLORS.accentBlue
+      ctx.fillStyle = CANVAS_COLORS.accent
       ctx.fillRect(cursorX + 4, cursorY + 4, 3, BODY_FONT_SIZE)
     }
   } finally {

@@ -79,7 +79,7 @@ describe('metric focus canvas renderer', () => {
     expect(
       vi.mocked(ctx.fillText).mock.calls.every(([, x]) => Number(x) < 1152),
     ).toBe(true)
-    expect(ctx.strokeStyle).toBe('#2f67b2')
+    expect(ctx.strokeStyle).toBe('#FF6A00')
     expect(ctx.clearRect).not.toHaveBeenCalled()
     expect(ctx.stroke).toHaveBeenCalled()
   })
@@ -223,7 +223,7 @@ describe('metric focus canvas renderer', () => {
     expect(numberFontAt(0)).toBe(numberFontAt(2))
   })
 
-  it('renders a number poster without bar rectangles', () => {
+  it('renders a number poster with only the deep-blue backdrop rectangle', () => {
     const ctx = createContext()
     renderMetricFocusToCanvas({
       ctx,
@@ -238,7 +238,8 @@ describe('metric focus canvas renderer', () => {
       },
     })
 
-    expect(ctx.fillRect).not.toHaveBeenCalled()
+    expect(ctx.fillRect).toHaveBeenCalledTimes(1)
+    expect(ctx.fillRect).toHaveBeenCalledWith(56, 48, 672, 606)
     expect(ctx.strokeRect).not.toHaveBeenCalled()
   })
 })

@@ -44,6 +44,14 @@ const defaultsByMotion: Record<MotionId, ParameterValues> = {
     note: 'AI 日记 · 第四期',
     duration: 4.2,
   },
+  'mind-map': { label: '默认思维导图', value: 70 },
+  'spotlight': { label: '默认聚焦', value: 80 },
+  'key-points': { label: '默认要点', value: 90 },
+  'flow-chain': { label: '默认流程', value: 100 },
+  'timeline-reveal': { label: '默认时间线', value: 110 },
+  'category-matrix': { label: '默认分类', value: 120 },
+  'pyramid': { label: '默认金字塔', value: 130 },
+  'item-grid': { label: '默认罗列', value: 140 },
 }
 
 const project: OverlayProject = {

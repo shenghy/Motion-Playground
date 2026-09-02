@@ -42,6 +42,14 @@ const defaultsByMotion: Record<MotionId, ParameterValues> = {
     note: 'AI 日记 · 第四期',
     duration: 4.2,
   },
+  'mind-map': {},
+  'spotlight': {},
+  'key-points': {},
+  'flow-chain': {},
+  'timeline-reveal': {},
+  'category-matrix': {},
+  'pyramid': {},
+  'item-grid': {},
 }
 
 function makeCard(overrides: Partial<OverlayCard> = {}): OverlayCard {

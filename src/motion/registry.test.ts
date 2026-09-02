@@ -12,6 +12,14 @@ const expectedColors = {
   'audience-poll': '#91A84F',
   'prompt-display': '#4F9BC6',
   'diary-date': '#D8656B',
+  'mind-map': '#9B7BD8',
+  'spotlight': '#F2C14E',
+  'key-points': '#5FA8D3',
+  'flow-chain': '#7BC8A4',
+  'timeline-reveal': '#E58C6A',
+  'category-matrix': '#C9A2DC',
+  'pyramid': '#F5B17B',
+  'item-grid': '#6EC6C9',
 }
 
 describe('motion registry timeline colors', () => {
@@ -22,8 +30,8 @@ describe('motion registry timeline colors', () => {
     const colors = Object.values(actualColors)
 
     expect(actualColors).toEqual(expectedColors)
-    expect(colors).toHaveLength(10)
-    expect(new Set(colors).size).toBe(10)
+    expect(colors).toHaveLength(18)
+    expect(new Set(colors).size).toBe(18)
     expect(colors.every((color) => /^#[0-9A-F]{6}$/.test(color))).toBe(true)
   })
 

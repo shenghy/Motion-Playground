@@ -28,11 +28,18 @@ describe('canvas frame bounds', () => {
       const bounds = resolveMotionBounds(definition.id)
       return bounds.width > 0 && bounds.height > 0
     })).toBe(true)
-    const areas = motionRegistry.map(({ canvasBounds }) => (
+
+    const local = motionRegistry.filter((motion) => motion.scope !== 'fullscreen')
+    const fullscreen = motionRegistry.filter((motion) => motion.scope === 'fullscreen')
+    const localAreas = local.map(({ canvasBounds }) => (
       canvasBounds.width * canvasBounds.height / (1920 * 1080)
     ))
-    expect(Math.max(...areas)).toBeLessThan(0.3)
-    expect(new Set(areas).size).toBeGreaterThan(2)
+    // 局部卡必须小而高效；全屏卡恰好铺满画布
+    expect(Math.max(...localAreas)).toBeLessThan(0.3)
+    expect(new Set(localAreas).size).toBeGreaterThan(2)
+    for (const motion of fullscreen) {
+      expect(resolveMotionBounds(motion.id)).toEqual({ x: 0, y: 0, width: 1920, height: 1080 })
+    }
   })
 
   it('returns an empty rectangle when no card is active', () => {

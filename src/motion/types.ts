@@ -14,6 +14,14 @@ export const MOTION_IDS = [
   'audience-poll',
   'prompt-display',
   'diary-date',
+  'mind-map',
+  'spotlight',
+  'key-points',
+  'flow-chain',
+  'timeline-reveal',
+  'category-matrix',
+  'pyramid',
+  'item-grid',
 ] as const
 
 export type MotionId = (typeof MOTION_IDS)[number]
@@ -151,6 +159,19 @@ export interface DiaryDateParams extends ParameterValues {
   duration: number
 }
 
+/**
+ * 全屏卡片参数（8 张全屏卡共用）。
+ * 内容块用扁平字段承载，与 step-flow 的 step1..stepN 同模式，兼容项目 JSON 校验：
+ * - item1..itemN：各卡主文本（分支/焦点/要点/节点/时间点/类别/层/零件）
+ * - item1Note..itemNNote：可选注释（时间线说明/类别说明/层说明/零件说明等），可空
+ */
+export interface FullscreenParams extends ParameterValues {
+  eyebrow: string
+  title: string
+  duration: number
+  [key: string]: ParameterValue
+}
+
 export type MotionParams =
   | NarrativeParams
   | MetricFocusParams
@@ -162,6 +183,7 @@ export type MotionParams =
   | AudiencePollParams
   | PromptDisplayParams
   | DiaryDateParams
+  | FullscreenParams
 
 export type Control =
   | {
@@ -206,6 +228,8 @@ export interface MotionDefinition<T extends ParameterValues = ParameterValues> {
   category: string
   description: string
   timelineColor: `#${string}`
+  /** 局部卡（默认）叠加在视频上；全屏卡完全盖住画布，铺满 1920×1080 */
+  scope?: 'local' | 'fullscreen'
   defaults: T
   controls: Control[]
   canvasRenderer: CanvasMotionRenderer<T>

@@ -22,7 +22,7 @@ const items = [
 ]
 
 describe('ComponentRail', () => {
-  it('renders 叙述 first and reports the dynamic component count', () => {
+  it('renders 叙述 first on the local-card tab and reports its component count', () => {
     render(
       <ComponentRail
         items={motionRegistry}
@@ -33,8 +33,56 @@ describe('ComponentRail', () => {
 
     const choices = screen.getAllByRole('button', { name: /^选择组件/ })
     expect(choices[0]).toHaveAccessibleName('选择组件叙述')
-    expect(screen.getByText(`${motionRegistry.length} 个组件`)).toBeInTheDocument()
+    expect(screen.getByText('10 个组件')).toBeInTheDocument()
     expect(choices.at(-1)).toHaveAccessibleName('选择组件日记日期')
+  })
+
+  it('switches to the fullscreen-card tab and lists the eight fullscreen cards', () => {
+    render(
+      <ComponentRail
+        items={motionRegistry}
+        activeId="mind-map"
+        onSelect={vi.fn()}
+      />,
+    )
+
+    const fullscreenTab = screen.getByRole('tab', { name: /全屏卡/ })
+    fireEvent.click(fullscreenTab)
+
+    expect(fullscreenTab).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('8 个组件')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '选择组件思维导图' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '选择组件事物罗列' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '选择组件叙述' })).not.toBeInTheDocument()
+  })
+
+  it('follows the active motion scope when it changes between card types', () => {
+    const { rerender } = render(
+      <ComponentRail
+        items={motionRegistry}
+        activeId="narrative"
+        onSelect={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('tab', { name: /局部卡/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+
+    rerender(
+      <ComponentRail
+        items={motionRegistry}
+        activeId="spotlight"
+        onSelect={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('tab', { name: /全屏卡/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: '选择组件聚焦强调' })).toBeInTheDocument()
   })
 
   it('keeps each accessible motion button draggable with a copy payload', () => {

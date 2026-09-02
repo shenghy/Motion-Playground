@@ -22,9 +22,21 @@ const samples = {
   'audience-poll': [0.3, 1.4, 3.4, 6],
   'prompt-display': [0.2, 3, 6.1, 8.1],
   'diary-date': [0.3, 1.6, 3.2, 4.1],
+  'mind-map': [0.24, 3.2, 7.6, 9.5],
+  'spotlight': [0.24, 2.8, 6.8, 8.5],
+  'key-points': [0.24, 2.8, 6.8, 8.5],
+  'flow-chain': [0.24, 2.8, 6.8, 8.5],
+  'timeline-reveal': [0.24, 3.6, 8.8, 11.1],
+  'category-matrix': [0.24, 3.6, 8.8, 11.1],
+  'pyramid': [0.24, 2.6, 6.6, 8.3],
+  'item-grid': [0.24, 4.2, 10.6, 13.3],
 } satisfies Record<MotionId, [number, number, number, number]>
 
 const phases = ['entrance', 'expansion', 'stable', 'exit'] as const
+
+const LOCAL_BOUNDS = { left: 0, top: 40, right: 1919, bottom: 1030 }
+/** 全屏卡铺满整张画布（1920×1080），边界即画布边界 */
+const FULLSCREEN_BOUNDS = { left: 0, top: 0, right: 1919, bottom: 1079 }
 
 export const canvasVisualFixtures: CanvasVisualFixture[] = motionRegistry.flatMap((motion, motionIndex) =>
   samples[motion.id].map((localTime, phaseIndex) => ({
@@ -44,6 +56,8 @@ export const canvasVisualFixtures: CanvasVisualFixture[] = motionRegistry.flatMa
       zIndex: motionIndex,
       params: { ...motion.defaults },
     },
-    expectedBounds: { left: 0, top: 40, right: 1919, bottom: 1030 },
+    expectedBounds: motion.scope === 'fullscreen'
+      ? FULLSCREEN_BOUNDS
+      : LOCAL_BOUNDS,
   })),
 )

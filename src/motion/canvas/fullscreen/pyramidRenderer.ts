@@ -19,8 +19,8 @@ const MIN_HALF_WIDTH = 210
 const LAYER_HEIGHT = (PYRAMID_BASE_Y - PYRAMID_TOP_Y) / LAYER_COUNT
 
 function layerHalfWidth(index: number, count: number) {
-  // 第 0 层（底）最宽，向上递减
-  const t = index / Math.max(1, count - 1)
+  // 第 0 层（底）最宽，向上递减；按 count 归一，相邻层共边
+  const t = index / Math.max(1, count)
   return MAX_HALF_WIDTH - (MAX_HALF_WIDTH - MIN_HALF_WIDTH) * t
 }
 
@@ -47,9 +47,8 @@ export const renderPyramidToCanvas: CanvasMotionRenderer<FullscreenParams> = ({
     const topY = bottomY - LAYER_HEIGHT
     const rise = (1 - phase.grow) * 36
     const bottomHalf = layerHalfWidth(index, items.length)
-    const topHalf = index === 0
-      ? bottomHalf
-      : layerHalfWidth(index - 1, items.length)
+    // 上边收窄到下一层宽度，保证正金字塔（上窄下宽）
+    const topHalf = layerHalfWidth(index + 1, items.length)
     const yShift = topY + rise
     const yShift2 = bottomY + rise
 

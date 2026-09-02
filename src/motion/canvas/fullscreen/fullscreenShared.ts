@@ -21,6 +21,8 @@ const HOLD = 0.6
 export interface FullscreenItemSpec {
   text: string
   note?: string
+  /** 思维导图专用：层级 0=一级分支 1=二级 2=三级；缺省视为 0（其他卡片忽略） */
+  level: number
 }
 
 export interface FullscreenItemPhase {
@@ -40,6 +42,8 @@ export interface FullscreenItemPhase {
   grow: number
   /** 离场进度 0..1（阶段窗口结束后淡出；弱化保留类卡片忽略） */
   leave: number
+  /** 入场原始进度 0..1（未进入=0，已过窗口=1；供弹性/描线等自定义缓动） */
+  enter: number
 }
 
 export interface FullscreenStage {
@@ -56,7 +60,8 @@ export function clampNumber(value: number, minimum: number, maximum: number) {
 }
 
 /**
- * 从扁平参数中提取内容块：item1..itemN 为主文本，item1Note..itemNNote 为可选注释。
+ * 从扁平参数中提取内容块：item1..itemN 为主文本，item1Note..itemNNote 为可选注释，
+ * item1Level..itemNLevel 为可选层级（思维导图专用，0..2，缺省 0）。
  * 与 step-flow 的 step1..stepN 同模式，兼容项目 JSON 校验；空文本自动跳过。
  */
 export function parseFullscreenItems(
@@ -68,7 +73,9 @@ export function parseFullscreenItems(
     const text = String(params[`item${index}`] ?? '').trim()
     if (text === '') continue
     const note = String(params[`item${index}Note`] ?? '').trim()
-    specs.push(note === '' ? { text } : { text, note })
+    const rawLevel = Number(params[`item${index}Level`])
+    const level = Number.isFinite(rawLevel) ? Math.min(2, Math.max(0, Math.round(rawLevel))) : 0
+    specs.push(note === '' ? { text, level } : { text, note, level })
   }
   return specs
 }
@@ -120,6 +127,7 @@ export function getFullscreenStage(
       slide: easeOutQuart(entering),
       grow: easeOutQuart(entering),
       leave: easeOutQuart(delayedProgress(time, end, Math.min(0.35, stageLength * 0.4))),
+      enter: entering,
     }
   })
 

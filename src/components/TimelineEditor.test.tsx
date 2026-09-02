@@ -1,7 +1,26 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
+import type { MotionId } from '../motion/types'
 import type { OverlayCard } from '../timeline/types'
 import { TimelineEditor } from './TimelineEditor'
+
+function makeOverlayCard(
+  id: string,
+  motionId: MotionId,
+  start: number,
+  end: number,
+  zIndex: number,
+): OverlayCard {
+  return {
+    id,
+    motionId,
+    start,
+    end,
+    position: { x: 0, y: 0 },
+    zIndex,
+    params: {},
+  }
+}
 
 const cards: OverlayCard[] = [
   {
@@ -210,6 +229,34 @@ describe('TimelineEditor', () => {
     })
     expect(firstCard).not.toContainElement(startHandle)
     expect(firstCard.parentElement).toBe(startHandle.parentElement)
+  })
+
+  it('stacks overlapping cards on separate rows and grows the track height', () => {
+    const overlapping = [
+      makeOverlayCard('base', 'metric-focus', 1, 8, 0),
+      makeOverlayCard('cover', 'metric-focus', 3, 6, 1),
+    ]
+    render(<TimelineEditor {...createProps({ cards: overlapping })} />)
+
+    // 同一时间两卡分轨渲染：底卡在第 0 行、叠加卡在第 1 行，均可见
+    const clips = Array.from(
+      screen.getByTestId('timeline-track').querySelectorAll('.timeline-editor__card'),
+    )
+    expect(clips).toHaveLength(2)
+    expect(clips[0]).toHaveStyle({ left: '10%', top: '27px' })
+    expect(clips[1]).toHaveStyle({ left: '30%', top: '83px' })
+    expect(screen.getByTestId('timeline-track')).toHaveStyle({ height: '140px' })
+  })
+
+  it('keeps non-overlapping cards on the same row at the base track height', () => {
+    render(<TimelineEditor {...createProps()} />)
+
+    const clips = Array.from(
+      screen.getByTestId('timeline-track').querySelectorAll('.timeline-editor__card'),
+    )
+    expect(clips[0]).toHaveStyle({ top: '27px' })
+    expect(clips[1]).toHaveStyle({ top: '27px' })
+    expect(screen.getByTestId('timeline-track')).toHaveStyle({ height: '84px' })
   })
 
   it('renders adaptive ruler ticks for the visible time range', () => {

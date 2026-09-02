@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { isMotionId, type MotionId } from '../motion/types'
 import { MIN_CARD_DURATION } from '../timeline/project'
+import { assignCardRows } from '../timeline/tracks'
 import type { OverlayCard } from '../timeline/types'
 
 const OVERLAY_MOTION_TYPE = 'application/x-overlay-motion'
@@ -9,6 +10,12 @@ const WHEEL_ZOOM_FACTOR = 0.8
 const MIN_VIEW_SPAN = 1
 const MAX_TICK_COUNT = 12
 const TICK_STEPS = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800]
+
+/** 时间轴多轨布局：重叠卡片纵向分轨（行）。 */
+const CARD_TOP_BASE = 27
+const CARD_HEIGHT = 42
+const CARD_ROW_STRIDE = 56
+const TRACK_BASE_HEIGHT = 84
 
 interface TimelineView {
   start: number
@@ -131,6 +138,15 @@ export function TimelineEditor({
   const selectedCard = cards.find((card) => card.id === selectedCardId)
   const hasUsableDuration =
     Number.isFinite(duration) && duration >= MIN_CARD_DURATION
+  // 多轨布局：同一时间重叠的卡片纵向分轨，每行内时间不冲突
+  const { rowByCardId, rowCount } = useMemo(
+    () => assignCardRows(cards),
+    [cards],
+  )
+  const trackHeight =
+    rowCount <= 1
+      ? TRACK_BASE_HEIGHT
+      : CARD_TOP_BASE + (rowCount - 1) * CARD_ROW_STRIDE + CARD_HEIGHT + 15
   const requestedView =
     viewState.forDuration === duration ? viewState.view : null
   const view = hasUsableDuration
@@ -371,6 +387,7 @@ export function TimelineEditor({
         ref={trackRef}
         className="timeline-editor__track"
         data-testid="timeline-track"
+        style={{ height: `${trackHeight}px` }}
         onClick={(event) => {
           if (event.target !== event.currentTarget) {
             return
@@ -418,6 +435,7 @@ export function TimelineEditor({
           const motionName = motionNames[card.motionId] ?? card.motionId
           const left = percentage(card.start, view)
           const right = percentage(card.end, view)
+          const row = rowByCardId.get(card.id) ?? 0
 
           return (
             <div
@@ -428,6 +446,7 @@ export function TimelineEditor({
               style={{
                 left: `${left}%`,
                 width: `${Math.max(0, right - left)}%`,
+                top: `${CARD_TOP_BASE + row * CARD_ROW_STRIDE}px`,
                 '--timeline-card-color':
                   motionColors[card.motionId] ?? FALLBACK_TIMELINE_COLOR,
               } as CSSProperties}
